@@ -1,0 +1,17 @@
+# Traefik dynamic configuration for doma: terminate TLS and forward
+# everything. No auth middleware in front: doma authenticates every route
+# itself, and invite links (/i/…) and guest links (/g/…) must open from a
+# phone on mobile data.
+http:
+  routers:
+    doma:
+      rule: "Host(`doma.example.com`)"
+      entryPoints: [websecure]
+      service: doma
+      tls:
+        certResolver: letsencrypt
+  services:
+    doma:
+      loadBalancer:
+        servers:
+          - url: "http://doma:8080"

@@ -1,0 +1,74 @@
+# goreleaser v2. `make tools` installs the pinned binary; `goreleaser check`
+# validates this file and `goreleaser release --snapshot --clean` builds
+# locally without publishing.
+version: 2
+project_name: doma
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: doma
+    main: ./cmd/doma
+    binary: doma
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -buildid=
+      - -X github.com/w4jnl/doma/internal/version.Version={{.Version}}
+      - -X github.com/w4jnl/doma/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/w4jnl/doma/internal/version.Date={{.Date}}
+    goos: [linux]
+    goarch: [amd64, arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - CHANGELOG.md
+      - docs/deploy/doma.service
+      - docs/deploy/doma.toml.example
+      - docs/deploy/compose.yaml
+      - docs/deploy/doma.nomad.hcl
+      - docs/deploy/traefik.yaml
+
+checksum:
+  name_template: sha256sums.txt
+
+sboms:
+  - artifacts: archive
+
+dockers_v2:
+  - id: doma
+    dockerfile: Dockerfile
+    images:
+      - ghcr.io/w4jnl/doma
+    tags:
+      - "{{ .Version }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.title: doma
+      org.opencontainers.image.description: "The family's household app: shopping lists, what is at each home, what to bring"
+      org.opencontainers.image.source: https://github.com/w4jnl/doma
+      org.opencontainers.image.version: "{{ .Version }}"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+# release notes come from CHANGELOG.md: the release workflow passes them with
+# --release-notes and sets them again after the upload, so this changelog is never used
+changelog:
+  use: git
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
