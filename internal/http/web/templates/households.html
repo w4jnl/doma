@@ -1,0 +1,30 @@
+{{define "content"}}
+<h1>Households</h1>
+{{if .Error}}<p class="dm-error">{{.Error}}</p>{{end}}
+{{if .Data.Notice}}<p class="dm-notice">{{.Data.Notice}}</p>{{end}}
+<section class="dm-panel">
+  {{if .Data.Households}}
+  <ul class="dm-rows">
+    {{range .Data.Households}}
+    <li>
+      <div class="dm-grow"><strong>{{.Name}}</strong> <span class="dm-meta">{{.Timezone}}</span></div>
+      <span class="dm-meta">{{.Members}} members · {{.Devices}} devices</span>
+      <a class="dm-button dm-button-quiet" href="/admin/h/{{.ID}}">Open</a>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="dm-muted">No households yet. Create the first one below, then make an owner invite on its page.</p>
+  {{end}}
+</section>
+<section class="dm-panel">
+  <h2>Create a household</h2>
+  <form class="dm-inline-form" method="post" action="/admin/households">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <label class="dm-field"><span>Name</span><input class="dm-input" name="name" required></label>
+    <label class="dm-field"><span>Time zone</span><input class="dm-input" name="timezone" value="{{.Data.Timezone}}" required></label>
+    <label class="dm-field"><span>First home</span><input class="dm-input" name="home" placeholder="Gouda" required></label>
+    <button class="dm-button" type="submit">Create</button>
+  </form>
+</section>
+{{end}}

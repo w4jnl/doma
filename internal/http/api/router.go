@@ -1,0 +1,180 @@
+package api
+
+import (
+	"bytes"
+	"context"
+	_ "embed"
+	"errors"
+	"io"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/w4jnl/doma/internal/auth"
+	"github.com/w4jnl/doma/internal/domain"
+	"github.com/w4jnl/doma/internal/http/middleware"
+	"github.com/w4jnl/doma/internal/ratelimit"
+	"github.com/w4jnl/doma/internal/service"
+)
+
+// Prefix is where the API lives.
+const Prefix = "/api/v1"
+
+// Limits from the design document.
+const (
+	// RequestsPerMinute is the per-device limit on the REST routes.
+	RequestsPerMinute = 300
+	// InviteLookupsPerMinute is the per-address limit on failed invite
+	// lookups.
+	InviteLookupsPerMinute = 10
+)
+
+// openAPI is the hand-maintained specification served at
+// /api/v1/openapi.yaml; openapi_test.go checks its paths against the router.
+//
+//go:embed openapi.yaml
+var openAPI []byte
+
+func bytesReader(b []byte) io.Reader { return bytes.NewReader(b) }
+
+// Caller is who a request is from, resolved once per request.
+type Caller struct {
+	Credential *domain.Credential
+	// Scope is set on household routes.
+	Scope domain.Scope
+	// Body is the request body, read once for the signature.
+	Body []byte
+}
+
+type ctxKey int
+
+const keyCaller ctxKey = iota
+
+// CallerFrom returns the request's caller.
+func CallerFrom(ctx context.Context) *Caller {
+	c, _ := ctx.Value(keyCaller).(*Caller)
+	return c
+}
+
+// API holds the dependencies of every handler.
+type API struct {
+	svc    *service.Service
+	log    *slog.Logger
+	nonces *auth.Nonces
+	perDev *ratelimit.Limiter
+	perIP  *ratelimit.Limiter
+	now    func() time.Time
+	Routes []string
+}
+
+// New builds the API.
+func New(svc *service.Service, log *slog.Logger) *API {
+	return &API{
+		svc: svc, log: log, nonces: auth.NewNonces(),
+		perDev: ratelimit.New(RequestsPerMinute, RequestsPerMinute/5),
+		perIP:  ratelimit.New(InviteLookupsPerMinute, InviteLookupsPerMinute),
+		now:    func() time.Time { return time.Now().UTC() },
+	}
+}
+
+// SetClock replaces the clock, for tests.
+func (a *API) SetClock(now func() time.Time) { a.now = now }
+
+type handlerFunc func(w http.ResponseWriter, r *http.Request, c *Caller) error
+
+type mode int
+
+const (
+	modePublic    mode = iota // no signature
+	modeDevice                // a signed request, any person
+	modeHousehold             // a signed request by a member of {household}
+)
+
+// Mount registers every route.
+func (a *API) Mount(mux *http.ServeMux) {
+	a.handle(mux, "POST /i/{token}", modePublic, a.acceptInvite)
+	a.handle(mux, "GET "+Prefix+"/openapi.yaml", modePublic, func(w http.ResponseWriter, _ *http.Request, _ *Caller) error {
+		w.Header().Set("Content-Type", "application/yaml")
+		_, err := w.Write(openAPI)
+		return err
+	})
+	a.handle(mux, "GET "+Prefix+"/me", modeDevice, a.me)
+	a.handle(mux, "DELETE "+Prefix+"/credentials/{id}", modeDevice, a.revokeCredential)
+	a.handle(mux, "POST "+Prefix+"/devices/{credential}/apns", modeDevice, a.registerAPNS)
+	a.handle(mux, "PUT "+Prefix+"/h/{household}", modeHousehold, a.updateHousehold)
+	a.handle(mux, "GET "+Prefix+"/h/{household}/members", modeHousehold, a.members)
+	a.handle(mux, "DELETE "+Prefix+"/h/{household}/members/{person}", modeHousehold, a.removeMember)
+	a.handle(mux, "PUT "+Prefix+"/h/{household}/members/{person}/role", modeHousehold, a.setRole)
+	a.handle(mux, "GET "+Prefix+"/h/{household}/invites", modeHousehold, a.invites)
+	a.handle(mux, "POST "+Prefix+"/h/{household}/invites", modeHousehold, a.createInvite)
+	a.handle(mux, "DELETE "+Prefix+"/h/{household}/invites/{id}", modeHousehold, a.revokeInvite)
+}
+
+func (a *API) handle(mux *http.ServeMux, pattern string, m mode, fn handlerFunc) {
+	a.Routes = append(a.Routes, pattern)
+	mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		c, err := a.caller(r, m)
+		if err != nil {
+			writeError(w, r, a.log, err)
+			return
+		}
+		r = r.WithContext(context.WithValue(r.Context(), keyCaller, c))
+		if err := fn(w, r, c); err != nil {
+			writeError(w, r, a.log, err)
+		}
+	})
+}
+
+// caller reads the body, checks the signature and, on household routes,
+// the membership. The signature is checked before the rate limit is
+// consulted, so a stranger cannot spend a device's budget.
+func (a *API) caller(r *http.Request, m mode) (*Caller, error) {
+	body, err := readBody(r)
+	if err != nil {
+		return nil, err
+	}
+	c := &Caller{Body: body}
+	if m == modePublic {
+		return c, nil
+	}
+	signed, err := auth.ReadSignature(r)
+	if err != nil {
+		return nil, err
+	}
+	cred, err := a.svc.CredentialForAuth(r.Context(), signed.CredentialID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil, auth.ErrBadSignature
+		}
+		return nil, err
+	}
+	key, err := auth.ParsePublicKey(cred.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+	if err := signed.Check(key, a.nonces, r.Method, r.URL.Path, body, a.now()); err != nil {
+		return nil, err
+	}
+	if ok, wait := a.perDev.Allow(cred.ID); !ok {
+		return nil, errRateLimited{wait: wait}
+	}
+	c.Credential = cred
+	middleware.AddLogFields(r.Context(), slog.String("person", cred.PersonID))
+	if m == modeHousehold {
+		hh := r.PathValue("household")
+		ms, err := a.svc.MembershipFor(r.Context(), cred.PersonID, hh)
+		if err != nil {
+			return nil, err
+		}
+		c.Scope = domain.Scope{HouseholdID: hh, PersonID: cred.PersonID, Role: ms.Role}
+		if ms.HomeID != nil {
+			c.Scope.HomeID = *ms.HomeID
+		}
+		if ms.ListID != nil {
+			c.Scope.ListID = *ms.ListID
+		}
+		middleware.AddLogFields(r.Context(), slog.String("household", hh))
+	}
+	a.svc.Touch(r.Context(), cred.ID, cred.PersonID)
+	return c, nil
+}

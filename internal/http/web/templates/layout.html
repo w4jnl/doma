@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · doma</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/tokens.css">
+<link rel="stylesheet" href="/static/doma.css">
+</head>
+<body>
+{{if .Bare}}
+<main class="dm-center">
+  <div>
+    {{mark}}
+    {{template "content" .}}
+  </div>
+</main>
+{{else}}
+<div class="dm-page">
+  <header class="dm-topbar">
+    <a class="dm-wordmark" href="/admin">[⌂] doma</a>
+    <nav aria-label="Admin">
+      <a href="/admin"{{if eq .Nav "households"}} aria-current="page"{{end}}>Households</a>
+      <a href="/admin/server"{{if eq .Nav "server"}} aria-current="page"{{end}}>Server</a>
+    </nav>
+    {{if .CSRF}}<form method="post" action="/admin/logout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Sign out</button></form>{{end}}
+  </header>
+  <main>
+    {{template "content" .}}
+  </main>
+</div>
+{{end}}
+</body>
+</html>

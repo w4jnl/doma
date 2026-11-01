@@ -1,6 +1,6 @@
-// Package http assembles the HTTP surface: the health endpoints now, and
-// the sync endpoint, the REST API and the web pages as later steps add
-// them, each on one chain of middleware.
+// Package http assembles the HTTP surface: the health endpoints, the REST
+// API and the invite accept, and the web pages, on one chain of middleware.
+// The sync endpoint joins in a later step.
 package http
 
 import (
@@ -13,7 +13,11 @@ import (
 	"time"
 
 	"github.com/w4jnl/doma/internal/config"
+	"github.com/w4jnl/doma/internal/http/api"
 	"github.com/w4jnl/doma/internal/http/middleware"
+	"github.com/w4jnl/doma/internal/http/web"
+	"github.com/w4jnl/doma/internal/logging"
+	"github.com/w4jnl/doma/internal/service"
 	"github.com/w4jnl/doma/internal/version"
 )
 
@@ -21,22 +25,65 @@ import (
 type Deps struct {
 	Cfg *config.Config
 	Log *slog.Logger
+	// Svc, when set, mounts the API and the pages; the health endpoint
+	// alone needs nothing.
+	Svc *service.Service
 }
 
 // Handler is the whole surface behind one chain: request id, client IP,
-// request log and panic recovery.
-func Handler(d Deps) http.Handler {
+// request log, panic recovery and the security headers.
+func Handler(d Deps) (http.Handler, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		_, _ = fmt.Fprintf(w, "ok %s\n", version.Version)
 	})
+	if d.Svc != nil {
+		mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+			if err := Ready(r.Context(), d.Svc); err != nil {
+				d.Log.Warn("not ready", "err", err)
+				http.Error(w, "not ready: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			}
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			_, _ = fmt.Fprintln(w, "ready")
+		})
+		api.New(d.Svc, logging.Sub(d.Log, "api")).Mount(mux)
+		pages, err := web.New(d.Svc, logging.Sub(d.Log, "web"), isHTTPS(d.Cfg.Server.BaseURL))
+		if err != nil {
+			return nil, fmt.Errorf("web templates: %w", err)
+		}
+		pages.InviteDays = d.Cfg.Invites.DefaultDays
+		pages.Mount(mux)
+	}
 	return middleware.Chain(mux,
 		middleware.RequestID,
 		middleware.RealIP(d.Cfg.Server.TrustedProxies),
 		middleware.Logger(d.Log),
 		middleware.Recover(d.Log),
-	)
+		middleware.SecurityHeaders,
+	), nil
+}
+
+func isHTTPS(baseURL string) bool { return len(baseURL) >= 8 && baseURL[:8] == "https://" }
+
+// Ready reports whether the writer can take a lock within two seconds.
+// The snapshot job's age joins the check with the sync step.
+func Ready(ctx context.Context, svc *service.Service) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	conn, err := svc.DB().Writer.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("db: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		return fmt.Errorf("db not writable: %w", err)
+	}
+	if _, err := conn.ExecContext(ctx, "ROLLBACK"); err != nil {
+		return fmt.Errorf("db: %w", err)
+	}
+	return nil
 }
 
 // Run serves h on listen until ctx is done, then drains for up to ten

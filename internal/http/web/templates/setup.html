@@ -1,0 +1,11 @@
+{{define "content"}}
+<form class="dm-card" method="post" action="/setup">
+  <h1>Set up doma</h1>
+  <p class="dm-muted">Choose the login for the admin pages. This page never shows again.</p>
+  {{if .Error}}<p class="dm-error">{{.Error}}</p>{{end}}
+  <label class="dm-field"><span>Name</span><input class="dm-input" name="login" value="{{.Data.Login}}" autocomplete="username" required autofocus></label>
+  <label class="dm-field"><span>Password</span><input class="dm-input" name="password" type="password" autocomplete="new-password" required minlength="10"></label>
+  <label class="dm-field"><span>Password again</span><input class="dm-input" name="confirm" type="password" autocomplete="new-password" required minlength="10"></label>
+  <button class="dm-button" type="submit">Set up</button>
+</form>
+{{end}}

@@ -10,11 +10,17 @@ import (
 
 type Querier interface {
 	ClearedEntriesForHome(ctx context.Context, arg ClearedEntriesForHomeParams) ([]Entry, error)
+	CountMembers(ctx context.Context, householdID string) (int64, error)
+	CountOwners(ctx context.Context, householdID string) (int64, error)
+	CredentialsForHousehold(ctx context.Context, householdID string) ([]Credential, error)
+	CredentialsForPerson(ctx context.Context, personID string) ([]Credential, error)
 	DefaultListID(ctx context.Context, householdID string) (string, error)
 	DeleteAliases(ctx context.Context, householdID string) error
 	DeleteEntriesForKey(ctx context.Context, arg DeleteEntriesForKeyParams) error
 	DeleteFlag(ctx context.Context, arg DeleteFlagParams) error
 	DeleteFlagsForItems(ctx context.Context, arg DeleteFlagsForItemsParams) error
+	DeleteHousehold(ctx context.Context, id string) error
+	DeleteMembership(ctx context.Context, arg DeleteMembershipParams) (int64, error)
 	DeleteStaplesForItems(ctx context.Context, arg DeleteStaplesForItemsParams) error
 	EntriesForKey(ctx context.Context, arg EntriesForKeyParams) ([]Entry, error)
 	// Every event the fold replays for one (list, item) key, in hlc order: the
@@ -25,17 +31,33 @@ type Querier interface {
 	// The lists with entry events naming one of the item ids.
 	EntryListIDs(ctx context.Context, arg EntryListIDsParams) ([]string, error)
 	EventsSince(ctx context.Context, arg EventsSinceParams) ([]Event, error)
+	GetAdmin(ctx context.Context) (Admin, error)
+	GetCredential(ctx context.Context, id string) (Credential, error)
+	GetCredentialByHash(ctx context.Context, hash []byte) (Credential, error)
+	GetCredentialByPublicKey(ctx context.Context, publicKey *string) (Credential, error)
 	GetFlag(ctx context.Context, arg GetFlagParams) (Flag, error)
 	GetHome(ctx context.Context, arg GetHomeParams) (Home, error)
+	GetHousehold(ctx context.Context, id string) (Household, error)
+	// tenancy: root -- the token is the only thing an invite link carries
+	GetInviteByHash(ctx context.Context, tokenHash []byte) (Invite, error)
 	GetItem(ctx context.Context, arg GetItemParams) (Item, error)
 	GetList(ctx context.Context, arg GetListParams) (List, error)
+	GetMembership(ctx context.Context, arg GetMembershipParams) (Membership, error)
+	GetPerson(ctx context.Context, id string) (Person, error)
 	GetSpot(ctx context.Context, arg GetSpotParams) (Spot, error)
 	GetStaple(ctx context.Context, arg GetStapleParams) (Staple, error)
+	InsertAdmin(ctx context.Context, arg InsertAdminParams) error
 	InsertAlias(ctx context.Context, arg InsertAliasParams) error
+	InsertCredential(ctx context.Context, arg InsertCredentialParams) error
 	InsertEntry(ctx context.Context, arg InsertEntryParams) error
 	InsertEvent(ctx context.Context, arg InsertEventParams) error
+	InsertHousehold(ctx context.Context, arg InsertHouseholdParams) error
+	InsertInvite(ctx context.Context, arg InsertInviteParams) error
+	InsertMembership(ctx context.Context, arg InsertMembershipParams) error
+	InsertPerson(ctx context.Context, arg InsertPersonParams) error
 	InsertPhoto(ctx context.Context, arg InsertPhotoParams) error
 	InsertTrip(ctx context.Context, arg InsertTripParams) error
+	InvitesForHousehold(ctx context.Context, arg InvitesForHouseholdParams) ([]Invite, error)
 	ItemEvents(ctx context.Context, householdID string) ([]Event, error)
 	// The flag, staple and trip events that name one of the item ids, given as
 	// a JSON array.
@@ -44,20 +66,34 @@ type Querier interface {
 	ListEntries(ctx context.Context, householdID string) ([]Entry, error)
 	ListFlags(ctx context.Context, householdID string) ([]Flag, error)
 	ListHomes(ctx context.Context, householdID string) ([]Home, error)
+	ListHouseholds(ctx context.Context) ([]Household, error)
 	ListItems(ctx context.Context, householdID string) ([]Item, error)
 	ListLists(ctx context.Context, householdID string) ([]List, error)
 	ListPhotos(ctx context.Context, householdID string) ([]Photo, error)
 	ListSpots(ctx context.Context, householdID string) ([]Spot, error)
 	ListStaples(ctx context.Context, householdID string) ([]Staple, error)
 	ListTrips(ctx context.Context, householdID string) ([]Trip, error)
+	MembersOfHousehold(ctx context.Context, householdID string) ([]MembersOfHouseholdRow, error)
+	// tenancy: root -- a person's memberships across households, to build their scopes
+	MembershipsForPerson(ctx context.Context, personID string) ([]Membership, error)
 	NextSeq(ctx context.Context, householdID string) (int64, error)
 	RecountItemUsage(ctx context.Context, arg RecountItemUsageParams) error
+	RevokeCredential(ctx context.Context, arg RevokeCredentialParams) (int64, error)
+	RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int64, error)
+	SetAPNSToken(ctx context.Context, arg SetAPNSTokenParams) error
+	TouchCredential(ctx context.Context, arg TouchCredentialParams) error
+	TouchPerson(ctx context.Context, arg TouchPersonParams) error
+	UpdateHousehold(ctx context.Context, arg UpdateHouseholdParams) error
+	UpdateHouseholdQuotas(ctx context.Context, arg UpdateHouseholdQuotasParams) error
+	UpdateMembershipRole(ctx context.Context, arg UpdateMembershipRoleParams) (int64, error)
+	UpdatePersonName(ctx context.Context, arg UpdatePersonNameParams) error
 	UpsertFlag(ctx context.Context, arg UpsertFlagParams) error
 	UpsertHome(ctx context.Context, arg UpsertHomeParams) error
 	UpsertItem(ctx context.Context, arg UpsertItemParams) error
 	UpsertList(ctx context.Context, arg UpsertListParams) error
 	UpsertSpot(ctx context.Context, arg UpsertSpotParams) error
 	UpsertStaple(ctx context.Context, arg UpsertStapleParams) error
+	UseInvite(ctx context.Context, arg UseInviteParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

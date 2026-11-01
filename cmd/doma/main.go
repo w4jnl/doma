@@ -13,10 +13,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	_ "time/tzdata" // the scratch image has no zoneinfo; households carry a time zone
 
 	"github.com/w4jnl/doma/internal/config"
+	"github.com/w4jnl/doma/internal/db"
 	dhttp "github.com/w4jnl/doma/internal/http"
 	"github.com/w4jnl/doma/internal/logging"
+	"github.com/w4jnl/doma/internal/service"
 	"github.com/w4jnl/doma/internal/version"
 )
 
@@ -101,8 +104,26 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	for _, w := range cfg.Warnings() {
 		log.Warn("config: " + w)
 	}
-	deps := dhttp.Deps{Cfg: cfg, Log: log}
-	if err := dhttp.Run(ctx, log, cfg.Server.Listen, dhttp.Handler(deps)); err != nil {
+	d, err := db.Open(ctx, cfg.DB.Path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = d.Close() }()
+	if _, err := db.Migrate(ctx, d.Writer, log); err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	svc := service.New(d, service.Config{
+		BaseURL: cfg.BaseURL(), InviteDays: cfg.Invites.DefaultDays, GuestDays: cfg.Invites.GuestDefaultDays,
+		StalenessDays: cfg.Defaults.StalenessDays, MaxEventsPerSync: cfg.Sync.MaxEventsPerResponse,
+	}, log)
+	h, err := dhttp.Handler(dhttp.Deps{Cfg: cfg, Log: log, Svc: svc})
+	if err != nil {
+		return err
+	}
+	if ok, err := svc.AdminExists(ctx); err == nil && !ok {
+		log.Info("first run: open " + cfg.BaseURL() + "/setup in a browser")
+	}
+	if err := dhttp.Run(ctx, log, cfg.Server.Listen, h); err != nil {
 		return err
 	}
 	log.Info("stopped")

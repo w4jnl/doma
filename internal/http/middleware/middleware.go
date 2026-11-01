@@ -203,3 +203,17 @@ func Recover(log *slog.Logger) func(http.Handler) http.Handler {
 		})
 	}
 }
+
+// SecurityHeaders sets the headers every page and response carries: a
+// content security policy that allows only the server's own assets, no
+// framing, no sniffing, same-origin referrers.
+func SecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'")
+		h.Set("Referrer-Policy", "same-origin")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("X-Content-Type-Options", "nosniff")
+		next.ServeHTTP(w, r)
+	})
+}

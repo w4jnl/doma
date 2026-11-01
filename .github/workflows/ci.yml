@@ -42,9 +42,8 @@ jobs:
 
       - name: generated code is clean
         run: |
-          sqlc generate
-          cp docs/event-schema.json internal/events/event-schema.json
-          git diff --exit-code -- internal/db internal/events/event-schema.json
+          make generate SQLC=sqlc
+          git diff --exit-code -- internal/db internal/events/event-schema.json internal/http/web/static
 
       - name: tenancy gate
         run: scripts/check-tenancy.sh
