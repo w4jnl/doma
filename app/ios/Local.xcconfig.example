@@ -1,0 +1,10 @@
+// Copy to Local.xcconfig (gitignored; make ios-project writes an empty one). Your Apple team id
+// signs a build for a device (Xcode › Settings › Accounts, or Membership in the developer
+// account); the simulator needs none.
+DOMA_TEAM_ID =
+// For make ios-testflight, and make ios-device without Xcode's account: an App Store Connect API
+// key that may upload builds (Users and Access › Integrations › App Store Connect API, role App
+// Manager or Admin). Its .p8 goes to ~/.appstoreconnect/private_keys/AuthKey_<key id>.p8
+// (chmod 600); empty, Xcode's account signs in.
+DOMA_ASC_KEY_ID =
+DOMA_ASC_ISSUER_ID =

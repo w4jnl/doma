@@ -1,0 +1,47 @@
+# The apps' tests on a Mac runner, only when something under app/ or what the apps read by path
+# (the fold fixture, the design tokens) changes: macOS minutes count ten times on a private
+# repository, so server PRs do not pay for them. One job, both platforms in turn.
+name: apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'docs/fixtures/**'
+      - 'docs/design-system/**'
+      - 'Makefile'
+      - '.github/workflows/apps.yml'
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'docs/fixtures/**'
+      - 'docs/design-system/**'
+      - 'Makefile'
+      - '.github/workflows/apps.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apps-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: xcodegen
+        run: brew install xcodegen
+
+      - name: xcode
+        run: xcodebuild -version && xcrun simctl list devices available | grep -m1 'iPhone 17'
+
+      - name: mac-test
+        run: make mac-test
+
+      - name: ios-test
+        run: make ios-test
