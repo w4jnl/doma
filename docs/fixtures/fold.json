@@ -1,0 +1,1582 @@
+{
+  "_comment": "Ordered event sequences and the tables they fold to. Every case must fold to the same tables in every order of its events; the Go test tries every permutation of up to seven events and forty shuffles beyond that, and the Swift test under app/shared/Fold reads this file by path. hlc stamps are written short (wall:counter:device) and compared zero-padded; a field that is null, empty, zero or false is left out. Persons are pa and pb on devices a and b; L1 is the household's default list.",
+  "cases": [
+    {
+      "name": "two devices name melk offline: the earlier stamp owns the name, the other merges into it",
+      "events": [
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pb",
+          "hlc": "1001:0:b",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I2",
+            "name": "Melk"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pb",
+          "hlc": "1002:0:b",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I2"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "use_count": 1,
+            "last_used_at": 1002,
+            "created_hlc": "1000:0:a",
+            "updated_hlc": "1000:0:a"
+          },
+          {
+            "id": "I2",
+            "name": "Melk",
+            "merged_into": "I1",
+            "created_hlc": "1001:0:b",
+            "updated_hlc": "1001:0:b"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e3",
+            "list_id": "L1",
+            "item_id": "I1",
+            "sort": 1002,
+            "added_hlc": "1002:0:b",
+            "added_by": "pb"
+          }
+        ]
+      }
+    },
+    {
+      "name": "re-add after clear opens a new era; the cleared one is the purchase record",
+      "events": [
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1",
+            "qty": 2,
+            "unit": "x"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pa",
+          "hlc": "1200:0:a",
+          "kind": "entry.cleared",
+          "payload": {
+            "list_id": "L1",
+            "before_hlc": "1150:0:a"
+          }
+        },
+        {
+          "id": "e4",
+          "person_id": "pa",
+          "hlc": "1300:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "use_count": 2,
+            "last_used_at": 1300,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L1",
+            "item_id": "I1",
+            "qty": 2,
+            "unit": "x",
+            "sort": 1000,
+            "added_hlc": "1000:0:a",
+            "added_by": "pa",
+            "checked_hlc": "1100:0:a",
+            "checked_by": "pa",
+            "cleared_hlc": "1200:0:a"
+          },
+          {
+            "id": "e4",
+            "list_id": "L1",
+            "item_id": "I1",
+            "sort": 1300,
+            "added_hlc": "1300:0:a",
+            "added_by": "pa"
+          }
+        ]
+      }
+    },
+    {
+      "name": "duplicate ids are applied once",
+      "events": [
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "use_count": 1,
+            "last_used_at": 1000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L2",
+            "item_id": "I1",
+            "sort": 1000,
+            "added_hlc": "1000:0:a",
+            "added_by": "pa"
+          }
+        ]
+      }
+    },
+    {
+      "name": "re-adding a checked entry unchecks it and takes the new note",
+      "events": [
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pb",
+          "hlc": "1200:0:b",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1",
+            "note": "2 pakken"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "use_count": 1,
+            "last_used_at": 1000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L2",
+            "item_id": "I1",
+            "note": "2 pakken",
+            "sort": 1000,
+            "added_hlc": "1000:0:a",
+            "added_by": "pa"
+          }
+        ]
+      }
+    },
+    {
+      "name": "a clear takes the entries checked before its boundary and leaves the rest",
+      "events": [
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "i2",
+          "person_id": "pa",
+          "hlc": "951:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I2",
+            "name": "brood"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pa",
+          "hlc": "1001:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I2"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e4",
+          "person_id": "pb",
+          "hlc": "1300:0:b",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I2"
+          }
+        },
+        {
+          "id": "e5",
+          "person_id": "pa",
+          "hlc": "1400:0:a",
+          "kind": "entry.cleared",
+          "payload": {
+            "list_id": "L2",
+            "before_hlc": "1200:0:a"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "use_count": 1,
+            "last_used_at": 1000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          },
+          {
+            "id": "I2",
+            "name": "brood",
+            "norm_name": "brood",
+            "use_count": 1,
+            "last_used_at": 1001,
+            "created_hlc": "951:0:a",
+            "updated_hlc": "951:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L2",
+            "item_id": "I1",
+            "sort": 1000,
+            "added_hlc": "1000:0:a",
+            "added_by": "pa",
+            "checked_hlc": "1100:0:a",
+            "checked_by": "pa",
+            "cleared_hlc": "1400:0:a"
+          },
+          {
+            "id": "e2",
+            "list_id": "L2",
+            "item_id": "I2",
+            "sort": 1001,
+            "added_hlc": "1001:0:a",
+            "added_by": "pa",
+            "checked_hlc": "1300:0:b",
+            "checked_by": "pb"
+          }
+        ]
+      }
+    },
+    {
+      "name": "an out flag adds the item to the default list for that home; clearing it flags the item have; a later flag wins",
+      "events": [
+        {
+          "id": "h1",
+          "person_id": "pa",
+          "hlc": "500:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H1",
+            "name": "Gouda"
+          }
+        },
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "olijfolie"
+          }
+        },
+        {
+          "id": "f1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "flag.set",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "out",
+            "note": "last one gone"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pb",
+          "hlc": "1100:0:b",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pb",
+          "hlc": "1200:0:b",
+          "kind": "entry.cleared",
+          "payload": {
+            "list_id": "L1",
+            "before_hlc": "1150:0:b"
+          }
+        },
+        {
+          "id": "f4",
+          "person_id": "pa",
+          "hlc": "1300:0:a",
+          "kind": "flag.set",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "low"
+          }
+        }
+      ],
+      "expect": {
+        "homes": [
+          {
+            "id": "H1",
+            "name": "Gouda",
+            "updated_hlc": "500:0:a"
+          }
+        ],
+        "items": [
+          {
+            "id": "I1",
+            "name": "olijfolie",
+            "norm_name": "olijfolie",
+            "use_count": 1,
+            "last_used_at": 1000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "f1",
+            "list_id": "L1",
+            "item_id": "I1",
+            "for_home_id": "H1",
+            "sort": 1000,
+            "added_hlc": "1000:0:a",
+            "added_by": "pa",
+            "checked_hlc": "1100:0:b",
+            "checked_by": "pb",
+            "cleared_hlc": "1200:0:b"
+          }
+        ],
+        "flags": [
+          {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "low",
+            "set_hlc": "1300:0:a",
+            "set_by": "pa"
+          }
+        ]
+      }
+    },
+    {
+      "name": "clearing an entry for a home flags it have at the clear, with the clear's stamp",
+      "events": [
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "olijfolie"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1",
+            "for_home_id": "H1"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "f1",
+          "person_id": "pb",
+          "hlc": "1150:0:b",
+          "kind": "flag.set",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "out"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pa",
+          "hlc": "1200:0:a",
+          "kind": "entry.cleared",
+          "payload": {
+            "list_id": "L2",
+            "before_hlc": "1199:0:a"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "olijfolie",
+            "norm_name": "olijfolie",
+            "use_count": 1,
+            "last_used_at": 1000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L2",
+            "item_id": "I1",
+            "for_home_id": "H1",
+            "sort": 1000,
+            "added_hlc": "1000:0:a",
+            "added_by": "pa",
+            "checked_hlc": "1100:0:a",
+            "checked_by": "pa",
+            "cleared_hlc": "1200:0:a"
+          }
+        ],
+        "flags": [
+          {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "have",
+            "set_hlc": "1200:0:a",
+            "set_by": "pa"
+          }
+        ]
+      }
+    },
+    {
+      "name": "staples: the latest add and the latest remove decide",
+      "events": [
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "koffie"
+          }
+        },
+        {
+          "id": "s1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "sort": 3
+          }
+        },
+        {
+          "id": "s2",
+          "person_id": "pb",
+          "hlc": "1100:0:b",
+          "kind": "staple.removed",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "s3",
+          "person_id": "pa",
+          "hlc": "1050:0:a",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "sort": 4
+          }
+        },
+        {
+          "id": "s4",
+          "person_id": "pa",
+          "hlc": "1200:0:a",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "sort": 5
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "koffie",
+            "norm_name": "koffie",
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "staples": [
+          {
+            "home_id": "H1",
+            "item_id": "I1",
+            "sort": 5,
+            "added_hlc": "1200:0:a",
+            "removed_hlc": "1100:0:b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "an explicit merge keeps the dropped name as an alias and moves flags and entries",
+      "events": [
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "olijfolie"
+          }
+        },
+        {
+          "id": "i2",
+          "person_id": "pb",
+          "hlc": "1001:0:b",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I2",
+            "name": "olive oil"
+          }
+        },
+        {
+          "id": "f1",
+          "person_id": "pb",
+          "hlc": "1100:0:b",
+          "kind": "flag.set",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I2",
+            "state": "have"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pb",
+          "hlc": "1200:0:b",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I2"
+          }
+        },
+        {
+          "id": "m1",
+          "person_id": "pa",
+          "hlc": "1300:0:a",
+          "kind": "item.merged",
+          "payload": {
+            "keep_id": "I1",
+            "drop_id": "I2"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "olijfolie",
+            "norm_name": "olijfolie",
+            "use_count": 1,
+            "last_used_at": 1200,
+            "created_hlc": "1000:0:a",
+            "updated_hlc": "1000:0:a"
+          },
+          {
+            "id": "I2",
+            "name": "olive oil",
+            "merged_into": "I1",
+            "created_hlc": "1001:0:b",
+            "updated_hlc": "1001:0:b"
+          }
+        ],
+        "item_aliases": [
+          {
+            "item_id": "I1",
+            "norm_name": "olive oil"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L1",
+            "item_id": "I1",
+            "sort": 1200,
+            "added_hlc": "1200:0:b",
+            "added_by": "pb"
+          }
+        ],
+        "flags": [
+          {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "have",
+            "set_hlc": "1100:0:b",
+            "set_by": "pb"
+          }
+        ]
+      }
+    },
+    {
+      "name": "list names are last-writer-wins and an archive sticks",
+      "events": [
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L2",
+            "name": "Weekend",
+            "colour": "teal",
+            "owner_person_id": "pa"
+          }
+        },
+        {
+          "id": "l2",
+          "person_id": "pa",
+          "hlc": "1200:0:a",
+          "kind": "list.renamed",
+          "payload": {
+            "list_id": "L2",
+            "name": "Cabin",
+            "colour": "teal"
+          }
+        },
+        {
+          "id": "l3",
+          "person_id": "pb",
+          "hlc": "1100:0:b",
+          "kind": "list.renamed",
+          "payload": {
+            "list_id": "L2",
+            "name": "Hut",
+            "colour": "teal"
+          }
+        },
+        {
+          "id": "l4",
+          "person_id": "pa",
+          "hlc": "1150:0:a",
+          "kind": "list.archived",
+          "payload": {
+            "list_id": "L2"
+          }
+        }
+      ],
+      "expect": {
+        "lists": [
+          {
+            "id": "L2",
+            "name": "Cabin",
+            "colour": "teal",
+            "owner_person_id": "pa",
+            "archived_at": 1150,
+            "updated_hlc": "1200:0:a"
+          }
+        ]
+      }
+    },
+    {
+      "name": "a trip moves the flags and puts the moved items on the default list for the from-home",
+      "events": [
+        {
+          "id": "h1",
+          "person_id": "pa",
+          "hlc": "500:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H1",
+            "name": "Gouda"
+          }
+        },
+        {
+          "id": "h2",
+          "person_id": "pa",
+          "hlc": "501:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H2",
+            "name": "Hut"
+          }
+        },
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "olijfolie"
+          }
+        },
+        {
+          "id": "t1",
+          "person_id": "pa",
+          "hlc": "2000:0:a",
+          "kind": "trip.arrived",
+          "payload": {
+            "trip_id": "T1",
+            "from_home_id": "H1",
+            "to_home_id": "H2",
+            "moved": [
+              "I1"
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "homes": [
+          {
+            "id": "H1",
+            "name": "Gouda",
+            "updated_hlc": "500:0:a"
+          },
+          {
+            "id": "H2",
+            "name": "Hut",
+            "updated_hlc": "501:0:a"
+          }
+        ],
+        "items": [
+          {
+            "id": "I1",
+            "name": "olijfolie",
+            "norm_name": "olijfolie",
+            "use_count": 1,
+            "last_used_at": 2000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "t1:I1",
+            "list_id": "L1",
+            "item_id": "I1",
+            "for_home_id": "H1",
+            "sort": 2000,
+            "added_hlc": "2000:0:a",
+            "added_by": "pa"
+          }
+        ],
+        "flags": [
+          {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "out",
+            "set_hlc": "2000:0:a",
+            "set_by": "pa"
+          },
+          {
+            "home_id": "H2",
+            "item_id": "I1",
+            "state": "have",
+            "set_hlc": "2000:0:a",
+            "set_by": "pa"
+          }
+        ],
+        "trips": [
+          {
+            "id": "T1",
+            "from_home_id": "H1",
+            "to_home_id": "H2",
+            "date": 2000,
+            "created_by": "pa",
+            "arrived_at": 2000
+          }
+        ]
+      }
+    },
+    {
+      "name": "a rename into an existing name merges, and leaves no alias behind",
+      "events": [
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "i2",
+          "person_id": "pb",
+          "hlc": "1001:0:b",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I2",
+            "name": "melk halfvol"
+          }
+        },
+        {
+          "id": "r1",
+          "person_id": "pa",
+          "hlc": "1200:0:a",
+          "kind": "item.renamed",
+          "payload": {
+            "item_id": "I1",
+            "name": "Melk halfvol"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "Melk halfvol",
+            "merged_into": "I2",
+            "created_hlc": "1000:0:a",
+            "updated_hlc": "1200:0:a"
+          },
+          {
+            "id": "I2",
+            "name": "melk halfvol",
+            "norm_name": "melk halfvol",
+            "created_hlc": "1001:0:b",
+            "updated_hlc": "1001:0:b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "an edit changes quantity and unit and keeps the check; a move sets the sort",
+      "events": [
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "gehakt"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1",
+            "qty": 500,
+            "unit": "g"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pa",
+          "hlc": "1200:0:a",
+          "kind": "entry.edited",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1",
+            "qty": 1,
+            "unit": "kg",
+            "note": "only the big pack"
+          }
+        },
+        {
+          "id": "e4",
+          "person_id": "pa",
+          "hlc": "1300:0:a",
+          "kind": "entry.moved",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1",
+            "sort": 5
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "gehakt",
+            "norm_name": "gehakt",
+            "use_count": 1,
+            "last_used_at": 1000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L2",
+            "item_id": "I1",
+            "qty": 1,
+            "unit": "kg",
+            "note": "only the big pack",
+            "sort": 5,
+            "added_hlc": "1000:0:a",
+            "added_by": "pa",
+            "checked_hlc": "1100:0:a",
+            "checked_by": "pa"
+          }
+        ]
+      }
+    },
+    {
+      "name": "spots and photos append; an unknown kind is skipped",
+      "events": [
+        {
+          "id": "h1",
+          "person_id": "pa",
+          "hlc": "500:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H1",
+            "name": "Gouda"
+          }
+        },
+        {
+          "id": "s1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "spot.created",
+          "payload": {
+            "spot_id": "S1",
+            "home_id": "H1",
+            "name": "fridge"
+          }
+        },
+        {
+          "id": "p1",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "photo.added",
+          "payload": {
+            "photo_id": "P1",
+            "spot_id": "S1",
+            "bytes": 1200,
+            "width": 1600,
+            "height": 1200
+          }
+        },
+        {
+          "id": "p2",
+          "person_id": "pb",
+          "hlc": "1200:0:b",
+          "kind": "photo.added",
+          "payload": {
+            "photo_id": "P2",
+            "spot_id": "S1",
+            "bytes": 900,
+            "width": 1200,
+            "height": 1600
+          }
+        },
+        {
+          "id": "x1",
+          "person_id": "pa",
+          "hlc": "1300:0:a",
+          "kind": "future.thing",
+          "payload": {
+            "anything": true
+          }
+        },
+        {
+          "id": "s2",
+          "person_id": "pa",
+          "hlc": "1400:0:a",
+          "kind": "spot.renamed",
+          "payload": {
+            "spot_id": "S1",
+            "name": "fridge door"
+          }
+        }
+      ],
+      "expect": {
+        "homes": [
+          {
+            "id": "H1",
+            "name": "Gouda",
+            "updated_hlc": "500:0:a"
+          }
+        ],
+        "spots": [
+          {
+            "id": "S1",
+            "home_id": "H1",
+            "name": "fridge door",
+            "updated_hlc": "1400:0:a"
+          }
+        ],
+        "photos": [
+          {
+            "id": "P1",
+            "spot_id": "S1",
+            "taken_hlc": "1100:0:a",
+            "taken_by": "pa",
+            "bytes": 1200,
+            "width": 1600,
+            "height": 1200
+          },
+          {
+            "id": "P2",
+            "spot_id": "S1",
+            "taken_hlc": "1200:0:b",
+            "taken_by": "pb",
+            "bytes": 900,
+            "width": 1200,
+            "height": 1600
+          }
+        ]
+      }
+    },
+    {
+      "name": "a default list created after an out flag still gets the item",
+      "events": [
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "olijfolie"
+          }
+        },
+        {
+          "id": "f1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "flag.set",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "out"
+          }
+        },
+        {
+          "id": "l2",
+          "person_id": "pa",
+          "hlc": "1050:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L2",
+            "name": "Weekend"
+          }
+        },
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "olijfolie",
+            "norm_name": "olijfolie",
+            "use_count": 1,
+            "last_used_at": 1000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "1100:0:a"
+          },
+          {
+            "id": "L2",
+            "name": "Weekend",
+            "updated_hlc": "1050:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "f1",
+            "list_id": "L1",
+            "item_id": "I1",
+            "for_home_id": "H1",
+            "sort": 1000,
+            "added_hlc": "1000:0:a",
+            "added_by": "pa"
+          }
+        ],
+        "flags": [
+          {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "out",
+            "set_hlc": "1000:0:a",
+            "set_by": "pa"
+          }
+        ]
+      }
+    },
+    {
+      "name": "an uncheck restores a struck entry; homes rename last-writer-wins and archive; a spot archives",
+      "events": [
+        {
+          "id": "h1",
+          "person_id": "pa",
+          "hlc": "500:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H1",
+            "name": "Gouda"
+          }
+        },
+        {
+          "id": "h2",
+          "person_id": "pb",
+          "hlc": "600:0:b",
+          "kind": "home.renamed",
+          "payload": {
+            "home_id": "H1",
+            "name": "Thuis"
+          }
+        },
+        {
+          "id": "h3",
+          "person_id": "pa",
+          "hlc": "550:0:a",
+          "kind": "home.renamed",
+          "payload": {
+            "home_id": "H1",
+            "name": "Home"
+          }
+        },
+        {
+          "id": "h4",
+          "person_id": "pa",
+          "hlc": "700:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H2",
+            "name": "Hut"
+          }
+        },
+        {
+          "id": "h5",
+          "person_id": "pa",
+          "hlc": "800:0:a",
+          "kind": "home.archived",
+          "payload": {
+            "home_id": "H2"
+          }
+        },
+        {
+          "id": "s1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "spot.created",
+          "payload": {
+            "spot_id": "S1",
+            "home_id": "H1",
+            "name": "pantry"
+          }
+        },
+        {
+          "id": "s2",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "spot.archived",
+          "payload": {
+            "spot_id": "S1"
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pa",
+          "hlc": "1200:0:a",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pb",
+          "hlc": "1300:0:b",
+          "kind": "entry.unchecked",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e4",
+          "person_id": "pa",
+          "hlc": "1400:0:a",
+          "kind": "entry.cleared",
+          "payload": {
+            "list_id": "L2",
+            "before_hlc": "1350:0:a"
+          }
+        }
+      ],
+      "expect": {
+        "homes": [
+          {
+            "id": "H1",
+            "name": "Thuis",
+            "updated_hlc": "600:0:b"
+          },
+          {
+            "id": "H2",
+            "name": "Hut",
+            "archived_at": 800,
+            "updated_hlc": "700:0:a"
+          }
+        ],
+        "spots": [
+          {
+            "id": "S1",
+            "home_id": "H1",
+            "name": "pantry",
+            "archived_at": 950,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "use_count": 1,
+            "last_used_at": 1100,
+            "created_hlc": "1000:0:a",
+            "updated_hlc": "1000:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L2",
+            "item_id": "I1",
+            "sort": 1100,
+            "added_hlc": "1100:0:a",
+            "added_by": "pa"
+          }
+        ]
+      }
+    }
+  ]
+}

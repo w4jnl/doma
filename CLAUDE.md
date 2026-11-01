@@ -22,11 +22,15 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   a prompt of the same shape when the previous gate is met.
 
 ## State of the tree (update this when it changes)
-- Phase 0 step 1 is in: the module, `doma serve` with config and logging, `/healthz`, the
-  Makefile, CI, goreleaser and the gate scripts. There is no schema, no `internal/db`, no fold,
-  no `docs/fixtures/fold.json`, no sync endpoint, no web pages and no `app/*/project.yml` yet;
-  `make generate`, `make migrate` and `make e2e` arrive with their steps. Check `git log` and
-  `ls` before assuming otherwise.
+- Phase 0 steps 1 and 2 are in: the module, `doma serve` with config and logging, `/healthz`,
+  the Makefile, CI, goreleaser and the gate scripts; the schema, sqlc queries, the fold with
+  `docs/fixtures/fold.json`, the SQL store under `internal/foldsql` and the event schema with its
+  validator. There is no identity, no sync endpoint, no web pages and no `app/*/project.yml`
+  yet; `make e2e` arrives with step 7. Check `git log` and `ls` before assuming otherwise.
+- The fold's one design choice beyond the spec: it is order-independent, not only deterministic
+  in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;
+  flags are derived from all their candidates; everything else is last-writer-wins or add and
+  remove maxima. `internal/fold/fold.go` says why, and the property test proves it.
 - The package map to build to is "Architecture and repository layout" in `docs/design.md`; the
   tables are in "Data model and tenancy", the event kinds and fold rules in "Event log and sync",
   the task lists and the open-decisions table in "Testing, milestones, open decisions".
