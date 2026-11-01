@@ -26,8 +26,8 @@ protocol FoldStore {
     /// carries is a snapshot's base; one derived from the log is rebuilt from it.
     func hasEvent(stamp: HLC) throws -> Bool
 
-    func list(_ id: String) throws -> List?
-    func putList(_ list: List) throws
+    func list(_ id: String) throws -> ShoppingList?
+    func putList(_ list: ShoppingList) throws
     func defaultListID() throws -> String?
 
     /// Every event a key's replay needs: entry events for the list and any of the item ids

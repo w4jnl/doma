@@ -29,7 +29,7 @@ struct ItemAlias: Hashable, Sendable, Codable {
     }
 }
 
-struct List: Hashable, Sendable, Codable {
+struct ShoppingList: Hashable, Sendable, Codable {
     var id: String
     var name: String = ""
     var colour: String = ""
@@ -158,7 +158,7 @@ struct Trip: Hashable, Sendable, Codable {
 struct Tables: Hashable, Sendable, Codable {
     var items: [Item] = []
     var aliases: [ItemAlias] = []
-    var lists: [List] = []
+    var lists: [ShoppingList] = []
     var entries: [Entry] = []
     var flags: [Flag] = []
     var staples: [Staple] = []

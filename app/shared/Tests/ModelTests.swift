@@ -80,7 +80,7 @@ final class ModelTests: XCTestCase {
 
     func testCanonicalDropsZeroFields() throws {
         var t = Tables()
-        t.lists = [List(id: "L1", name: "Shopping", isDefault: true, updatedHLC: HLC(wall: 900, device: "a"))]
+        t.lists = [ShoppingList(id: "L1", name: "Shopping", isDefault: true, updatedHLC: HLC(wall: 900, device: "a"))]
         t.entries = [Entry(id: "e1", listID: "L1", itemID: "I1", sort: 1002, addedHLC: HLC(wall: 1002, device: "b"), addedBy: "pb")]
         let want = Tables.canonical(expectation: try JSONValue(data: Data("""
         {"lists":[{"id":"L1","name":"Shopping","is_default":true,"updated_hlc":"900:0:a"}],

@@ -6,7 +6,7 @@ enum Lists {
     static func applyList(_ s: some FoldStore, _ e: Event) throws {
         let p = try e.decode(ListPayload.self)
         try Fold.need(e, "list_id", p.listID)
-        var l = try s.list(p.listID) ?? List(id: p.listID)
+        var l = try s.list(p.listID) ?? ShoppingList(id: p.listID)
         switch e.kind {
         case Kind.listCreated, Kind.listRenamed:
             if e.kind == Kind.listCreated {

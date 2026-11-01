@@ -226,7 +226,7 @@ extension ItemAlias {
     init(row r: Row) { self.init(itemID: r["item_id"], normName: r["norm_name"]) }
 }
 
-extension List {
+extension ShoppingList {
     init(row r: Row) {
         self.init(id: r["id"], name: r["name"], colour: r["colour"], ownerPersonID: r["owner_person_id"], sort: r["sort"],
                   isDefault: (r["is_default"] as Int64) != 0, archivedAt: r["archived_at"], updatedHLC: HLC(column: r["updated_hlc"]))
