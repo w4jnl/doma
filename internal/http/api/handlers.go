@@ -218,6 +218,14 @@ func (a *API) createInvite(w http.ResponseWriter, r *http.Request, c *Caller) er
 	return nil
 }
 
+// export: GET /api/v1/h/{household}/export, a zip.
+func (a *API) export(w http.ResponseWriter, r *http.Request, c *Caller) error {
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", `attachment; filename="doma-export.zip"`)
+	w.Header().Set("Cache-Control", "no-store")
+	return a.svc.Export(r.Context(), c.Scope, w)
+}
+
 // revokeInvite: DELETE /api/v1/h/{household}/invites/{id}.
 func (a *API) revokeInvite(w http.ResponseWriter, r *http.Request, c *Caller) error {
 	if err := a.svc.RevokeInvite(r.Context(), c.Scope, r.PathValue("id")); err != nil {

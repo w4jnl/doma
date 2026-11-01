@@ -28,8 +28,11 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   validator; identity in `internal/auth` (device-key signatures, admin sessions, argon2id),
   `internal/service` (setup, households, members, devices, invites), the REST API under
   `internal/http/api` with `openapi.yaml`, and the first pages under `internal/http/web` (setup,
-  admin login, households with the owner invite QR, the invite page). There is no sync endpoint,
-  no snapshot job, no push, no guest view and no `app/*/project.yml` yet; `make e2e` arrives with
+  admin login, households with the owner invite QR, the invite page); the sync path: `POST
+  /sync/v1` and the snapshot download in `internal/http/sync`, the exchange, the nightly snapshot
+  and retention job and the export zip in `internal/service`, the bus, the Prometheus collectors
+  and the Go client under `internal/client` that tests and the e2e smoke drive. There is no push,
+  no guest view, no admin server page and no `app/*/project.yml` yet; `make e2e` arrives with
   step 7. Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;

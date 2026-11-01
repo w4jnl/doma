@@ -9,12 +9,15 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
+	"github.com/w4jnl/doma/internal/bus"
 	"github.com/w4jnl/doma/internal/db"
 	"github.com/w4jnl/doma/internal/domain"
 	"github.com/w4jnl/doma/internal/fold"
 	"github.com/w4jnl/doma/internal/foldsql"
+	"github.com/w4jnl/doma/internal/metrics"
 )
 
 // Config is what the service needs from doma.toml.
@@ -25,15 +28,26 @@ type Config struct {
 	GuestDays        int
 	StalenessDays    int
 	MaxEventsPerSync int
+	ReplayLimit      int
+	// SnapshotsDir holds the nightly snapshots; EventsDays and
+	// SnapshotsKept drive retention.
+	SnapshotsDir  string
+	EventsDays    int
+	SnapshotsKept int
 }
 
 // Service is the one service layer.
 type Service struct {
-	db    *db.DB
-	cfg   Config
-	log   *slog.Logger
-	now   func() time.Time
-	clock *domain.Clock
+	db      *db.DB
+	cfg     Config
+	log     *slog.Logger
+	now     func() time.Time
+	clock   *domain.Clock
+	bus     *bus.Bus
+	metrics *metrics.Metrics
+	trace   bool
+	snapMu  sync.Mutex
+	lastRun time.Time
 }
 
 // New builds the service. The server's own events carry the device id
@@ -50,6 +64,15 @@ func New(d *db.DB, cfg Config, log *slog.Logger) *Service {
 	}
 	if cfg.MaxEventsPerSync <= 0 {
 		cfg.MaxEventsPerSync = 500
+	}
+	if cfg.ReplayLimit <= 0 {
+		cfg.ReplayLimit = 5000
+	}
+	if cfg.EventsDays <= 0 {
+		cfg.EventsDays = 365
+	}
+	if cfg.SnapshotsKept <= 0 {
+		cfg.SnapshotsKept = 2
 	}
 	s := &Service{db: d, cfg: cfg, log: log, now: func() time.Time { return time.Now().UTC() }}
 	s.clock, _ = domain.NewClock(domain.SystemPerson, s.now)

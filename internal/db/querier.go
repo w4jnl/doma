@@ -9,7 +9,11 @@ import (
 )
 
 type Querier interface {
+	AllEvents(ctx context.Context, householdID string) ([]Event, error)
 	ClearedEntriesForHome(ctx context.Context, arg ClearedEntriesForHomeParams) ([]Entry, error)
+	CountEvents(ctx context.Context, householdID string) (int64, error)
+	// tenancy: root -- the instance gauge
+	CountHouseholds(ctx context.Context) (int64, error)
 	CountMembers(ctx context.Context, householdID string) (int64, error)
 	CountOwners(ctx context.Context, householdID string) (int64, error)
 	CredentialsForHousehold(ctx context.Context, householdID string) ([]Credential, error)
@@ -17,10 +21,14 @@ type Querier interface {
 	DefaultListID(ctx context.Context, householdID string) (string, error)
 	DeleteAliases(ctx context.Context, householdID string) error
 	DeleteEntriesForKey(ctx context.Context, arg DeleteEntriesForKeyParams) error
+	// Retention: events at or below the newest snapshot that were received
+	// before the cutoff.
+	DeleteEventsBefore(ctx context.Context, arg DeleteEventsBeforeParams) (int64, error)
 	DeleteFlag(ctx context.Context, arg DeleteFlagParams) error
 	DeleteFlagsForItems(ctx context.Context, arg DeleteFlagsForItemsParams) error
 	DeleteHousehold(ctx context.Context, id string) error
 	DeleteMembership(ctx context.Context, arg DeleteMembershipParams) (int64, error)
+	DeleteSnapshot(ctx context.Context, arg DeleteSnapshotParams) error
 	DeleteStaplesForItems(ctx context.Context, arg DeleteStaplesForItemsParams) error
 	EntriesForKey(ctx context.Context, arg EntriesForKeyParams) ([]Entry, error)
 	// Every event the fold replays for one (list, item) key, in hlc order: the
@@ -44,6 +52,7 @@ type Querier interface {
 	GetList(ctx context.Context, arg GetListParams) (List, error)
 	GetMembership(ctx context.Context, arg GetMembershipParams) (Membership, error)
 	GetPerson(ctx context.Context, id string) (Person, error)
+	GetSnapshot(ctx context.Context, arg GetSnapshotParams) (Snapshot, error)
 	GetSpot(ctx context.Context, arg GetSpotParams) (Spot, error)
 	GetStaple(ctx context.Context, arg GetStapleParams) (Staple, error)
 	InsertAdmin(ctx context.Context, arg InsertAdminParams) error
@@ -56,12 +65,14 @@ type Querier interface {
 	InsertMembership(ctx context.Context, arg InsertMembershipParams) error
 	InsertPerson(ctx context.Context, arg InsertPersonParams) error
 	InsertPhoto(ctx context.Context, arg InsertPhotoParams) error
+	InsertSnapshot(ctx context.Context, arg InsertSnapshotParams) error
 	InsertTrip(ctx context.Context, arg InsertTripParams) error
 	InvitesForHousehold(ctx context.Context, arg InvitesForHouseholdParams) ([]Invite, error)
 	ItemEvents(ctx context.Context, householdID string) ([]Event, error)
 	// The flag, staple and trip events that name one of the item ids, given as
 	// a JSON array.
 	ItemEventsFor(ctx context.Context, arg ItemEventsForParams) ([]Event, error)
+	LastSeq(ctx context.Context, householdID string) (int64, error)
 	ListAliases(ctx context.Context, householdID string) ([]ItemAlias, error)
 	ListEntries(ctx context.Context, householdID string) ([]Entry, error)
 	ListFlags(ctx context.Context, householdID string) ([]Flag, error)
@@ -70,12 +81,14 @@ type Querier interface {
 	ListItems(ctx context.Context, householdID string) ([]Item, error)
 	ListLists(ctx context.Context, householdID string) ([]List, error)
 	ListPhotos(ctx context.Context, householdID string) ([]Photo, error)
+	ListSnapshots(ctx context.Context, householdID string) ([]Snapshot, error)
 	ListSpots(ctx context.Context, householdID string) ([]Spot, error)
 	ListStaples(ctx context.Context, householdID string) ([]Staple, error)
 	ListTrips(ctx context.Context, householdID string) ([]Trip, error)
 	MembersOfHousehold(ctx context.Context, householdID string) ([]MembersOfHouseholdRow, error)
 	// tenancy: root -- a person's memberships across households, to build their scopes
 	MembershipsForPerson(ctx context.Context, personID string) ([]Membership, error)
+	NewestSnapshot(ctx context.Context, householdID string) (Snapshot, error)
 	NextSeq(ctx context.Context, householdID string) (int64, error)
 	RecountItemUsage(ctx context.Context, arg RecountItemUsageParams) error
 	RevokeCredential(ctx context.Context, arg RevokeCredentialParams) (int64, error)

@@ -17,10 +17,29 @@ components:
       in: header
       name: Doma-Signature
       description: >-
-        Doma-Credential, Doma-Timestamp (Unix seconds) and Doma-Signature
+        Doma-Credential, Doma-Timestamp (Unix milliseconds) and Doma-Signature
         (base64) over "method\npath\ntimestamp\nsha256(body)" with the
         device's Ed25519 or P-256 key; five minutes of skew; no replays.
 paths:
+  /sync/v1:
+    post:
+      summary: The event exchange, every household of the device in one request
+      description: >-
+        Body {"households": [{"id", "since", "events": [outbox]}]}. Each
+        household answers with accepted ids, rejected ids with reasons (the
+        client drops them), the events after since in seq order (at most
+        sync.max_events_per_response, loop while next advances), next, and
+        a snapshot URL when since is too far behind to replay. A household
+        the device's person is not in makes the whole request a 404.
+      responses:
+        "200": {description: the exchange}
+        "422": {description: more than 2,000 events in one household}
+        "429": {description: more than 120 requests a minute from this device}
+  /sync/v1/snapshot/{household}/{seq}:
+    get:
+      summary: The tables at seq as gzip JSON, without other people's personal lists
+      responses:
+        "200": {description: gzip JSON}
   /i/{token}:
     post:
       summary: Accept an invite with a new or known device key
@@ -87,3 +106,8 @@ paths:
       summary: Revoke a pending invite; owners
       responses:
         "204": {description: revoked}
+  /api/v1/h/{household}/export:
+    get:
+      summary: A zip with household.json, events.ndjson, purchases.csv, lists/*.md and homes/*.md; members
+      responses:
+        "200": {description: zip}
