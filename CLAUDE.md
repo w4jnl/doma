@@ -17,7 +17,31 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
 - `assets/brand/` holds the marks, lockups, tiles and banners; `gen.py` regenerates the SVGs from
   one geometry and `render.py` the PNGs. `assets/icons/gen.py` writes the pictograms and the
   sprite the web pages inline.
-- `docs/dev/kickoff.md` is the prompt this repository was started from, kept for the record.
+- `docs/dev/kickoff.md` holds the prompts, one per phase and platform: prompt 0 is the server's
+  phase 0 in seven steps, prompt 1 the apps. Their step order is the build order; later phases get
+  a prompt of the same shape when the previous gate is met.
+
+## State of the tree (update this when it changes)
+- The tree is the seed commit: the spec, the design system, the brand kit, this file and a
+  Makefile with only the `brand` target. There is no `go.mod`, no `cmd/` or `internal/`, no
+  `app/*/project.yml`, no CI and no `docs/fixtures/fold.json` yet. Every other make target below
+  exists once phase 0 step 1 lands; check `git log` and `ls` before assuming otherwise.
+- The package map to build to is "Architecture and repository layout" in `docs/design.md`; the
+  tables are in "Data model and tenancy", the event kinds and fold rules in "Event log and sync",
+  the task lists and the open-decisions table in "Testing, milestones, open decisions".
+
+## How a change moves
+A tap in an app writes one event to the local GRDB outbox and folds it locally in the same
+transaction, so the screen updates before any network. `POST /sync/v1` carries the outbox up; the
+server validates the payload against `docs/event-schema.json`, appends it to the household's log
+with a server-assigned `seq`, folds it into the materialised tables in the same transaction, and
+publishes `HouseholdChanged` on the in-process bus, which the push package coalesces into at most
+one silent APNs push per device per 30 s. Other devices pull everything after their cursor, 500
+events at a time, and fold the same events with the same rules; a device too far behind takes a
+snapshot first. The four transports (sync, REST, web pages, APNs out) never touch the store: all
+of them call one service layer that owns authorisation, transactions and the fold. Ordering is by
+hybrid logical clock, never device wall time; ids are ULIDs; the materialised tables are a cache
+the fold can rebuild from the log, and a test proves it.
 
 ## House conventions
 - Go 1.23+, cgo-free, `internal/` packages, stdlib first. `net/http` ServeMux with method
@@ -72,7 +96,7 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
 - `make build`: `bin/doma` with the version stamped from git.
 - `make run`: `doma serve -d` on a throwaway data directory with a config under `tmp/`.
 - `make test`, `make vet`, `make lint`, `make fmt`, `make generate` (sqlc), `make migrate`
-  (dbmate up and schema dump).
+  (dbmate up and schema dump). One package or one test: `go test ./internal/<pkg> -run <Name>`.
 - `make e2e`: the end-to-end smoke in `scripts/e2e/`: start the server, create a household,
   accept two invites with the Go test client, sync both ways, flip a flag, derive and commit a
   trip.
