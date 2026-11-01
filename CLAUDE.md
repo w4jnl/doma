@@ -22,7 +22,7 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   a prompt of the same shape when the previous gate is met.
 
 ## State of the tree (update this when it changes)
-- Phase 0 steps 1 to 3 are in: the module, `doma serve` with config and logging, the Makefile,
+- Phase 0 steps 1 to 5 are in: the module, `doma serve` with config and logging, the Makefile,
   CI, goreleaser and the gate scripts; the schema, sqlc queries, the fold with
   `docs/fixtures/fold.json`, the SQL store under `internal/foldsql` and the event schema with its
   validator; identity in `internal/auth` (device-key signatures, admin sessions, argon2id),
@@ -31,9 +31,11 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   admin login, households with the owner invite QR, the invite page); the sync path: `POST
   /sync/v1` and the snapshot download in `internal/http/sync`, the exchange, the nightly snapshot
   and retention job and the export zip in `internal/service`, the bus, the Prometheus collectors
-  and the Go client under `internal/client` that tests and the e2e smoke drive. There is no push,
-  no guest view, no admin server page and no `app/*/project.yml` yet; `make e2e` arrives with
-  step 7. Check `git log` and `ls` before assuming otherwise.
+  and the Go client under `internal/client` that tests and the e2e smoke drive; push in
+  `internal/push` (APNs with token auth, one silent push per device per 30 s, built only when
+  `push.enabled`) with the key sealed at rest by `internal/secrets`. There is no guest view, no
+  admin server page and no `app/*/project.yml` yet; `make e2e` arrives with step 7. Check
+  `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;
   flags are derived from all their candidates; everything else is last-writer-wins or add and
