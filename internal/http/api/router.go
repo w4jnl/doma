@@ -80,14 +80,25 @@ func New(svc *service.Service, log *slog.Logger) *API {
 // SetClock replaces the clock, for tests.
 func (a *API) SetClock(now func() time.Time) { a.now = now }
 
-type handlerFunc func(w http.ResponseWriter, r *http.Request, c *Caller) error
+// HandlerFunc is a handler that returns an error for the problem writer.
+type HandlerFunc func(w http.ResponseWriter, r *http.Request, c *Caller) error
 
-type mode int
+// Mode says how a route resolves its caller.
+type Mode int
 
 const (
-	modePublic    mode = iota // no signature
-	modeDevice                // a signed request, any person
-	modeHousehold             // a signed request by a member of {household}
+	// ModePublic takes no signature.
+	ModePublic Mode = iota
+	// ModeDevice takes a signed request from any person.
+	ModeDevice
+	// ModeHousehold takes a signed request from a member of {household}.
+	ModeHousehold
+)
+
+const (
+	modePublic    = ModePublic
+	modeDevice    = ModeDevice
+	modeHousehold = ModeHousehold
 )
 
 // Mount registers every route.
@@ -108,9 +119,15 @@ func (a *API) Mount(mux *http.ServeMux) {
 	a.handle(mux, "GET "+Prefix+"/h/{household}/invites", modeHousehold, a.invites)
 	a.handle(mux, "POST "+Prefix+"/h/{household}/invites", modeHousehold, a.createInvite)
 	a.handle(mux, "DELETE "+Prefix+"/h/{household}/invites/{id}", modeHousehold, a.revokeInvite)
+	a.handle(mux, "GET "+Prefix+"/h/{household}/export", modeHousehold, a.export)
 }
 
-func (a *API) handle(mux *http.ServeMux, pattern string, m mode, fn handlerFunc) {
+// Handle registers a route from another package on the same plumbing.
+func (a *API) Handle(mux *http.ServeMux, pattern string, m Mode, fn HandlerFunc) {
+	a.handle(mux, pattern, m, fn)
+}
+
+func (a *API) handle(mux *http.ServeMux, pattern string, m Mode, fn HandlerFunc) {
 	a.Routes = append(a.Routes, pattern)
 	mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		c, err := a.caller(r, m)
@@ -128,7 +145,7 @@ func (a *API) handle(mux *http.ServeMux, pattern string, m mode, fn handlerFunc)
 // caller reads the body, checks the signature and, on household routes,
 // the membership. The signature is checked before the rate limit is
 // consulted, so a stranger cannot spend a device's budget.
-func (a *API) caller(r *http.Request, m mode) (*Caller, error) {
+func (a *API) caller(r *http.Request, m Mode) (*Caller, error) {
 	body, err := readBody(r)
 	if err != nil {
 		return nil, err

@@ -12,13 +12,17 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 	_ "time/tzdata" // the scratch image has no zoneinfo; households carry a time zone
 
+	"github.com/w4jnl/doma/internal/bus"
 	"github.com/w4jnl/doma/internal/config"
 	"github.com/w4jnl/doma/internal/db"
 	dhttp "github.com/w4jnl/doma/internal/http"
 	"github.com/w4jnl/doma/internal/logging"
+	"github.com/w4jnl/doma/internal/metrics"
 	"github.com/w4jnl/doma/internal/service"
 	"github.com/w4jnl/doma/internal/version"
 )
@@ -95,11 +99,11 @@ func serve(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if *debug || logging.IsTerminal(stderr) {
 		_ = version.Lockup(stderr)
 	}
-	return runServe(ctx, cfg, log)
+	return runServe(ctx, cfg, log, *debug)
 }
 
 // runServe wires the process and blocks until ctx is cancelled.
-func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
+func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug bool) error {
 	log.Info("starting", "version", version.String(), "db", cfg.DB.Path, "listen", cfg.Server.Listen, "base_url", cfg.BaseURL())
 	for _, w := range cfg.Warnings() {
 		log.Warn("config: " + w)
@@ -109,22 +113,55 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 		return err
 	}
 	defer func() { _ = d.Close() }()
+	if debug {
+		d.Slow, d.SlowLog = 50*time.Millisecond, log
+	}
 	if _, err := db.Migrate(ctx, d.Writer, log); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
 	svc := service.New(d, service.Config{
 		BaseURL: cfg.BaseURL(), InviteDays: cfg.Invites.DefaultDays, GuestDays: cfg.Invites.GuestDefaultDays,
-		StalenessDays: cfg.Defaults.StalenessDays, MaxEventsPerSync: cfg.Sync.MaxEventsPerResponse,
+		StalenessDays: cfg.Defaults.StalenessDays, MaxEventsPerSync: cfg.Sync.MaxEventsPerResponse, ReplayLimit: cfg.Sync.ReplayLimit,
+		SnapshotsDir: cfg.SnapshotsDir(), EventsDays: cfg.Retention.EventsDays,
 	}, log)
-	h, err := dhttp.Handler(dhttp.Deps{Cfg: cfg, Log: log, Svc: svc})
+	svc.SetBus(bus.New())
+	m := metrics.New(version.Version)
+	svc.SetMetrics(m)
+	svc.SetTrace(debug)
+	started := time.Now()
+	h, err := dhttp.Handler(dhttp.Deps{Cfg: cfg, Log: log, Svc: svc, Metrics: m, Started: started})
 	if err != nil {
 		return err
 	}
 	if ok, err := svc.AdminExists(ctx); err == nil && !ok {
 		log.Info("first run: open " + cfg.BaseURL() + "/setup in a browser")
 	}
-	if err := dhttp.Run(ctx, log, cfg.Server.Listen, h); err != nil {
-		return err
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var wg sync.WaitGroup
+	errc := make(chan error, 2)
+	run := func(name string, fn func(context.Context) error) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := fn(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				errc <- fmt.Errorf("%s: %w", name, err)
+				cancel()
+			}
+		}()
+	}
+	run("snapshots", func(ctx context.Context) error { return svc.SnapshotJob(ctx, cfg.Retention.SnapshotHour) })
+	run("http", func(ctx context.Context) error { return dhttp.Run(ctx, log, cfg.Server.Listen, h) })
+	var firstErr error
+	select {
+	case <-ctx.Done():
+	case firstErr = <-errc:
+		cancel()
+	}
+	wg.Wait()
+	if firstErr != nil {
+		return firstErr
 	}
 	log.Info("stopped")
 	return nil

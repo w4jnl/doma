@@ -15,8 +15,10 @@ import (
 	"github.com/w4jnl/doma/internal/config"
 	"github.com/w4jnl/doma/internal/http/api"
 	"github.com/w4jnl/doma/internal/http/middleware"
+	syncv1 "github.com/w4jnl/doma/internal/http/sync"
 	"github.com/w4jnl/doma/internal/http/web"
 	"github.com/w4jnl/doma/internal/logging"
+	"github.com/w4jnl/doma/internal/metrics"
 	"github.com/w4jnl/doma/internal/service"
 	"github.com/w4jnl/doma/internal/version"
 )
@@ -28,6 +30,11 @@ type Deps struct {
 	// Svc, when set, mounts the API and the pages; the health endpoint
 	// alone needs nothing.
 	Svc *service.Service
+	// Metrics, when set, serves GET /metrics.
+	Metrics *metrics.Metrics
+	// Started is when the process came up; /readyz allows the snapshot job
+	// 36 hours from then before it complains.
+	Started time.Time
 }
 
 // Handler is the whole surface behind one chain: request id, client IP,
@@ -40,7 +47,7 @@ func Handler(d Deps) (http.Handler, error) {
 	})
 	if d.Svc != nil {
 		mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-			if err := Ready(r.Context(), d.Svc); err != nil {
+			if err := Ready(r.Context(), d.Svc, d.Started); err != nil {
 				d.Log.Warn("not ready", "err", err)
 				http.Error(w, "not ready: "+err.Error(), http.StatusServiceUnavailable)
 				return
@@ -48,7 +55,12 @@ func Handler(d Deps) (http.Handler, error) {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 			_, _ = fmt.Fprintln(w, "ready")
 		})
-		api.New(d.Svc, logging.Sub(d.Log, "api")).Mount(mux)
+		a := api.New(d.Svc, logging.Sub(d.Log, "api"))
+		a.Mount(mux)
+		syncv1.New(d.Svc).Mount(a, mux)
+		if d.Metrics != nil {
+			mux.Handle("GET /metrics", d.Metrics.Handler(d.Cfg.Metrics.Token))
+		}
 		pages, err := web.New(d.Svc, logging.Sub(d.Log, "web"), isHTTPS(d.Cfg.Server.BaseURL))
 		if err != nil {
 			return nil, fmt.Errorf("web templates: %w", err)
@@ -67,9 +79,16 @@ func Handler(d Deps) (http.Handler, error) {
 
 func isHTTPS(baseURL string) bool { return len(baseURL) >= 8 && baseURL[:8] == "https://" }
 
-// Ready reports whether the writer can take a lock within two seconds.
-// The snapshot job's age joins the check with the sync step.
-func Ready(ctx context.Context, svc *service.Service) error {
+// snapshotGrace is how long the snapshot job may go without a run.
+const snapshotGrace = 36 * time.Hour
+
+// Ready reports whether the writer can take a lock within two seconds and
+// the snapshot job has run in the last 36 hours, once the process is old
+// enough for that to be expected.
+func Ready(ctx context.Context, svc *service.Service, started time.Time) error {
+	if last := svc.LastSnapshotRun(); !started.IsZero() && time.Since(started) > snapshotGrace && (last.IsZero() || time.Since(last) > snapshotGrace) {
+		return errors.New("the snapshot job has not run in 36 hours")
+	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	conn, err := svc.DB().Writer.Conn(ctx)

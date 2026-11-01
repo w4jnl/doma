@@ -39,6 +39,15 @@ type errRateLimited struct{ wait time.Duration }
 
 func (e errRateLimited) Error() string { return "rate limited" }
 
+// RateLimited is the error a handler returns for a 429 with Retry-After.
+func RateLimited(wait time.Duration) error { return errRateLimited{wait: wait} }
+
+// WriteJSON and DecodeJSON are the JSON helpers other route packages use.
+func WriteJSON(w http.ResponseWriter, status int, v any) { writeJSON(w, status, v) }
+
+// DecodeJSON parses a body, refusing unknown fields.
+func DecodeJSON(body []byte, v any) error { return decodeJSON(body, v) }
+
 // writeError maps an error to a problem response. Anything outside the
 // caller's households is a 404, never a 403, so households cannot be
 // enumerated.

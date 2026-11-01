@@ -31,6 +31,12 @@ func New(ctx context.Context, q *db.Queries, householdID string) *Store {
 // Append writes e to the log with the next seq and folds it. A duplicate
 // id is not an error: applied is false and nothing changes.
 func (s *Store) Append(e fold.Event, credentialID string, receivedAt int64) (seq int64, applied bool, err error) {
+	return s.AppendWith(s, e, credentialID, receivedAt)
+}
+
+// AppendWith is Append folding through through, usually this store wrapped
+// by a trace.
+func (s *Store) AppendWith(through fold.Store, e fold.Event, credentialID string, receivedAt int64) (seq int64, applied bool, err error) {
 	seq, err = s.q.NextSeq(s.ctx, s.HouseholdID)
 	if err != nil {
 		return 0, false, fmt.Errorf("next seq: %w", err)
@@ -45,7 +51,7 @@ func (s *Store) Append(e fold.Event, credentialID string, receivedAt int64) (seq
 		}
 		return 0, false, fmt.Errorf("insert event: %w", err)
 	}
-	if err := fold.Apply(s, e); err != nil {
+	if err := fold.Apply(through, e); err != nil {
 		return 0, false, err
 	}
 	return seq, true, nil

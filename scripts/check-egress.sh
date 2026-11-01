@@ -11,6 +11,7 @@ pattern='http\.Client{|http\.Get\(|http\.Post\(|http\.Head\(|http\.DefaultClient
 # file:reason — the code the gate accepts
 allow='
 internal/push/apns.go:the APNs client, built only when push.enabled is true
+internal/client/client.go:the Go client of a doma server, used by tests and the e2e smoke
 '
 
 status=0

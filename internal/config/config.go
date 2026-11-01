@@ -180,6 +180,11 @@ func (c *Config) PhotosDir() string {
 	return filepath.Join(c.dataDir(), "photos")
 }
 
+// SnapshotsDir is snapshots/ next to the database; it is not a config key.
+func (c *Config) SnapshotsDir() string {
+	return filepath.Join(c.dataDir(), "snapshots")
+}
+
 // PushKeyFile returns push.key_file, or apns.p8 next to the database.
 func (c *Config) PushKeyFile() string {
 	if c.Push.KeyFile != "" {

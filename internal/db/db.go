@@ -8,10 +8,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"modernc.org/sqlite"
 	_ "modernc.org/sqlite" // database/sql driver
@@ -25,6 +27,19 @@ type DB struct {
 	// Reader is a read-only pool for queries outside a write transaction.
 	Reader *sql.DB
 	Path   string
+	// OnWrite, when set, is told how long each write transaction took.
+	OnWrite func(time.Duration)
+	// Slow, when set with SlowLog, logs statements slower than it.
+	Slow    time.Duration
+	SlowLog *slog.Logger
+}
+
+// wrap applies the slow-statement logger when configured.
+func (d *DB) wrap(x DBTX) DBTX {
+	if d.Slow > 0 && d.SlowLog != nil {
+		return Timed(x, d.Slow, d.SlowLog)
+	}
+	return x
 }
 
 // Open opens (creating if needed) the database at path with WAL,
@@ -70,25 +85,40 @@ func (d *DB) Close() error {
 }
 
 // Read returns queries bound to the reader pool.
-func (d *DB) Read() *Queries { return New(d.Reader) }
+func (d *DB) Read() *Queries { return New(d.wrap(d.Reader)) }
 
 // Write returns queries bound to the writer, outside a transaction.
-func (d *DB) Write() *Queries { return New(d.Writer) }
+func (d *DB) Write() *Queries { return New(d.wrap(d.Writer)) }
 
 // Tx runs fn inside a write transaction and commits when fn returns nil.
 func (d *DB) Tx(ctx context.Context, fn func(q *Queries) error) error {
+	start := time.Now()
 	tx, err := d.Writer.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin: %w", err)
 	}
 	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
-	if err := fn(New(tx)); err != nil {
+	if err := fn(New(d.wrap(tx))); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}
+	if d.OnWrite != nil {
+		d.OnWrite(time.Since(start))
+	}
 	return nil
+}
+
+// ReadTx runs fn inside a read transaction on the reader pool, so several
+// queries see one state of the database.
+func (d *DB) ReadTx(ctx context.Context, fn func(q *Queries) error) error {
+	tx, err := d.Reader.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return fmt.Errorf("begin read: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck // a read transaction has nothing to commit
+	return fn(New(d.wrap(tx)))
 }
 
 // IsUniqueViolation reports whether err is a UNIQUE or PRIMARY KEY conflict.
