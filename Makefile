@@ -44,13 +44,17 @@ lint: check-tenancy check-egress
 fmt:
 	$(GOLANGCI) fmt
 
-# sqlc from internal/db/queries over db/schema.sql, and the embedded copy of the event schema.
+# sqlc from internal/db/queries over db/schema.sql, and the embedded copies: the event schema,
+# tokens.css, the fonts and the marks the web pages serve.
 generate:
 	$(SQLC) generate
 	cp docs/event-schema.json internal/events/event-schema.json
+	cp docs/design-system/tokens.css internal/http/web/static/tokens.css
+	cp docs/design-system/fonts/*.woff2 docs/design-system/fonts/OFL.txt internal/http/web/static/fonts/
+	cp assets/brand/favicon.svg assets/brand/favicon-alert.svg assets/brand/doma-mark.svg internal/http/web/static/
 
 generate-check: generate
-	git diff --exit-code -- internal/db internal/events/event-schema.json
+	git diff --exit-code -- internal/db internal/events/event-schema.json internal/http/web/static
 
 # Apply the embedded migrations to a scratch database and dump db/schema.sql for sqlc.
 migrate:

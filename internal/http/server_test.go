@@ -18,19 +18,26 @@ import (
 func TestHealthz(t *testing.T) {
 	var buf bytes.Buffer
 	d := Deps{Cfg: config.Default(), Log: slog.New(slog.NewJSONHandler(&buf, nil))}
+	h, err := Handler(d)
+	if err != nil {
+		t.Fatal(err)
+	}
 	rec := httptest.NewRecorder()
-	Handler(d).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 	if rec.Code != http.StatusOK || !strings.HasPrefix(rec.Body.String(), "ok ") {
 		t.Fatalf("healthz: %d %q", rec.Code, rec.Body.String())
 	}
 	if rec.Header().Get("X-Request-Id") == "" {
 		t.Error("no request id")
 	}
+	if rec.Header().Get("Content-Security-Policy") == "" || rec.Header().Get("X-Frame-Options") != "DENY" {
+		t.Error("security headers missing")
+	}
 	if !strings.Contains(buf.String(), `"path":"/healthz"`) {
 		t.Errorf("request not logged: %s", buf.String())
 	}
 	rec = httptest.NewRecorder()
-	Handler(d).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/healthz", nil))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/healthz", nil))
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Errorf("POST /healthz = %d, want 405", rec.Code)
 	}
@@ -46,7 +53,8 @@ func TestRunServesAndStops(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	done := make(chan error, 1)
-	go func() { done <- Run(ctx, log, addr, Handler(Deps{Cfg: config.Default(), Log: log})) }()
+	h, _ := Handler(Deps{Cfg: config.Default(), Log: log})
+	go func() { done <- Run(ctx, log, addr, h) }()
 	var resp *http.Response
 	for range 50 {
 		resp, err = http.Get("http://" + addr + "/healthz")

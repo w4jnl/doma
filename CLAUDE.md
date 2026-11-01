@@ -22,11 +22,15 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   a prompt of the same shape when the previous gate is met.
 
 ## State of the tree (update this when it changes)
-- Phase 0 steps 1 and 2 are in: the module, `doma serve` with config and logging, `/healthz`,
-  the Makefile, CI, goreleaser and the gate scripts; the schema, sqlc queries, the fold with
+- Phase 0 steps 1 to 3 are in: the module, `doma serve` with config and logging, the Makefile,
+  CI, goreleaser and the gate scripts; the schema, sqlc queries, the fold with
   `docs/fixtures/fold.json`, the SQL store under `internal/foldsql` and the event schema with its
-  validator. There is no identity, no sync endpoint, no web pages and no `app/*/project.yml`
-  yet; `make e2e` arrives with step 7. Check `git log` and `ls` before assuming otherwise.
+  validator; identity in `internal/auth` (device-key signatures, admin sessions, argon2id),
+  `internal/service` (setup, households, members, devices, invites), the REST API under
+  `internal/http/api` with `openapi.yaml`, and the first pages under `internal/http/web` (setup,
+  admin login, households with the owner invite QR, the invite page). There is no sync endpoint,
+  no snapshot job, no push, no guest view and no `app/*/project.yml` yet; `make e2e` arrives with
+  step 7. Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;
   flags are derived from all their candidates; everything else is last-writer-wins or add and

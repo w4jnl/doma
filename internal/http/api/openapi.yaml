@@ -1,0 +1,89 @@
+openapi: 3.1.0
+info:
+  title: doma
+  version: "0.1"
+  description: >-
+    The family's household app. Apps talk to the sync endpoint and to this
+    REST surface with a device-key signature; a guest uses a link; the admin
+    signs in on the web pages. Errors are RFC 7807 problem documents; every
+    response carries X-Request-Id. Anything outside the caller's households
+    is a 404.
+servers:
+  - url: /
+components:
+  securitySchemes:
+    deviceKey:
+      type: apiKey
+      in: header
+      name: Doma-Signature
+      description: >-
+        Doma-Credential, Doma-Timestamp (Unix seconds) and Doma-Signature
+        (base64) over "method\npath\ntimestamp\nsha256(body)" with the
+        device's Ed25519 or P-256 key; five minutes of skew; no replays.
+paths:
+  /i/{token}:
+    post:
+      summary: Accept an invite with a new or known device key
+      security: []
+      responses:
+        "201": {description: person, credential and household}
+        "404": {description: unknown, expired or revoked}
+        "409": {description: already used}
+        "429": {description: too many failed lookups from this address}
+  /api/v1/openapi.yaml:
+    get:
+      summary: This document
+      security: []
+      responses:
+        "200": {description: YAML}
+  /api/v1/me:
+    get:
+      summary: The person, their devices and their households with roles
+      responses:
+        "200": {description: me}
+  /api/v1/credentials/{id}:
+    delete:
+      summary: Revoke a device, one's own or that of a member of a household the caller owns
+      responses:
+        "204": {description: revoked}
+  /api/v1/devices/{credential}/apns:
+    post:
+      summary: Register or refresh the push token of one's own device
+      responses:
+        "204": {description: stored}
+  /api/v1/h/{household}:
+    put:
+      summary: Rename the household, set its time zone and staleness; owners
+      responses:
+        "200": {description: the household}
+  /api/v1/h/{household}/members:
+    get:
+      summary: Members and owners with names and last seen
+      responses:
+        "200": {description: members}
+  /api/v1/h/{household}/members/{person}:
+    delete:
+      summary: Remove a member; owners; the last owner cannot be removed
+      responses:
+        "204": {description: removed}
+        "409": {description: the last owner}
+  /api/v1/h/{household}/members/{person}/role:
+    put:
+      summary: Make a member an owner or an owner a member; owners
+      responses:
+        "204": {description: changed}
+        "409": {description: the last owner}
+  /api/v1/h/{household}/invites:
+    get:
+      summary: Pending invites; owners
+      responses:
+        "200": {description: invites}
+    post:
+      summary: Create a one-use invite for a member or an owner; owners
+      responses:
+        "201": {description: the invite with its link}
+  /api/v1/h/{household}/invites/{id}:
+    delete:
+      summary: Revoke a pending invite; owners
+      responses:
+        "204": {description: revoked}

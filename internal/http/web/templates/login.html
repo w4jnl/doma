@@ -1,0 +1,10 @@
+{{define "content"}}
+<form class="dm-card" method="post" action="/admin/login">
+  <h1>Admin</h1>
+  {{if .Error}}<p class="dm-error">{{.Error}}</p>{{end}}
+  <label class="dm-field"><span>Name</span><input class="dm-input" name="login" value="{{.Data.Login}}" autocomplete="username" required autofocus></label>
+  <label class="dm-field"><span>Password</span><input class="dm-input" name="password" type="password" autocomplete="current-password" required></label>
+  <input type="hidden" name="next" value="{{.Data.Next}}">
+  <button class="dm-button" type="submit">Sign in</button>
+</form>
+{{end}}

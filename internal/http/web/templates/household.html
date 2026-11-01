@@ -1,0 +1,29 @@
+{{define "content"}}
+<h1>{{.Data.Household.Name}}</h1>
+{{if .Error}}<p class="dm-error">{{.Error}}</p>{{end}}
+<section class="dm-panel">
+  <h2>Members</h2>
+  {{if .Data.Members}}
+  <ul class="dm-rows">
+    {{range .Data.Members}}
+    <li><div class="dm-grow">{{.DisplayName}}</div><span class="dm-meta">{{.Role}}</span></li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="dm-muted">Nobody yet. Make an owner invite and show the QR to the first owner.</p>
+  {{end}}
+</section>
+<section class="dm-panel">
+  <h2>Owner invite</h2>
+  {{if .Data.Invite}}
+  <p>Scan this with the doma app, or open the link on the phone. It works once and for {{.Data.InviteDays}} days.</p>
+  <div class="dm-qr">{{.Data.Invite.QR}}</div>
+  <p class="dm-mono dm-muted">{{.Data.Invite.URL}}</p>
+  {{else}}
+  <form method="post" action="/admin/h/{{.Data.Household.ID}}/invite">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <button class="dm-button" type="submit">Make an owner invite</button>
+  </form>
+  {{end}}
+</section>
+{{end}}

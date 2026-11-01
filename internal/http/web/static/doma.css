@@ -1,0 +1,52 @@
+/* doma web pages: one hand-written sheet over tokens.css. One column at content-max,
+   left-aligned, on ground. Classes are dm-*; colours, sizes and type come from the tokens. */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--ground); color: var(--ink); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; }
+a { color: var(--accent); }
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.01em; margin: 0 0 var(--space-3); }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.125rem; }
+p { margin: 0 0 var(--space-3); }
+code, .dm-mono { font-family: var(--font-mono); font-size: 0.9375rem; }
+.dm-muted { color: var(--ink-muted); }
+
+.dm-page { max-width: var(--content-max); margin: 0 auto; padding: var(--space-5) var(--space-4) var(--space-7); }
+.dm-topbar { display: flex; align-items: center; gap: var(--space-4); height: var(--row-h); margin-bottom: var(--space-5); }
+.dm-topbar .dm-mark { width: 22px; height: 22px; color: var(--mark); }
+.dm-topbar nav { display: flex; gap: var(--space-4); }
+.dm-topbar nav a { color: var(--ink-muted); text-decoration: none; padding: var(--space-1) 0; }
+.dm-topbar nav a[aria-current="page"] { color: var(--ink); border-bottom: 2px solid var(--accent); }
+.dm-topbar form { margin-left: auto; }
+.dm-wordmark { font-family: var(--font-mono); font-weight: 700; color: var(--ink); text-decoration: none; }
+
+.dm-center { display: grid; place-items: center; min-height: 100vh; padding: var(--space-5) var(--space-4); }
+.dm-center .dm-mark { width: 48px; height: 48px; color: var(--mark); margin-bottom: var(--space-4); }
+.dm-card { width: 100%; max-width: 400px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-5); }
+.dm-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-5); }
+.dm-panel h2 { margin-bottom: var(--space-4); }
+
+.dm-field { display: block; margin-bottom: var(--space-4); }
+.dm-field > span { display: block; font-size: 0.875rem; color: var(--ink-muted); margin-bottom: var(--space-1); }
+.dm-input { width: 100%; height: var(--row-h); padding: 0 var(--space-3); font: inherit; color: var(--ink); background: var(--surface-sunk); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.dm-input:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
+.dm-button { display: inline-flex; align-items: center; justify-content: center; height: var(--row-h); padding: 0 var(--space-4); font: inherit; font-weight: 600; color: var(--on-accent); background: var(--accent); border: 0; border-radius: var(--radius-sm); cursor: pointer; text-decoration: none; }
+.dm-button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.dm-button-quiet { color: var(--ink); background: transparent; border: 1px solid var(--line-strong); font-weight: 500; }
+.dm-button-danger { background: var(--out); color: var(--on-out); }
+.dm-row-actions { display: flex; gap: var(--space-3); align-items: center; }
+
+.dm-error { color: var(--out); background: var(--out-soft); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-4); }
+.dm-notice { color: var(--ink); background: var(--accent-soft); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-4); }
+
+.dm-rows { list-style: none; margin: 0; padding: 0; }
+.dm-rows li { display: flex; align-items: center; gap: var(--space-4); min-height: var(--row-h); padding: var(--space-2) 0; border-top: 1px solid var(--line); }
+.dm-rows li:first-child { border-top: 0; }
+.dm-rows .dm-grow { flex: 1; min-width: 0; }
+.dm-rows .dm-meta { color: var(--ink-muted); font-size: 0.875rem; }
+.dm-inline-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: var(--space-3); align-items: end; }
+.dm-inline-form .dm-field { margin: 0; }
+@media (max-width: 560px) { .dm-inline-form { grid-template-columns: 1fr; } }
+
+.dm-qr { width: 200px; height: 200px; padding: var(--space-3); background: #fff; color: #000; border-radius: var(--radius-sm); }
+.dm-qr svg { width: 100%; height: 100%; display: block; }
