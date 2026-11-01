@@ -1,0 +1,87 @@
+# doma
+
+The family's household app: shared and personal shopping lists, what is at each home, and what
+to bring from one home to the other. One cgo-free Go binary (`doma serve`) with an append-only
+event log per household, server-rendered guest and admin pages, and a sync endpoint for the native
+iPhone and Mac apps under `app/`. Sibling of github.com/w4jnl/flok, github.com/w4jnl/vink and
+github.com/w4jnl/nt; vink is the structural baseline for the server and nt for the apps.
+
+## Read first
+- `docs/design.md` is the spec: purpose, onboarding and roles, architecture, data model and
+  tenancy, the event log and the fold, lists, homes and trips, the apps, the web pages, the API,
+  security, configuration, testing, phases and open decisions. It is the source of truth; ask
+  before deviating from it. Its drawings are in `docs/diagrams/`.
+- `docs/design-system/README.md` is the brand and UI rules; `tokens.json` holds every colour,
+  glyph and size and `tokens.py` writes `tokens.css` from it. The apps mirror it in
+  `app/shared/Design/Tokens.swift` with a test that fails on drift.
+- `assets/brand/` holds the marks, lockups, tiles and banners; `gen.py` regenerates the SVGs from
+  one geometry and `render.py` the PNGs. `assets/icons/gen.py` writes the pictograms and the
+  sprite the web pages inline.
+- `docs/dev/kickoff.md` is the prompt this repository was started from, kept for the record.
+
+## House conventions
+- Go 1.23+, cgo-free, `internal/` packages, stdlib first. `net/http` ServeMux with method
+  patterns; middleware as `func(http.Handler) http.Handler`. One subcommand, `serve`; no CLI for
+  anyone else, the admin works in the browser.
+- SQLite through `modernc.org/sqlite` in WAL mode with one writer; every query through `sqlc`
+  from `internal/db/queries/*.sql`; migrations are embedded dbmate files applied at startup and
+  `db/schema.sql` is dumped for sqlc. Every query on a household table has `WHERE household_id = ?`
+  as its first predicate, and CI greps for it.
+- `internal/fold` is the only code that writes materialised tables from events, pure and
+  I/O-free, tested against `docs/fixtures/fold.json`; the Swift port in the apps loads the same
+  fixture. A change to the fold is a change to the fixture first.
+- `domain.Scope{HouseholdID, PersonID, Role}` is set once by auth middleware and travels in the
+  context; every service method takes it first; handlers are thin and services own transactions.
+- Web pages are `html/template` + vendored htmx 2.x, one hand-written CSS file over `tokens.css`,
+  no inline styles (the CSP forbids them), no build step, no external URL anywhere.
+- `log/slog`, JSON by default; `-d` switches to debug and `MatusOllah/slogcolor`. Config is
+  `doma.toml` with `DOMA_*` overrides; secrets are never logged.
+- Voice in docs, pages and messages: plain, direct, short sentences; no emoji, no exclamation
+  marks; `doma` always lowercase. The family vocabulary only (household, home, spot, item, list,
+  flag, trip, member, owner, guest, invite): never tenant, token, event, sync, server or credential
+  on a page a family member sees. Flags are shown as glyph and word, never colour alone.
+- Tests: table-driven, a temp SQLite file per test, no mocks of the DB. The cross-tenant and
+  cross-person suites assert 404 across every boundary for sync, REST, photos and export.
+- Apps (`app/ios`, `app/macos`, `app/shared`, nt's layout): Swift 6 with complete strict
+  concurrency, SwiftUI, `@MainActor @Observable` state, Apple frameworks only; GRDB, pinned, is
+  the one third-party dependency; XcodeGen `project.yml` per platform, `#if os` where they
+  differ. Every screen reads the local GRDB store and writes the outbox; nothing waits on the
+  network. The Swift fold under `app/shared/Fold` is a port of `internal/fold` and its test reads
+  `docs/fixtures/fold.json` by path. Colours, glyphs and sizes come only from
+  `app/shared/Design/Tokens.swift`; UI words in the system face through Dynamic Type, JetBrains
+  Mono for data only; SF Symbols wherever Apple's shape says the same thing, the custom symbols
+  from `assets/icons/`. Four tabs, no modals except the camera and the share sheet. The apps make
+  no network call except to the configured server.
+
+## Rules
+- Build one phase at a time (`docs/design.md`, Testing, milestones, open decisions) and stop at
+  its gate for review. Phase 0 first, server before apps; do not start homes and trips before the
+  family's shared list has run on doma.
+- Take the defaults in the open-decisions table unless overruled; do not add tables, events,
+  screens, pages, colours or config keys beyond the spec and the design system without asking.
+  Simplicity is the main requirement.
+- Never make an outbound network call other than APNs, and none at all when `push.enabled` is
+  false. No telemetry, no update check, no CDN.
+- `main` takes pull requests only: work on a branch, open a PR, and CI must pass before it merges.
+- Before calling a task done: `gofmt -l ./cmd ./internal` is empty, `make vet`, `make lint` and
+  `make test` pass, and `make e2e` passes after any change to the sync path or the fold; after a
+  change under `app/`, `make mac-test` and `make ios-test` pass and the snapshots are updated in
+  light and dark.
+
+## Commands
+- `make build`: `bin/doma` with the version stamped from git.
+- `make run`: `doma serve -d` on a throwaway data directory with a config under `tmp/`.
+- `make test`, `make vet`, `make lint`, `make fmt`, `make generate` (sqlc), `make migrate`
+  (dbmate up and schema dump).
+- `make e2e`: the end-to-end smoke in `scripts/e2e/`: start the server, create a household,
+  accept two invites with the Go test client, sync both ways, flip a flag, derive and commit a
+  trip.
+- `make brand`: regenerate `assets/brand` and `assets/icons` from their generators and `tokens.css`
+  from `tokens.json`, and write the flattened app icon into `app/ios` (needs Python with fontTools,
+  brotli, cairosvg and Playwright's Chromium).
+- `make mac-project`, `make mac-build`, `make mac-test`, `make mac-run`: the Mac app (Xcode 26+,
+  XcodeGen); `make ios-project`, `make ios-build`, `make ios-test`, `make ios-device`,
+  `make ios-testflight`: the iOS app in the simulator, its tests, on a connected iPhone, or uploaded
+  for TestFlight. `make ui-test` and `make snapshots` run the UI and snapshot suites.
+- `scripts/release.sh <version>`: tag a release; goreleaser builds the binaries and the image in
+  CI. It needs a `## <version> (YYYY-MM-DD)` section in `CHANGELOG.md`.

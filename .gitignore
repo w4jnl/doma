@@ -1,0 +1,14 @@
+bin/
+dist/
+tmp/
+*.db
+*.db-wal
+*.db-shm
+secret.key
+apns.p8
+__pycache__/
+.DS_Store
+app/*/*.xcodeproj
+app/*/xcuserdata/
+app/*/Local.xcconfig
+DerivedData/
