@@ -290,11 +290,11 @@ func (h *Web) uploadAPNSKey(w http.ResponseWriter, r *http.Request, sess *auth.S
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
-	if err := r.ParseMultipartForm(64 << 10); err != nil {
+	if err := r.ParseMultipartForm(64 << 10); err != nil { //nolint:gosec // G120: the body is capped at 64 KB by MaxBytesReader above
 		h.renderServer(w, r, sess, serverData{}, http.StatusUnprocessableEntity, "Choose the .p8 file Apple gave you.")
 		return
 	}
-	file, _, err := r.FormFile("key") //nolint:gosec // G120: the body is capped at 64 KB above
+	file, _, err := r.FormFile("key")
 	if err != nil {
 		h.renderServer(w, r, sess, serverData{}, http.StatusUnprocessableEntity, "Choose the .p8 file Apple gave you.")
 		return
