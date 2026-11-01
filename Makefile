@@ -1,5 +1,4 @@
-# doma: build, test and release targets. e2e arrives with the smoke test (phase 0 step 7),
-# mac-* and ios-* with the apps.
+# doma: build, test and release targets. mac-* and ios-* arrive with the apps.
 BIN        := $(CURDIR)/bin
 VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
@@ -19,7 +18,7 @@ SQLC       := $(call tool,sqlc)
 GOLANGCI   := $(call tool,golangci-lint)
 GORELEASER := $(call tool,goreleaser)
 
-.PHONY: build run test vet lint fmt generate generate-check migrate check-tenancy check-egress release-check tools brand clean
+.PHONY: build run test vet lint fmt generate generate-check migrate e2e check-tenancy check-egress release-check tools brand clean
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN)/doma ./cmd/doma
@@ -60,6 +59,11 @@ generate-check: generate
 # Apply the embedded migrations to a scratch database and dump db/schema.sql for sqlc.
 migrate:
 	go run ./internal/db/schemadump db/schema.sql
+
+# The end-to-end smoke: build the binary, start it, and walk a household from the setup page
+# to a committed trip with the Go client.
+e2e:
+	go test -race -count=1 -tags e2e -v ./scripts/e2e/...
 
 check-tenancy:
 	@scripts/check-tenancy.sh
