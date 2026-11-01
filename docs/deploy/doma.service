@@ -1,0 +1,36 @@
+# systemd unit for doma. Install the binary at /usr/local/bin/doma and the
+# config at /etc/doma/doma.toml; the database, the photos and the key files
+# live in /var/lib/doma (StateDirectory).
+[Unit]
+Description=doma: what to buy, what is there, what to bring
+Documentation=https://github.com/w4jnl/doma
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/doma serve --config /etc/doma/doma.toml
+Restart=on-failure
+RestartSec=3
+DynamicUser=yes
+StateDirectory=doma
+ConfigurationDirectory=doma
+Environment=DOMA_DB_PATH=/var/lib/doma/doma.db
+Environment=DOMA_PHOTOS_DIR=/var/lib/doma/photos
+Environment=DOMA_SECRETS_KEY_FILE=/var/lib/doma/secret.key
+Environment=DOMA_PUSH_KEY_FILE=/var/lib/doma/apns.p8
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

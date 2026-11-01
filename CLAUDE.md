@@ -22,10 +22,11 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   a prompt of the same shape when the previous gate is met.
 
 ## State of the tree (update this when it changes)
-- The tree is the seed commit: the spec, the design system, the brand kit, this file and a
-  Makefile with only the `brand` target. There is no `go.mod`, no `cmd/` or `internal/`, no
-  `app/*/project.yml`, no CI and no `docs/fixtures/fold.json` yet. Every other make target below
-  exists once phase 0 step 1 lands; check `git log` and `ls` before assuming otherwise.
+- Phase 0 step 1 is in: the module, `doma serve` with config and logging, `/healthz`, the
+  Makefile, CI, goreleaser and the gate scripts. There is no schema, no `internal/db`, no fold,
+  no `docs/fixtures/fold.json`, no sync endpoint, no web pages and no `app/*/project.yml` yet;
+  `make generate`, `make migrate` and `make e2e` arrive with their steps. Check `git log` and
+  `ls` before assuming otherwise.
 - The package map to build to is "Architecture and repository layout" in `docs/design.md`; the
   tables are in "Data model and tenancy", the event kinds and fold rules in "Event log and sync",
   the task lists and the open-decisions table in "Testing, milestones, open decisions".

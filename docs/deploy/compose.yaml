@@ -1,0 +1,26 @@
+# docker compose for doma: one container, one volume. The image is FROM
+# scratch (the static binary and CA certificates), so there is no shell
+# inside; health is checked from outside at /healthz. The first browser
+# visit shows the setup page.
+#
+#   docker compose up -d
+services:
+  doma:
+    image: ghcr.io/w4jnl/doma:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - doma-data:/data
+    environment:
+      DOMA_SERVER_BASE_URL: "https://doma.example.com"
+      DOMA_SERVER_TRUSTED_PROXIES: "172.16.0.0/12"
+      DOMA_LOG_FORMAT: json
+      # DOMA_PUSH_ENABLED: "true"        # after the APNs key is uploaded on /admin/server
+      # DOMA_PUSH_KEY_ID: "ABC123DEFG"
+      # DOMA_PUSH_TEAM_ID: "TEAM123456"
+      # DOMA_METRICS_TOKEN: "change-me"
+    stop_grace_period: 15s
+
+volumes:
+  doma-data:
