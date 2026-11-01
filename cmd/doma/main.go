@@ -23,6 +23,8 @@ import (
 	dhttp "github.com/w4jnl/doma/internal/http"
 	"github.com/w4jnl/doma/internal/logging"
 	"github.com/w4jnl/doma/internal/metrics"
+	"github.com/w4jnl/doma/internal/push"
+	"github.com/w4jnl/doma/internal/secrets"
 	"github.com/w4jnl/doma/internal/service"
 	"github.com/w4jnl/doma/internal/version"
 )
@@ -124,10 +126,20 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 		StalenessDays: cfg.Defaults.StalenessDays, MaxEventsPerSync: cfg.Sync.MaxEventsPerResponse, ReplayLimit: cfg.Sync.ReplayLimit,
 		SnapshotsDir: cfg.SnapshotsDir(), EventsDays: cfg.Retention.EventsDays,
 	}, log)
-	svc.SetBus(bus.New())
+	changes := bus.New()
+	svc.SetBus(changes)
 	m := metrics.New(version.Version)
 	svc.SetMetrics(m)
 	svc.SetTrace(debug)
+	keyring, err := secrets.Load(cfg.SecretKeyFile())
+	if err != nil {
+		return fmt.Errorf("secrets: %w", err)
+	}
+	sender, err := pushSender(cfg, keyring, log)
+	if err != nil {
+		return err
+	}
+	pusher := push.New(push.ServiceRegistry{Svc: svc}, sender, cfg.BaseURL(), logging.Sub(log, "push"), m)
 	started := time.Now()
 	h, err := dhttp.Handler(dhttp.Deps{Cfg: cfg, Log: log, Svc: svc, Metrics: m, Started: started})
 	if err != nil {
@@ -140,7 +152,7 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
-	errc := make(chan error, 2)
+	errc := make(chan error, 3)
 	run := func(name string, fn func(context.Context) error) {
 		wg.Add(1)
 		go func() {
@@ -152,6 +164,7 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 		}()
 	}
 	run("snapshots", func(ctx context.Context) error { return svc.SnapshotJob(ctx, cfg.Retention.SnapshotHour) })
+	run("push", func(ctx context.Context) error { return pusher.Run(ctx, changes.Subscribe()) })
 	run("http", func(ctx context.Context) error { return dhttp.Run(ctx, log, cfg.Server.Listen, h) })
 	var firstErr error
 	select {
@@ -165,4 +178,28 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 	}
 	log.Info("stopped")
 	return nil
+}
+
+// pushSender builds the APNs client when push.enabled is on: the key file
+// is sealed in place under secrets.key_file after the first start. With
+// push off it returns nil and nothing in the process can dial out.
+func pushSender(cfg *config.Config, keyring *secrets.Keyring, log *slog.Logger) (push.Sender, error) {
+	if !cfg.Push.Enabled {
+		log.Info("push off: the server makes no outbound connections")
+		return nil, nil //nolint:nilnil // nil is the disabled sender
+	}
+	path := cfg.PushKeyFile()
+	if err := keyring.SealFile(path); err != nil {
+		return nil, fmt.Errorf("push.key_file %s: %w (put the APNs .p8 key there or set push.enabled = false)", path, err)
+	}
+	pemBytes, err := keyring.OpenFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("push.key_file: %w", err)
+	}
+	key, err := push.ParseKey(pemBytes)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("push on", "topic", cfg.Push.Topic, "sandbox", cfg.Push.Sandbox, "key_id", cfg.Push.KeyID)
+	return push.NewAPNs(key, cfg.Push.KeyID, cfg.Push.TeamID, cfg.Push.Topic, cfg.Push.Sandbox), nil
 }

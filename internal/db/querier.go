@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	AllEvents(ctx context.Context, householdID string) ([]Event, error)
+	ClearAPNSToken(ctx context.Context, id string) error
 	ClearedEntriesForHome(ctx context.Context, arg ClearedEntriesForHomeParams) ([]Entry, error)
 	CountEvents(ctx context.Context, householdID string) (int64, error)
 	// tenancy: root -- the instance gauge
@@ -90,6 +91,10 @@ type Querier interface {
 	MembershipsForPerson(ctx context.Context, personID string) ([]Membership, error)
 	NewestSnapshot(ctx context.Context, householdID string) (Snapshot, error)
 	NextSeq(ctx context.Context, householdID string) (int64, error)
+	// The household's devices with a push token that were not pushed since the
+	// cutoff: one push per device per 30 s.
+	PushTargets(ctx context.Context, arg PushTargetsParams) ([]PushTargetsRow, error)
+	RecordPush(ctx context.Context, arg RecordPushParams) error
 	RecountItemUsage(ctx context.Context, arg RecountItemUsageParams) error
 	RevokeCredential(ctx context.Context, arg RevokeCredentialParams) (int64, error)
 	RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int64, error)
