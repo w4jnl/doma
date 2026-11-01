@@ -1,5 +1,5 @@
-# doma: build, test and release targets. generate and migrate arrive with the schema (phase 0
-# step 2), e2e with the smoke test (step 7), mac-* and ios-* with the apps.
+# doma: build, test and release targets. e2e arrives with the smoke test (phase 0 step 7),
+# mac-* and ios-* with the apps.
 BIN        := $(CURDIR)/bin
 VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
@@ -19,7 +19,7 @@ SQLC       := $(call tool,sqlc)
 GOLANGCI   := $(call tool,golangci-lint)
 GORELEASER := $(call tool,goreleaser)
 
-.PHONY: build run test vet lint fmt check-tenancy check-egress release-check tools brand clean
+.PHONY: build run test vet lint fmt generate generate-check migrate check-tenancy check-egress release-check tools brand clean
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN)/doma ./cmd/doma
@@ -43,6 +43,18 @@ lint: check-tenancy check-egress
 
 fmt:
 	$(GOLANGCI) fmt
+
+# sqlc from internal/db/queries over db/schema.sql, and the embedded copy of the event schema.
+generate:
+	$(SQLC) generate
+	cp docs/event-schema.json internal/events/event-schema.json
+
+generate-check: generate
+	git diff --exit-code -- internal/db internal/events/event-schema.json
+
+# Apply the embedded migrations to a scratch database and dump db/schema.sql for sqlc.
+migrate:
+	go run ./internal/db/schemadump db/schema.sql
 
 check-tenancy:
 	@scripts/check-tenancy.sh

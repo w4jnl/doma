@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/w4jnl/doma/docs/event-schema.json",
+  "title": "doma events",
+  "description": "The shape of every event a client may append. The server validates the envelope and the payload for its kind before append and answers 422 to anything else; a kind not listed here is stored and skipped by the fold, so an old app survives a new server. The Swift client validates its own events against the same file.",
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9_:-]{1,64}$"},
+    "idOrNull": {"anyOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+    "hlc": {"type": "string", "pattern": "^[0-9]{1,19}:[0-9]{1,4}:[^:]{1,32}$"},
+    "name": {"type": "string", "minLength": 1, "maxLength": 200},
+    "note": {"type": "string", "maxLength": 500},
+    "qty": {"anyOf": [{"type": "number", "minimum": 0}, {"type": "null"}]},
+    "unit": {"anyOf": [{"type": "string", "maxLength": 16}, {"type": "null"}]}
+  },
+  "envelope": {
+    "type": "object",
+    "required": ["id", "hlc", "kind", "payload"],
+    "properties": {
+      "id": {"$ref": "#/$defs/id"},
+      "household_id": {"$ref": "#/$defs/id"},
+      "hlc": {"$ref": "#/$defs/hlc"},
+      "kind": {"type": "string", "pattern": "^[a-z]+\\.[a-z_]+$"},
+      "payload": {"type": "object"}
+    }
+  },
+  "kinds": {
+    "item.named": {"type": "object", "required": ["item_id", "name"], "properties": {"item_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
+    "item.renamed": {"type": "object", "required": ["item_id", "name"], "properties": {"item_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
+    "item.merged": {"type": "object", "required": ["keep_id", "drop_id"], "properties": {"keep_id": {"$ref": "#/$defs/id"}, "drop_id": {"$ref": "#/$defs/id"}}},
+    "list.created": {"type": "object", "required": ["list_id", "name"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}, "colour": {"type": "string", "maxLength": 32}, "owner_person_id": {"$ref": "#/$defs/idOrNull"}, "default": {"type": "boolean"}}},
+    "list.renamed": {"type": "object", "required": ["list_id", "name"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}, "colour": {"type": "string", "maxLength": 32}}},
+    "list.archived": {"type": "object", "required": ["list_id"], "properties": {"list_id": {"$ref": "#/$defs/id"}}},
+    "entry.added": {"type": "object", "required": ["list_id", "item_id"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "note": {"$ref": "#/$defs/note"}, "qty": {"$ref": "#/$defs/qty"}, "unit": {"$ref": "#/$defs/unit"}, "for_home_id": {"$ref": "#/$defs/idOrNull"}}},
+    "entry.edited": {"type": "object", "required": ["list_id", "item_id"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "note": {"$ref": "#/$defs/note"}, "qty": {"$ref": "#/$defs/qty"}, "unit": {"$ref": "#/$defs/unit"}}},
+    "entry.checked": {"type": "object", "required": ["list_id", "item_id"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}}},
+    "entry.unchecked": {"type": "object", "required": ["list_id", "item_id"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}}},
+    "entry.cleared": {"type": "object", "required": ["list_id", "before_hlc"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "before_hlc": {"$ref": "#/$defs/hlc"}}},
+    "entry.moved": {"type": "object", "required": ["list_id", "item_id", "sort"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "sort": {"type": "number"}}},
+    "flag.set": {"type": "object", "required": ["home_id", "item_id", "state"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "state": {"enum": ["have", "low", "out"]}, "note": {"$ref": "#/$defs/note"}}},
+    "staple.added": {"type": "object", "required": ["home_id", "item_id"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "sort": {"type": "integer"}}},
+    "staple.removed": {"type": "object", "required": ["home_id", "item_id"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}}},
+    "home.created": {"type": "object", "required": ["home_id", "name"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
+    "home.renamed": {"type": "object", "required": ["home_id", "name"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
+    "home.archived": {"type": "object", "required": ["home_id"], "properties": {"home_id": {"$ref": "#/$defs/id"}}},
+    "spot.created": {"type": "object", "required": ["spot_id", "home_id", "name"], "properties": {"spot_id": {"$ref": "#/$defs/id"}, "home_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
+    "spot.renamed": {"type": "object", "required": ["spot_id", "name"], "properties": {"spot_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
+    "spot.archived": {"type": "object", "required": ["spot_id"], "properties": {"spot_id": {"$ref": "#/$defs/id"}}},
+    "photo.added": {"type": "object", "required": ["photo_id", "spot_id"], "properties": {"photo_id": {"$ref": "#/$defs/id"}, "spot_id": {"$ref": "#/$defs/id"}, "bytes": {"type": "integer", "minimum": 0}, "width": {"type": "integer", "minimum": 0}, "height": {"type": "integer", "minimum": 0}}},
+    "trip.arrived": {"type": "object", "required": ["trip_id", "from_home_id", "to_home_id", "moved"], "properties": {"trip_id": {"$ref": "#/$defs/id"}, "from_home_id": {"$ref": "#/$defs/id"}, "to_home_id": {"$ref": "#/$defs/id"}, "moved": {"type": "array", "items": {"$ref": "#/$defs/id"}, "maxItems": 500}}},
+    "member.removed": {"type": "object", "required": ["person_id"], "properties": {"person_id": {"$ref": "#/$defs/id"}}},
+    "device.revoked": {"type": "object", "required": ["credential_id"], "properties": {"credential_id": {"$ref": "#/$defs/id"}}}
+  }
+}
