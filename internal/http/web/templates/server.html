@@ -1,0 +1,77 @@
+{{define "content"}}
+<h1>Server</h1>
+{{if .Error}}<p class="dm-error">{{.Error}}</p>{{end}}
+{{if .Data.Notice}}<p class="dm-notice">{{.Data.Notice}}</p>{{end}}
+
+<section class="dm-panel">
+  <h2>Address</h2>
+  <ul class="dm-rows">
+    <li><div class="dm-grow">Base URL</div><span class="dm-mono">{{.Data.BaseURL}}</span></li>
+    <li><div class="dm-grow">TLS</div><span class="dm-meta">{{if .Data.TLS}}https, cookies are Secure{{else}}plain http: fine on a LAN, not on the internet{{end}}</span></li>
+    <li><div class="dm-grow">Version</div><span class="dm-mono">{{.Data.Version}}</span></li>
+  </ul>
+</section>
+
+<section class="dm-panel">
+  <h2>Push</h2>
+  <ul class="dm-rows">
+    <li><div class="dm-grow">Status</div><span class="dm-meta">{{.Data.PushStatus}}</span></li>
+    {{if .Data.PushError}}<li><div class="dm-grow">Last error</div><span class="dm-meta">{{.Data.PushError}}</span></li>{{end}}
+  </ul>
+  <form method="post" action="/admin/server/apns" enctype="multipart/form-data" class="dm-row-actions">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <input type="file" name="key" accept=".p8,.pem" required>
+    <button class="dm-button dm-button-quiet" type="submit">Upload APNs key</button>
+  </form>
+  <p class="dm-muted">The key is encrypted at rest. Set push.enabled, key_id and team_id in doma.toml and restart to send.</p>
+</section>
+
+<section class="dm-panel">
+  <h2>Backup</h2>
+  <ul class="dm-rows">
+    <li><div class="dm-grow">Last snapshot run</div><span class="dm-meta">{{if .Data.SnapshotRun}}{{ago .Data.SnapshotRun}}{{else}}not yet{{end}}</span></li>
+    {{if .Data.LastBackup}}<li><div class="dm-grow">Last backup</div><span class="dm-mono">{{.Data.LastBackup}}</span></li>{{end}}
+  </ul>
+  <div class="dm-row-actions">
+    <form method="post" action="/admin/server/backup"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button" type="submit">Back up now</button></form>
+    <form method="post" action="/admin/server/snapshot"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Run snapshots</button></form>
+  </div>
+</section>
+
+<section class="dm-panel">
+  <h2>Log level</h2>
+  <form method="post" action="/admin/server/log" class="dm-row-actions">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <select class="dm-input" name="level">
+      {{range .Data.Levels}}<option value="{{.}}"{{if eq . $.Data.LogLevel}} selected{{end}}>{{.}}</option>{{end}}
+    </select>
+    <button class="dm-button dm-button-quiet" type="submit">Set</button>
+  </form>
+</section>
+
+<section class="dm-panel">
+  <h2>Second step on sign-in</h2>
+  {{if .Data.TOTPOn}}
+  <p>On. Signing in asks for a code from your authenticator app.</p>
+  <form method="post" action="/admin/server/totp/off"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Turn off</button></form>
+  {{else if .Data.TOTPSetup}}
+  <p>Scan this in your authenticator app, then type the code it shows.</p>
+  <div class="dm-qr">{{.Data.TOTPSetup.QR}}</div>
+  <p class="dm-mono dm-muted">{{.Data.TOTPSetup.Secret}}</p>
+  <form method="post" action="/admin/server/totp/confirm" class="dm-row-actions">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <input type="hidden" name="secret" value="{{.Data.TOTPSetup.Secret}}">
+    <input class="dm-input dm-mono" name="code" inputmode="numeric" autocomplete="one-time-code" required>
+    <button class="dm-button" type="submit">Confirm</button>
+  </form>
+  {{else}}
+  <p class="dm-muted">Off. One screen to turn on.</p>
+  <form method="post" action="/admin/server/totp/setup"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Turn on</button></form>
+  {{end}}
+</section>
+
+<section class="dm-panel">
+  <h2>Configuration</h2>
+  <pre class="dm-pre">{{.Data.Config}}</pre>
+</section>
+{{end}}

@@ -1,29 +1,97 @@
 {{define "content"}}
-<h1>{{.Data.Household.Name}}</h1>
+<h1>{{.Data.Detail.Name}}</h1>
+<p class="dm-muted">{{.Data.Detail.Timezone}} · flags fade to unknown after {{.Data.Detail.StalenessDays}} days · {{if .Data.Detail.SnapshotAt}}last snapshot {{ago .Data.Detail.SnapshotAt}}{{else}}no snapshot yet{{end}}</p>
 {{if .Error}}<p class="dm-error">{{.Error}}</p>{{end}}
+{{if .Data.Notice}}<p class="dm-notice">{{.Data.Notice}}</p>{{end}}
+
 <section class="dm-panel">
   <h2>Members</h2>
-  {{if .Data.Members}}
+  {{if .Data.Detail.MembersList}}
   <ul class="dm-rows">
-    {{range .Data.Members}}
-    <li><div class="dm-grow">{{.DisplayName}}</div><span class="dm-meta">{{.Role}}</span></li>
+    {{range .Data.Detail.MembersList}}
+    <li><div class="dm-grow">{{.DisplayName}}</div><span class="dm-meta">{{.Role}} · {{if .LastSeenAt}}seen {{ago .LastSeenAt}}{{else}}never seen{{end}}</span></li>
     {{end}}
   </ul>
   {{else}}
   <p class="dm-muted">Nobody yet. Make an owner invite and show the QR to the first owner.</p>
   {{end}}
 </section>
+
 <section class="dm-panel">
   <h2>Owner invite</h2>
   {{if .Data.Invite}}
-  <p>Scan this with the doma app, or open the link on the phone. It works once and for {{.Data.InviteDays}} days.</p>
+  <p>Scan this with the doma app, or open the link on the phone. It works once and for {{.Data.Detail.InviteDays}} days.</p>
   <div class="dm-qr">{{.Data.Invite.QR}}</div>
   <p class="dm-mono dm-muted">{{.Data.Invite.URL}}</p>
   {{else}}
-  <form method="post" action="/admin/h/{{.Data.Household.ID}}/invite">
+  <form method="post" action="/admin/h/{{.Data.Detail.ID}}/invite">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
     <button class="dm-button" type="submit">Make an owner invite</button>
   </form>
   {{end}}
+  {{if .Data.Detail.Invites}}
+  <ul class="dm-rows">
+    {{range .Data.Detail.Invites}}
+    <li><div class="dm-grow">{{.Role}} invite</div><span class="dm-meta">until {{date .ExpiresAt}}</span></li>
+    {{end}}
+  </ul>
+  {{end}}
+</section>
+
+<section class="dm-panel">
+  <h2>Devices</h2>
+  {{if .Data.Detail.DevicesList}}
+  <ul class="dm-rows">
+    {{range .Data.Detail.DevicesList}}
+    <li><div class="dm-grow">{{.Label}} <span class="dm-meta">{{.PersonName}} · {{.Platform}}</span></div><span class="dm-meta">{{if .LastUsedAt}}last seen {{ago .LastUsedAt}}{{else}}never{{end}}</span></li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="dm-muted">No devices yet.</p>
+  {{end}}
+</section>
+
+<section class="dm-panel">
+  <h2>Guest links</h2>
+  {{if .Data.Detail.GuestLinks}}
+  <ul class="dm-rows">
+    {{range .Data.Detail.GuestLinks}}
+    <li><div class="dm-grow">{{.Label}}</div><span class="dm-meta">{{if .Revoked}}ended{{else}}until {{date .ExpiresAt}}{{end}}</span></li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="dm-muted">Owners make guest links from the app's Family screen.</p>
+  {{end}}
+</section>
+
+<section class="dm-panel">
+  <h2>Quotas</h2>
+  <form class="dm-inline-form" method="post" action="/admin/h/{{.Data.Detail.ID}}/quotas">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <label class="dm-field"><span>Devices (empty = unlimited)</span><input class="dm-input" name="devices" inputmode="numeric" value="{{.Data.QuotaDevices}}"></label>
+    <label class="dm-field"><span>Photo MB (empty = unlimited)</span><input class="dm-input" name="photo_mb" inputmode="numeric" value="{{.Data.QuotaPhotoMB}}"></label>
+    <div></div>
+    <button class="dm-button dm-button-quiet" type="submit">Save</button>
+  </form>
+</section>
+
+<section class="dm-panel">
+  <h2>Export and delete</h2>
+  <div class="dm-row-actions">
+    <a class="dm-button dm-button-quiet" href="/admin/h/{{.Data.Detail.ID}}/export">Export</a>
+    {{if eq .Data.Detail.Members 0}}
+    <form method="post" action="/admin/h/{{.Data.Detail.ID}}/delete">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      {{if .Data.ConfirmDelete}}
+      <input type="hidden" name="confirm" value="1">
+      <button class="dm-button dm-button-danger" type="submit">Really delete?</button>
+      {{else}}
+      <button class="dm-button dm-button-quiet" type="submit">Delete</button>
+      {{end}}
+    </form>
+    {{else}}
+    <span class="dm-meta">A household with members cannot be deleted.</span>
+    {{end}}
+  </div>
 </section>
 {{end}}

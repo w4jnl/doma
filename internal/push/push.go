@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/w4jnl/doma/internal/bus"
@@ -50,6 +51,26 @@ type Pusher struct {
 	now     func() time.Time
 	// Sent counts pushes handed to the sender, for tests.
 	Sent int
+
+	mu      sync.Mutex
+	lastErr string
+}
+
+// LastError is the most recent failure, "" when the last push went through.
+func (p *Pusher) LastError() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.lastErr
+}
+
+func (p *Pusher) setErr(err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if err == nil {
+		p.lastErr = ""
+		return
+	}
+	p.lastErr = p.now().UTC().Format(time.RFC3339) + " " + err.Error()
 }
 
 // New builds a pusher. With a nil sender, which is what push.enabled =
@@ -114,6 +135,7 @@ func (p *Pusher) Handle(ctx context.Context, c bus.HouseholdChanged) {
 		if p.metrics != nil {
 			p.metrics.Push.WithLabelValues(result).Inc()
 		}
+		p.setErr(err)
 		if err != nil {
 			p.log.Warn("push", "result", result, "err", err, "household", c.HouseholdID, "credential", t.CredentialID)
 		} else {

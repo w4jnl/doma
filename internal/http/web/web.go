@@ -13,7 +13,10 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/w4jnl/doma/internal/auth"
@@ -40,6 +43,12 @@ type Web struct {
 	logins   *ratelimit.Limiter
 	pages    map[string]*template.Template
 	now      func() time.Time
+	secure   bool
+	facts    *ServerFacts
+	// challenges are admin sign-ins that passed the password and wait for
+	// the code, keyed by a one-time cookie.
+	challenges map[string]time.Time
+	chMu       sync.Mutex
 	// InviteDays is shown on the invite panel.
 	InviteDays int
 }
@@ -55,18 +64,46 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 	if err != nil {
 		return nil, err
 	}
-	funcs := template.FuncMap{"mark": func() template.HTML { return mark }}
+	sprite, err := inlineSprite()
+	if err != nil {
+		return nil, err
+	}
+	w := &Web{}
+	funcs := template.FuncMap{
+		"mark":   func() template.HTML { return mark },
+		"sprite": func() template.HTML { return sprite },
+		"ago":    func(ms int64) string { return ago(ms, w.now()) },
+		"date":   func(ms int64) string { return domain.FromMillis(ms).Format("2 Jan 2006") },
+		"qty": func(q *float64) string {
+			if q == nil {
+				return ""
+			}
+			return strconv.FormatFloat(*q, 'f', -1, 64)
+		},
+	}
 	for _, name := range names {
-		if strings.HasSuffix(name, "layout.html") {
+		base := strings.TrimPrefix(name, "templates/")
+		if base == "layout.html" || strings.HasPrefix(base, "_") {
 			continue
 		}
-		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", name)
+		files := []string{"templates/layout.html", name}
+		if strings.HasPrefix(base, "guest") || base == "_guest_fragment.html" {
+			files = append(files, "templates/_guest_list.html")
+		}
+		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, files...)
 		if err != nil {
 			return nil, fmt.Errorf("template %s: %w", name, err)
 		}
-		pages[strings.TrimSuffix(strings.TrimPrefix(name, "templates/"), ".html")] = t
+		pages[strings.TrimSuffix(base, ".html")] = t
 	}
-	return &Web{svc: svc, log: log, sessions: auth.NewSessions(secure), logins: ratelimit.New(LoginsPerMinute, LoginsPerMinute), pages: pages, now: func() time.Time { return time.Now().UTC() }, InviteDays: 7}, nil
+	// the polled fragment: the list alone, no layout
+	frag, err := template.New("_guest_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_guest_fragment.html", "templates/_guest_list.html")
+	if err != nil {
+		return nil, fmt.Errorf("guest fragment: %w", err)
+	}
+	pages["_guest_fragment"] = frag
+	*w = Web{svc: svc, log: log, sessions: auth.NewSessions(secure), logins: ratelimit.New(LoginsPerMinute, LoginsPerMinute), pages: pages, now: func() time.Time { return time.Now().UTC() }, secure: secure, challenges: map[string]time.Time{}, InviteDays: 7}
+	return w, nil
 }
 
 // SetClock replaces the clock, for tests.
@@ -84,12 +121,30 @@ func (h *Web) Mount(mux *http.ServeMux) {
 	mux.HandleFunc("POST /setup", h.setup)
 	mux.HandleFunc("GET /admin/login", h.loginForm)
 	mux.HandleFunc("POST /admin/login", h.login)
+	mux.HandleFunc("GET /admin/login/code", h.codeForm)
+	mux.HandleFunc("POST /admin/login/code", h.code)
 	mux.HandleFunc("POST /admin/logout", h.admin(h.logout))
 	mux.HandleFunc("GET /admin", h.admin(h.households))
 	mux.HandleFunc("POST /admin/households", h.admin(h.createHousehold))
 	mux.HandleFunc("GET /admin/h/{id}", h.admin(h.household))
 	mux.HandleFunc("POST /admin/h/{id}/invite", h.admin(h.ownerInvite))
+	mux.HandleFunc("POST /admin/h/{id}/quotas", h.admin(h.setQuotas))
+	mux.HandleFunc("POST /admin/h/{id}/delete", h.admin(h.deleteHousehold))
+	mux.HandleFunc("GET /admin/h/{id}/export", h.admin(h.exportHousehold))
+	mux.HandleFunc("GET /admin/server", h.admin(h.serverPage))
+	mux.HandleFunc("POST /admin/server/apns", h.admin(h.uploadAPNSKey))
+	mux.HandleFunc("POST /admin/server/backup", h.admin(h.backupNow))
+	mux.HandleFunc("POST /admin/server/snapshot", h.admin(h.runSnapshots))
+	mux.HandleFunc("POST /admin/server/log", h.admin(h.setLogLevel))
+	mux.HandleFunc("POST /admin/server/totp/setup", h.admin(h.totpSetupPage))
+	mux.HandleFunc("POST /admin/server/totp/confirm", h.admin(h.totpConfirm))
+	mux.HandleFunc("POST /admin/server/totp/off", h.admin(h.totpOff))
 	mux.HandleFunc("GET /i/{token}", h.invitePage)
+	mux.HandleFunc("GET /g/{token}", h.guest(h.guestPage))
+	mux.HandleFunc("GET /g/{token}/list", h.guest(h.guestList))
+	mux.HandleFunc("POST /g/{token}/add", h.guest(h.guestAdd))
+	mux.HandleFunc("POST /g/{token}/check/{entry}", h.guest(h.guestCheck))
+	mux.HandleFunc("POST /g/{token}/clear", h.guest(h.guestClear))
 }
 
 // inlineMark is the brand mark from assets/brand, inlined so it takes the
@@ -109,6 +164,21 @@ func inlineMark() (template.HTML, error) {
 	return template.HTML(svg), nil //nolint:gosec // G203: our own asset
 }
 
+// inlineSprite is the pictogram sprite from assets/icons, inlined once so
+// <use href="#i-name"> works on every page.
+func inlineSprite() (template.HTML, error) {
+	raw, err := staticFS.ReadFile("static/doma-icons.svg")
+	if err != nil {
+		return "", err
+	}
+	svg := string(raw)
+	if i := strings.Index(svg, "<svg"); i > 0 {
+		svg = svg[i:]
+	}
+	svg = strings.Replace(svg, "<svg ", `<svg class="dm-sprite" aria-hidden="true" width="0" height="0" `, 1)
+	return template.HTML(svg), nil //nolint:gosec // G203: our own asset
+}
+
 func cacheStatic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=3600")
@@ -119,32 +189,42 @@ func cacheStatic(next http.Handler) http.Handler {
 // page is what every template gets.
 type page struct {
 	Title string
-	// Bare pages (setup, login, invite) are one card on ground; the rest
-	// have the admin top bar.
+	// Bare pages (setup, login, invite) are one card on ground; Guest pages
+	// have the mark and nothing else; the rest have the admin top bar.
 	Bare  bool
+	Guest bool
+	// Live pages load htmx; Alert pages carry the alert favicon.
+	Live  bool
+	Alert bool
 	Nav   string
 	CSRF  string
 	Error string
 	Data  any
 }
 
-func (h *Web) render(w http.ResponseWriter, status int, name string, p page) {
+func (h *Web) renderBytes(name string, p page) ([]byte, error) {
 	t, ok := h.pages[name]
 	if !ok {
-		h.log.Error("no template", "name", name)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("no template %s", name)
 	}
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, p); err != nil {
-		h.log.Error("render", "name", name, "err", err)
+		return nil, fmt.Errorf("render %s: %w", name, err)
+	}
+	return buf.Bytes(), nil
+}
+
+func (h *Web) render(w http.ResponseWriter, status int, name string, p page) {
+	body, err := h.renderBytes(name, p)
+	if err != nil {
+		h.log.Error("render", "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
-	_, _ = buf.WriteTo(w)
+	_, _ = w.Write(body)
 }
 
 // root sends a browser to setup, to the admin pages or to the login.
@@ -254,11 +334,81 @@ func (h *Web) login(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
+	if on, err := h.svc.TOTPEnabled(r.Context()); err == nil && on {
+		id, err := auth.NewToken()
+		if err != nil {
+			h.fail(w, r, err)
+			return
+		}
+		h.chMu.Lock()
+		h.challenges[id] = h.now().Add(5 * time.Minute)
+		h.chMu.Unlock()
+		http.SetCookie(w, &http.Cookie{Name: challengeCookie, Value: id, Path: "/admin/login", HttpOnly: true, Secure: h.secure, SameSite: http.SameSiteLaxMode, MaxAge: 300}) //nolint:gosec // G124: as the session cookie
+		http.Redirect(w, r, "/admin/login/code?next="+next, http.StatusSeeOther)                                                                                               //nolint:gosec // G710: next is checked by safeNext
+		return
+	}
 	if _, err := h.sessions.Start(w); err != nil {
 		h.fail(w, r, err)
 		return
 	}
 	h.log.Info("admin login", "ip", middleware.ClientIP(r))
+	http.Redirect(w, r, next, http.StatusSeeOther) //nolint:gosec // G710: safeNext allows /admin paths only
+}
+
+const challengeCookie = "doma_admin_code"
+
+// challenge returns whether the browser passed the password in the last
+// five minutes.
+func (h *Web) challenge(r *http.Request) (string, bool) {
+	c, err := r.Cookie(challengeCookie)
+	if err != nil || c.Value == "" {
+		return "", false
+	}
+	h.chMu.Lock()
+	defer h.chMu.Unlock()
+	exp, ok := h.challenges[c.Value]
+	if !ok || exp.Before(h.now()) {
+		delete(h.challenges, c.Value)
+		return "", false
+	}
+	return c.Value, true
+}
+
+func (h *Web) codeForm(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.challenge(r); !ok {
+		http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+		return
+	}
+	h.render(w, http.StatusOK, "login_code", page{Title: "Sign in", Bare: true, Data: loginData{Next: safeNext(r.URL.Query().Get("next"))}})
+}
+
+func (h *Web) code(w http.ResponseWriter, r *http.Request) {
+	id, ok := h.challenge(r)
+	if !ok {
+		http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+		return
+	}
+	next := safeNext(r.PostFormValue("next"))
+	if ok, _ := h.logins.Allow(middleware.ClientIP(r)); !ok {
+		h.render(w, http.StatusTooManyRequests, "login_code", page{Title: "Sign in", Bare: true, Error: "Too many tries. Wait a minute.", Data: loginData{Next: next}})
+		return
+	}
+	if err := h.svc.VerifyTOTP(r.Context(), r.PostFormValue("code")); err != nil {
+		if errors.Is(err, domain.ErrUnauthorized) {
+			h.render(w, http.StatusUnauthorized, "login_code", page{Title: "Sign in", Bare: true, Error: "That code does not match.", Data: loginData{Next: next}})
+			return
+		}
+		h.fail(w, r, err)
+		return
+	}
+	h.chMu.Lock()
+	delete(h.challenges, id)
+	h.chMu.Unlock()
+	http.SetCookie(w, &http.Cookie{Name: challengeCookie, Value: "", Path: "/admin/login", MaxAge: -1, HttpOnly: true, Secure: h.secure, SameSite: http.SameSiteLaxMode}) //nolint:gosec // G124: Secure follows server.base_url's scheme
+	if _, err := h.sessions.Start(w); err != nil {
+		h.fail(w, r, err)
+		return
+	}
 	http.Redirect(w, r, next, http.StatusSeeOther) //nolint:gosec // G710: safeNext allows /admin paths only
 }
 
@@ -286,112 +436,6 @@ func (h *Web) admin(fn func(http.ResponseWriter, *http.Request, *auth.Session)) 
 		}
 		fn(w, r, sess)
 	}
-}
-
-// households
-
-type householdRow struct {
-	ID, Name, Timezone string
-	Members, Devices   int
-}
-
-type householdsData struct {
-	Households []householdRow
-	Timezone   string
-	Notice     string
-}
-
-func (h *Web) households(w http.ResponseWriter, r *http.Request, sess *auth.Session) {
-	h.renderHouseholds(w, r, sess, http.StatusOK, "", r.URL.Query().Get("created"))
-}
-
-func (h *Web) renderHouseholds(w http.ResponseWriter, r *http.Request, sess *auth.Session, status int, errMsg, created string) {
-	hs, err := h.svc.Households(r.Context())
-	if err != nil {
-		h.fail(w, r, err)
-		return
-	}
-	data := householdsData{Timezone: "Europe/Amsterdam"}
-	for _, hh := range hs {
-		row := householdRow{ID: hh.ID, Name: hh.Name, Timezone: hh.Timezone}
-		if ms, err := h.svc.Members(r.Context(), domain.Scope{HouseholdID: hh.ID, Role: domain.RoleOwner}); err == nil {
-			row.Members = len(ms)
-		}
-		data.Households = append(data.Households, row)
-		if hh.ID == created {
-			data.Notice = hh.Name + " is created. Open it and make the first owner invite."
-		}
-	}
-	h.render(w, status, "households", page{Title: "Households", Nav: "households", CSRF: sess.CSRF, Error: errMsg, Data: data})
-}
-
-func (h *Web) createHousehold(w http.ResponseWriter, r *http.Request, sess *auth.Session) {
-	hh, err := h.svc.CreateHousehold(r.Context(), r.PostFormValue("name"), r.PostFormValue("timezone"), r.PostFormValue("home"))
-	if err != nil {
-		var ve domain.ErrValidation
-		if errors.As(err, &ve) {
-			h.renderHouseholds(w, r, sess, http.StatusUnprocessableEntity, ve.Msg, "")
-			return
-		}
-		h.fail(w, r, err)
-		return
-	}
-	http.Redirect(w, r, "/admin/h/"+hh.ID, http.StatusSeeOther) //nolint:gosec // G710: the id is a ULID we just made
-}
-
-type inviteView struct {
-	URL string
-	QR  template.HTML
-}
-
-type householdData struct {
-	Household  domain.Household
-	Members    []domain.Member
-	Invite     *inviteView
-	InviteDays int
-}
-
-func (h *Web) household(w http.ResponseWriter, r *http.Request, sess *auth.Session) {
-	h.renderHousehold(w, r, sess, r.PathValue("id"), nil)
-}
-
-func (h *Web) renderHousehold(w http.ResponseWriter, r *http.Request, sess *auth.Session, id string, inv *inviteView) {
-	hh, err := h.svc.HouseholdByID(r.Context(), id)
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			http.NotFound(w, r)
-			return
-		}
-		h.fail(w, r, err)
-		return
-	}
-	ms, err := h.svc.Members(r.Context(), domain.Scope{HouseholdID: id, Role: domain.RoleOwner})
-	if err != nil {
-		h.fail(w, r, err)
-		return
-	}
-	h.render(w, http.StatusOK, "household", page{Title: hh.Name, Nav: "households", CSRF: sess.CSRF, Data: householdData{Household: *hh, Members: ms, Invite: inv, InviteDays: h.InviteDays}})
-}
-
-// ownerInvite makes the bootstrap invite for a household with no owner
-// yet, and shows it once as a QR.
-func (h *Web) ownerInvite(w http.ResponseWriter, r *http.Request, sess *auth.Session) {
-	id := r.PathValue("id")
-	inv, err := h.svc.CreateInvite(r.Context(), domain.Scope{HouseholdID: id, Role: domain.RoleOwner}, domain.RoleOwner)
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			http.NotFound(w, r)
-			return
-		}
-		h.fail(w, r, err)
-		return
-	}
-	svg, err := qrSVG(inv.URL)
-	if err != nil {
-		h.fail(w, r, err)
-		return
-	}
-	h.renderHousehold(w, r, sess, id, &inviteView{URL: inv.URL, QR: template.HTML(svg)}) //nolint:gosec // G203: the SVG is built from a URL we made, with no user text
 }
 
 // invitePage is what a phone shows when the link opens in a browser.
@@ -422,4 +466,9 @@ func (h *Web) invitePage(w http.ResponseWriter, r *http.Request) {
 		Household: inv.Household.Name, Role: string(inv.Role), AppLink: template.URL("doma://invite#" + token), //nolint:gosec // G203: see inviteData
 		Until: domain.FromMillis(inv.ExpiresAt).Format("2 January"),
 	}})
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }

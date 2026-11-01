@@ -38,16 +38,38 @@ type Options struct {
 	Out io.Writer
 }
 
+// Level is the process log level; the admin's Server page changes it at
+// run time.
+var Level = new(slog.LevelVar)
+
+// SetLevel changes the level by name; unknown names are info.
+func SetLevel(name string) { Level.Set(parseLevel(name)) }
+
+// LevelName is the current level as the config spells it.
+func LevelName() string {
+	switch Level.Level() {
+	case slog.LevelDebug:
+		return "debug"
+	case slog.LevelWarn:
+		return "warn"
+	case slog.LevelError:
+		return "error"
+	}
+	return "info"
+}
+
 // New returns a logger built from opts.
 func New(opts Options) *slog.Logger {
 	out := opts.Out
 	if out == nil {
 		out = os.Stderr
 	}
-	level := parseLevel(opts.Level)
 	if opts.Debug {
-		level = slog.LevelDebug
+		Level.Set(slog.LevelDebug)
+	} else {
+		Level.Set(parseLevel(opts.Level))
 	}
+	level := Level
 	if opts.Debug || strings.EqualFold(opts.Format, "text") {
 		noColor := !ColorEnabled(opts.Color, out)
 		// fatih/color decides globally from os.Stdout; our decision wins.

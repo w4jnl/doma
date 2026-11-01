@@ -1,0 +1,25 @@
+{{define "content"}}
+<div class="dm-guest">
+  <h1>{{.Data.View.HomeName}}</h1>
+  <section>
+    <h2>Missing</h2>
+    {{if .Data.View.Missing}}
+    <ul class="dm-rows">
+      {{range .Data.View.Missing}}
+      <li><span class="dm-flag dm-flag-{{.State}}"><svg class="dm-glyph" aria-hidden="true"><use href="#i-{{.State}}"/></svg>{{.State}}</span><div class="dm-grow">{{.ItemName}}</div>{{if .SetAt}}<span class="dm-meta">{{ago .SetAt}}</span>{{end}}</li>
+      {{end}}
+    </ul>
+    {{else}}
+    <p class="dm-muted">Nothing missing that we know of.</p>
+    {{end}}
+  </section>
+  <section>
+    <h2>{{.Data.View.ListName}}</h2>
+    <form class="dm-add" method="post" action="/g/{{.Data.Link}}/add" hx-post="/g/{{.Data.Link}}/add" hx-target="#list" hx-swap="outerHTML">
+      <input class="dm-input" name="text" placeholder="Add" autocomplete="off" required>
+      <button class="dm-button" type="submit">Add</button>
+    </form>
+    {{template "list" .}}
+  </section>
+</div>
+{{end}}

@@ -4,12 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}} · doma</title>
-<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="{{if .Alert}}/static/favicon-alert.svg{{else}}/static/favicon.svg{{end}}" type="image/svg+xml">
 <link rel="stylesheet" href="/static/tokens.css">
 <link rel="stylesheet" href="/static/doma.css">
+{{if .Live}}<script src="/static/htmx.min.js" defer></script>{{end}}
 </head>
 <body>
-{{if .Bare}}
+{{sprite}}
+{{if .Guest}}
+<main class="dm-page">
+  <header class="dm-topbar">{{mark}}<span class="dm-wordmark">doma</span></header>
+  {{template "content" .}}
+</main>
+{{else if .Bare}}
 <main class="dm-center">
   <div>
     {{mark}}

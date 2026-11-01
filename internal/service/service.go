@@ -18,6 +18,7 @@ import (
 	"github.com/w4jnl/doma/internal/fold"
 	"github.com/w4jnl/doma/internal/foldsql"
 	"github.com/w4jnl/doma/internal/metrics"
+	"github.com/w4jnl/doma/internal/secrets"
 )
 
 // Config is what the service needs from doma.toml.
@@ -46,6 +47,7 @@ type Service struct {
 	bus     *bus.Bus
 	metrics *metrics.Metrics
 	trace   bool
+	keyring *secrets.Keyring
 	snapMu  sync.Mutex
 	lastRun time.Time
 }

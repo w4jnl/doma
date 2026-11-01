@@ -106,6 +106,20 @@ paths:
       summary: Revoke a pending invite; owners
       responses:
         "204": {description: revoked}
+  /api/v1/h/{household}/guests:
+    get:
+      summary: Guest links with their home, list and validity; owners
+      responses:
+        "200": {description: guests}
+    post:
+      summary: Make a guest link for one home and one shared list; owners; body {home_id, list_id, label, days}
+      responses:
+        "201": {description: the link, shown once}
+  /api/v1/h/{household}/guests/{id}:
+    delete:
+      summary: End a guest link now; owners
+      responses:
+        "204": {description: ended}
   /api/v1/h/{household}/export:
     get:
       summary: A zip with household.json, events.ndjson, purchases.csv, lists/*.md and homes/*.md; members

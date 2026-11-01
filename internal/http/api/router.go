@@ -120,6 +120,9 @@ func (a *API) Mount(mux *http.ServeMux) {
 	a.handle(mux, "POST "+Prefix+"/h/{household}/invites", modeHousehold, a.createInvite)
 	a.handle(mux, "DELETE "+Prefix+"/h/{household}/invites/{id}", modeHousehold, a.revokeInvite)
 	a.handle(mux, "GET "+Prefix+"/h/{household}/export", modeHousehold, a.export)
+	a.handle(mux, "GET "+Prefix+"/h/{household}/guests", modeHousehold, a.guests)
+	a.handle(mux, "POST "+Prefix+"/h/{household}/guests", modeHousehold, a.createGuest)
+	a.handle(mux, "DELETE "+Prefix+"/h/{household}/guests/{id}", modeHousehold, a.revokeGuest)
 }
 
 // Handle registers a route from another package on the same plumbing.
