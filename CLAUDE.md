@@ -22,7 +22,7 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   a prompt of the same shape when the previous gate is met.
 
 ## State of the tree (update this when it changes)
-- Phase 0 steps 1 to 3 are in: the module, `doma serve` with config and logging, the Makefile,
+- Phase 0 steps 1 to 5 are in: the module, `doma serve` with config and logging, the Makefile,
   CI, goreleaser and the gate scripts; the schema, sqlc queries, the fold with
   `docs/fixtures/fold.json`, the SQL store under `internal/foldsql` and the event schema with its
   validator; identity in `internal/auth` (device-key signatures, admin sessions, argon2id),

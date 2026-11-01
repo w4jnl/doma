@@ -56,7 +56,7 @@ func TestNoOutboundWhenPushOff(t *testing.T) {
 	base := "http://" + addr
 	var resp *http.Response
 	for range 100 {
-		resp, err = own.Get(base + "/healthz") //nolint:bodyclose // closed below on success; nil on error
+		resp, err = own.Get(base + "/healthz")
 		if err == nil {
 			_ = resp.Body.Close()
 			break
@@ -66,7 +66,8 @@ func TestNoOutboundWhenPushOff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("server did not come up: %v\n%s", err, errb.String())
 	}
-	form := func(path string, v url.Values, cookie *http.Cookie) *http.Response {
+	// form posts and returns the status, the headers and the cookies; the body is closed here
+	form := func(path string, v url.Values, cookie *http.Cookie) (int, http.Header, []*http.Cookie) {
 		t.Helper()
 		req, _ := http.NewRequestWithContext(ctx, http.MethodPost, base+path, strings.NewReader(v.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -78,18 +79,18 @@ func TestNoOutboundWhenPushOff(t *testing.T) {
 			t.Fatal(err)
 		}
 		_ = r.Body.Close()
-		return r
+		return r.StatusCode, r.Header, r.Cookies()
 	}
-	r := form("/setup", url.Values{"login": {"j"}, "password": {"long enough password"}, "confirm": {"long enough password"}}, nil)
-	if r.StatusCode != http.StatusSeeOther || len(r.Cookies()) == 0 {
-		t.Fatalf("setup: %d", r.StatusCode)
+	status, _, cookies := form("/setup", url.Values{"login": {"j"}, "password": {"long enough password"}, "confirm": {"long enough password"}}, nil)
+	if status != http.StatusSeeOther || len(cookies) == 0 {
+		t.Fatalf("setup: %d", status)
 	}
-	session := r.Cookies()[0]
+	session := cookies[0]
 	page := func(path string) string {
 		t.Helper()
 		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, base+path, nil)
 		req.AddCookie(session)
-		res, err := own.Do(req) //nolint:bodyclose // closed after the read below
+		res, err := own.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -106,8 +107,8 @@ func TestNoOutboundWhenPushOff(t *testing.T) {
 		return b.String()
 	}
 	csrf := regexp.MustCompile(`name="_csrf" value="([^"]+)"`).FindStringSubmatch(page("/admin"))[1]
-	r = form("/admin/households", url.Values{"_csrf": {csrf}, "name": {"Family"}, "timezone": {"Europe/Amsterdam"}, "home": {"Gouda"}}, session)
-	hhPath := r.Header.Get("Location")
+	_, headers, _ := form("/admin/households", url.Values{"_csrf": {csrf}, "name": {"Family"}, "timezone": {"Europe/Amsterdam"}, "home": {"Gouda"}}, session)
+	hhPath := headers.Get("Location")
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, base+hhPath+"/invite", strings.NewReader(url.Values{"_csrf": {csrf}}.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(session)
