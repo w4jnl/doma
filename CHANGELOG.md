@@ -9,6 +9,11 @@ updates this file first. Dates are the tag dates.
 - **The apps, phase 0, step 1.** The iPhone and Mac projects under `app/` from XcodeGen, with
   GRDB pinned, the design tokens in Swift with a test against `tokens.json`, the brand's custom
   symbols exported from the pictograms, and the `mac-*` and `ios-*` make targets.
+- **The apps, phase 0, step 2.** DomaKit under `app/shared`: the local store with the household
+  tables, the log, the outbox and the cursor; the Swift fold, the same rules as the server's and
+  tested against the same fixture in every order, with a base for devices that join through a
+  snapshot; the device key in the Keychain and the signed client; invite acceptance; the syncer
+  with its triggers, background refresh and silent push on the phone.
 - **The server, phase 0.** `doma serve` with `doma.toml` and `DOMA_*` overrides; the setup page
   that shows once; households with their default list and first home; the owner invite as a QR;
   invites and roles; device keys with a signature on every app request; `POST /sync/v1` with
