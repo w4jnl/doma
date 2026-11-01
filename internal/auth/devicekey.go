@@ -163,9 +163,11 @@ func (s *p256Signer) Public() string {
 }
 
 // SignRequest sets the three headers on r for body, with the device's
-// clock at now.
+// clock at now. The timestamp is Unix milliseconds: with a deterministic
+// signature, two identical requests in one second would otherwise read as
+// a replay.
 func SignRequest(r *http.Request, credentialID string, s Signer, body []byte, now time.Time) error {
-	ts := strconv.FormatInt(now.Unix(), 10)
+	ts := strconv.FormatInt(now.UnixMilli(), 10)
 	sig, err := s.Sign(SigningString(r.Method, r.URL.Path, ts, body))
 	if err != nil {
 		return err
@@ -238,7 +240,7 @@ func (s *Signed) Check(key *PublicKey, nonces *Nonces, method, path string, body
 	if err != nil {
 		return fmt.Errorf("%w: timestamp", ErrBadSignature)
 	}
-	if d := now.Sub(time.Unix(ts, 0)); d > MaxSkew || d < -MaxSkew {
+	if d := now.Sub(time.UnixMilli(ts)); d > MaxSkew || d < -MaxSkew {
 		return fmt.Errorf("%w: timestamp is off by more than five minutes", ErrBadSignature)
 	}
 	if !key.Verify(SigningString(method, path, s.Timestamp, body), s.Signature) {

@@ -17,7 +17,7 @@ components:
       in: header
       name: Doma-Signature
       description: >-
-        Doma-Credential, Doma-Timestamp (Unix seconds) and Doma-Signature
+        Doma-Credential, Doma-Timestamp (Unix milliseconds) and Doma-Signature
         (base64) over "method\npath\ntimestamp\nsha256(body)" with the
         device's Ed25519 or P-256 key; five minutes of skew; no replays.
 paths:
