@@ -1,0 +1,26 @@
+{{define "list"}}
+<div id="list" hx-get="/g/{{.Data.Link}}/list" hx-trigger="every 10s [document.visibilityState === 'visible']" hx-swap="outerHTML">
+  {{if .Data.View.Entries}}
+  <ul class="dm-rows dm-list">
+    {{range .Data.View.Entries}}
+    <li class="{{if .Checked}}dm-done{{end}}">
+      <form method="post" action="/g/{{$.Data.Link}}/check/{{.ID}}" hx-post="/g/{{$.Data.Link}}/check/{{.ID}}" hx-target="#list" hx-swap="outerHTML">
+        <button class="dm-row-button" type="submit" aria-pressed="{{.Checked}}">
+          <svg class="dm-glyph" aria-hidden="true"><use href="#i-{{if .Checked}}done{{else}}open{{end}}"/></svg>
+          <span class="dm-grow">{{.ItemName}}{{if .Qty}} <span class="dm-meta">{{qty .Qty}} {{.Unit}}</span>{{end}}{{if .Note}} <span class="dm-meta">{{.Note}}</span>{{end}}</span>
+          {{if .Checked}}<span class="dm-meta">{{.CheckedBy}}</span>{{end}}
+        </button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+  {{if .Data.AnyChecked}}
+  <form method="post" action="/g/{{.Data.Link}}/clear" hx-post="/g/{{.Data.Link}}/clear" hx-target="#list" hx-swap="outerHTML" hx-confirm="Really clear?">
+    <button class="dm-button dm-button-quiet" type="submit">Clear</button>
+  </form>
+  {{end}}
+  {{else}}
+  <p class="dm-muted">Nothing on the list.</p>
+  {{end}}
+</div>
+{{end}}

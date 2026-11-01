@@ -12,6 +12,7 @@ type Querier interface {
 	AllEvents(ctx context.Context, householdID string) ([]Event, error)
 	ClearAPNSToken(ctx context.Context, id string) error
 	ClearedEntriesForHome(ctx context.Context, arg ClearedEntriesForHomeParams) ([]Entry, error)
+	CountDevices(ctx context.Context, householdID string) (int64, error)
 	CountEvents(ctx context.Context, householdID string) (int64, error)
 	// tenancy: root -- the instance gauge
 	CountHouseholds(ctx context.Context) (int64, error)
@@ -40,6 +41,7 @@ type Querier interface {
 	// The lists with entry events naming one of the item ids.
 	EntryListIDs(ctx context.Context, arg EntryListIDsParams) ([]string, error)
 	EventsSince(ctx context.Context, arg EventsSinceParams) ([]Event, error)
+	ExpireGuest(ctx context.Context, arg ExpireGuestParams) (int64, error)
 	GetAdmin(ctx context.Context) (Admin, error)
 	GetCredential(ctx context.Context, id string) (Credential, error)
 	GetCredentialByHash(ctx context.Context, hash []byte) (Credential, error)
@@ -56,6 +58,7 @@ type Querier interface {
 	GetSnapshot(ctx context.Context, arg GetSnapshotParams) (Snapshot, error)
 	GetSpot(ctx context.Context, arg GetSpotParams) (Spot, error)
 	GetStaple(ctx context.Context, arg GetStapleParams) (Staple, error)
+	GuestsForHousehold(ctx context.Context, householdID string) ([]GuestsForHouseholdRow, error)
 	InsertAdmin(ctx context.Context, arg InsertAdminParams) error
 	InsertAlias(ctx context.Context, arg InsertAliasParams) error
 	InsertCredential(ctx context.Context, arg InsertCredentialParams) error
@@ -73,6 +76,7 @@ type Querier interface {
 	// The flag, staple and trip events that name one of the item ids, given as
 	// a JSON array.
 	ItemEventsFor(ctx context.Context, arg ItemEventsForParams) ([]Event, error)
+	LastEventAt(ctx context.Context, householdID string) (int64, error)
 	LastSeq(ctx context.Context, householdID string) (int64, error)
 	ListAliases(ctx context.Context, householdID string) ([]ItemAlias, error)
 	ListEntries(ctx context.Context, householdID string) ([]Entry, error)
@@ -99,6 +103,7 @@ type Querier interface {
 	RevokeCredential(ctx context.Context, arg RevokeCredentialParams) (int64, error)
 	RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int64, error)
 	SetAPNSToken(ctx context.Context, arg SetAPNSTokenParams) error
+	SetAdminTOTP(ctx context.Context, totpSecret []byte) error
 	TouchCredential(ctx context.Context, arg TouchCredentialParams) error
 	TouchPerson(ctx context.Context, arg TouchPersonParams) error
 	UpdateHousehold(ctx context.Context, arg UpdateHouseholdParams) error

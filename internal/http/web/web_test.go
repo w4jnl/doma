@@ -193,7 +193,7 @@ func TestStaticAndVendoredCopies(t *testing.T) {
 // words that never appear there.
 func TestFamilyFacingVocabulary(t *testing.T) {
 	forbidden := regexp.MustCompile(`(?i)\b(tenant|token|event|sync|server|credential|instance|device key)s?\b`)
-	family := map[string]bool{"invite.html": true, "gone.html": true}
+	family := map[string]bool{"invite.html": true, "gone.html": true, "guest.html": true, "_guest_list.html": true}
 	entries, _ := os.ReadDir("templates")
 	for _, e := range entries {
 		if !family[e.Name()] {

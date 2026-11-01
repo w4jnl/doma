@@ -248,3 +248,38 @@ func TestMembersRolesAndBoundaries(t *testing.T) {
 		t.Errorf("openapi: %d", rec.Code)
 	}
 }
+
+func TestGuestsAPI(t *testing.T) {
+	w := newWorld(t)
+	ctx := context.Background()
+	h, _ := w.svc.CreateHousehold(ctx, "Family", "Europe/Amsterdam", "Gouda")
+	owner := w.join(t, h.ID, domain.RoleOwner, "Jaro")
+	member := w.join(t, h.ID, domain.RoleMember, "Sam")
+	d, err := w.svc.HouseholdDetail(ctx, h.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := "/api/v1/h/" + h.ID + "/guests"
+	if rec, _ := member.do(http.MethodPost, base, map[string]any{"home_id": d.Homes[0].ID, "list_id": d.Lists[0].ID, "label": "cleaner"}); rec.Code != http.StatusForbidden {
+		t.Errorf("member making a guest: %d", rec.Code)
+	}
+	rec, out := owner.do(http.MethodPost, base, map[string]any{"home_id": d.Homes[0].ID, "list_id": d.Lists[0].ID, "label": "cleaner", "days": 3})
+	if rec.Code != http.StatusCreated || out["url"] == nil || out["active"] != true {
+		t.Fatalf("create guest: %d %v", rec.Code, out)
+	}
+	id := out["id"].(string)
+	rec, out = owner.do(http.MethodGet, base, nil)
+	if rec.Code != http.StatusOK || len(out["guests"].([]any)) != 1 {
+		t.Errorf("list guests: %d %v", rec.Code, out)
+	}
+	if rec, _ := owner.do(http.MethodDelete, base+"/"+id, nil); rec.Code != http.StatusNoContent {
+		t.Errorf("revoke guest: %d", rec.Code)
+	}
+	if rec, _ := owner.do(http.MethodDelete, base+"/"+id, nil); rec.Code != http.StatusNoContent && rec.Code != http.StatusNotFound {
+		t.Errorf("revoke twice: %d", rec.Code)
+	}
+	_, out = owner.do(http.MethodGet, base, nil)
+	if g := out["guests"].([]any)[0].(map[string]any); g["active"] != false {
+		t.Errorf("guest still active after revoke: %v", g)
+	}
+}

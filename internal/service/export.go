@@ -59,7 +59,7 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 	}
 	hidden := map[string]bool{}
 	for id, owner := range owners {
-		if owner != sc.PersonID {
+		if owner != sc.PersonID && sc.PersonID != domain.SystemPerson {
 			hidden[id] = true
 		}
 	}
@@ -138,7 +138,7 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 	if err := add("events.ndjson", func(f io.Writer) error {
 		enc := json.NewEncoder(f)
 		for _, e := range evs {
-			if !visible(e.Kind, []byte(e.Payload), owners, sc.PersonID) {
+			if sc.PersonID != domain.SystemPerson && !visible(e.Kind, []byte(e.Payload), owners, sc.PersonID) {
 				continue
 			}
 			if err := enc.Encode(SyncEvent{Seq: e.Seq, ID: e.ID, PersonID: e.PersonID, HLC: e.Hlc, Kind: e.Kind, Payload: json.RawMessage(e.Payload)}); err != nil {

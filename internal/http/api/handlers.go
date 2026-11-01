@@ -218,6 +218,61 @@ func (a *API) createInvite(w http.ResponseWriter, r *http.Request, c *Caller) er
 	return nil
 }
 
+type guestDTO struct {
+	ID         string `json:"id"`
+	Label      string `json:"label"`
+	HomeID     string `json:"home_id"`
+	ListID     string `json:"list_id"`
+	ExpiresAt  int64  `json:"expires_at"`
+	CreatedAt  int64  `json:"created_at"`
+	LastUsedAt *int64 `json:"last_used_at,omitempty"`
+	Active     bool   `json:"active"`
+	URL        string `json:"url,omitempty"`
+}
+
+// guests: GET /api/v1/h/{household}/guests.
+func (a *API) guests(w http.ResponseWriter, r *http.Request, c *Caller) error {
+	gs, err := a.svc.Guests(r.Context(), c.Scope)
+	if err != nil {
+		return err
+	}
+	now := a.now().UnixMilli()
+	out := make([]guestDTO, 0, len(gs))
+	for _, g := range gs {
+		out = append(out, guestDTO{ID: g.CredentialID, Label: g.Label, HomeID: g.HomeID, ListID: g.ListID, ExpiresAt: g.ExpiresAt, CreatedAt: g.CreatedAt, LastUsedAt: g.LastUsedAt, Active: g.Active(now)})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"guests": out})
+	return nil
+}
+
+// createGuest: POST /api/v1/h/{household}/guests.
+func (a *API) createGuest(w http.ResponseWriter, r *http.Request, c *Caller) error {
+	var req struct {
+		HomeID string `json:"home_id"`
+		ListID string `json:"list_id"`
+		Label  string `json:"label"`
+		Days   int    `json:"days"`
+	}
+	if err := decodeJSON(c.Body, &req); err != nil {
+		return err
+	}
+	g, err := a.svc.CreateGuestLink(r.Context(), c.Scope, req.HomeID, req.ListID, req.Label, req.Days)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusCreated, guestDTO{ID: g.Link.CredentialID, Label: g.Link.Label, HomeID: g.Link.HomeID, ListID: g.Link.ListID, ExpiresAt: g.Link.ExpiresAt, CreatedAt: g.Link.CreatedAt, Active: true, URL: g.URL})
+	return nil
+}
+
+// revokeGuest: DELETE /api/v1/h/{household}/guests/{id}.
+func (a *API) revokeGuest(w http.ResponseWriter, r *http.Request, c *Caller) error {
+	if err := a.svc.RevokeGuest(r.Context(), c.Scope, r.PathValue("id")); err != nil {
+		return err
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
 // export: GET /api/v1/h/{household}/export, a zip.
 func (a *API) export(w http.ResponseWriter, r *http.Request, c *Caller) error {
 	w.Header().Set("Content-Type", "application/zip")

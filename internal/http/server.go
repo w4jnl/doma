@@ -35,6 +35,8 @@ type Deps struct {
 	// Started is when the process came up; /readyz allows the snapshot job
 	// 36 hours from then before it complains.
 	Started time.Time
+	// Facts feeds the admin's Server page.
+	Facts *web.ServerFacts
 }
 
 // Handler is the whole surface behind one chain: request id, client IP,
@@ -66,6 +68,9 @@ func Handler(d Deps) (http.Handler, error) {
 			return nil, fmt.Errorf("web templates: %w", err)
 		}
 		pages.InviteDays = d.Cfg.Invites.DefaultDays
+		if d.Facts != nil {
+			pages.SetServerFacts(*d.Facts)
+		}
 		pages.Mount(mux)
 	}
 	return middleware.Chain(mux,

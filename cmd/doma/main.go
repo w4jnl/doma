@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/w4jnl/doma/internal/config"
 	"github.com/w4jnl/doma/internal/db"
 	dhttp "github.com/w4jnl/doma/internal/http"
+	"github.com/w4jnl/doma/internal/http/web"
 	"github.com/w4jnl/doma/internal/logging"
 	"github.com/w4jnl/doma/internal/metrics"
 	"github.com/w4jnl/doma/internal/push"
@@ -139,9 +141,25 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 	if err != nil {
 		return err
 	}
+	svc.SetKeyring(keyring)
 	pusher := push.New(push.ServiceRegistry{Svc: svc}, sender, cfg.BaseURL(), logging.Sub(log, "push"), m)
 	started := time.Now()
-	h, err := dhttp.Handler(dhttp.Deps{Cfg: cfg, Log: log, Svc: svc, Metrics: m, Started: started})
+	redacted, _ := cfg.Redacted().TOML()
+	facts := &web.ServerFacts{
+		BaseURL: cfg.BaseURL(), Version: version.String(), PushEnabled: cfg.Push.Enabled, PushKeyFile: cfg.PushKeyFile(),
+		PhotosDir: cfg.PhotosDir(), ConfigTOML: string(redacted), LastPushError: pusher.LastError, SecretKeyFile: cfg.SecretKeyFile(),
+		SealKey: func(pemBytes []byte) error {
+			sealed, err := keyring.Seal(pemBytes)
+			if err != nil {
+				return err
+			}
+			if err := os.MkdirAll(filepath.Dir(cfg.PushKeyFile()), 0o750); err != nil { //nolint:gosec // G703: the operator's push.key_file
+				return err
+			}
+			return os.WriteFile(cfg.PushKeyFile(), []byte(sealed), 0o600) //nolint:gosec // G703: as above
+		},
+	}
+	h, err := dhttp.Handler(dhttp.Deps{Cfg: cfg, Log: log, Svc: svc, Metrics: m, Started: started, Facts: facts})
 	if err != nil {
 		return err
 	}

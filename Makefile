@@ -52,6 +52,7 @@ generate:
 	cp docs/design-system/tokens.css internal/http/web/static/tokens.css
 	cp docs/design-system/fonts/*.woff2 docs/design-system/fonts/OFL.txt internal/http/web/static/fonts/
 	cp assets/brand/favicon.svg assets/brand/favicon-alert.svg assets/brand/doma-mark.svg internal/http/web/static/
+	cp assets/icons/doma-icons.svg internal/http/web/static/doma-icons.svg
 
 generate-check: generate
 	git diff --exit-code -- internal/db internal/events/event-schema.json internal/http/web/static

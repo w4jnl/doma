@@ -305,6 +305,20 @@ func (s *Store) EntryListIDs(itemIDs []string) ([]string, error) {
 }
 
 func (s *Store) Entries(listID string, itemIDs []string) ([]fold.Entry, error) {
+	if itemIDs == nil {
+		// every entry of the list, for the pages
+		all, err := s.q.ListEntries(s.ctx, s.HouseholdID)
+		if err != nil {
+			return nil, err
+		}
+		var rows []db.Entry
+		for _, r := range all {
+			if r.ListID == listID {
+				rows = append(rows, r)
+			}
+		}
+		return entryRows(rows)
+	}
 	rows, err := s.q.EntriesForKey(s.ctx, db.EntriesForKeyParams{HouseholdID: s.HouseholdID, ListID: listID, ItemIds: idsJSON(itemIDs)})
 	if err != nil {
 		return nil, err
