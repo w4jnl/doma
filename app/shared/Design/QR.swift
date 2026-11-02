@@ -32,6 +32,8 @@ struct QRView: View {
             }
         }
         .background(Tokens.surfaceSunk, in: RoundedRectangle(cornerRadius: Tokens.radiusMD))
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Invite code"))
+        .accessibilityIdentifier("qr")
     }
 }

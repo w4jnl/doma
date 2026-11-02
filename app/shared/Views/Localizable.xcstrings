@@ -1185,6 +1185,22 @@
         }
       }
     },
+    "Waiting to go up": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wacht om te verzenden"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Čaká na odoslanie"
+          }
+        }
+      }
+    },
     "Who it is for": {
       "localizations": {
         "nl": {

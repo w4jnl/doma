@@ -14,10 +14,11 @@ struct QRScanner: PlatformViewRepresentable {
     var found: @MainActor (String) -> Void
 
     static var isAvailable: Bool {
+        if UITestHooks.noCamera { return false }
         #if targetEnvironment(simulator)
-        false
+        return false
         #else
-        AVCaptureDevice.default(for: .video) != nil
+        return AVCaptureDevice.default(for: .video) != nil
         #endif
     }
 

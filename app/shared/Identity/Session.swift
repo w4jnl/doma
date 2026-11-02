@@ -24,7 +24,7 @@ final class Session {
     init(store: DomaStore) {
         self.store = store
         syncer = Syncer(store: store,
-                        client: { [weak self] in self?.client },
+                        client: { [weak self] in self?.syncClient },
                         scopes: { [weak self] in self?.scopes ?? [] },
                         clock: { [weak self] in self?.clock },
                         revoked: { [weak self] in self?.forgetServer() },
@@ -33,8 +33,27 @@ final class Session {
         Session.current = self
     }
 
-    /// The store at its default path; a fresh one in memory when that fails.
+    /// The store at its default path; a fresh one in memory when that fails, and under a UI
+    /// test, which may also join an invite at launch.
     static func live() -> Session {
+        if UITestHooks.enabled {
+            // every launch is a new device: the key of the last one would make it the same person
+            DeviceKey.forget()
+            let s = Session(store: try! DomaStore.inMemory())
+            if let url = UITestHooks.joinURL {
+                Task {
+                    try? await s.accept(url, displayName: UITestHooks.joinName)
+                    let away = UITestHooks.offlineSeconds
+                    if away > 0 {
+                        UITestHooks.blockSync = true
+                        try? await Task.sleep(for: .seconds(away))
+                        UITestHooks.blockSync = false
+                        await s.syncer.sync()
+                    }
+                }
+            }
+            return s
+        }
         if let path = try? DomaStore.defaultPath(), let store = try? DomaStore(path: path) {
             return Session(store: store)
         }
@@ -60,6 +79,15 @@ final class Session {
     var client: SyncClient? {
         guard let c = context, let key else { return nil }
         return SyncClient(baseURL: c.baseURL, key: key, credentialID: c.credentialID)
+    }
+
+    /// The syncer's client: the same, or one that reaches nothing while a UI test holds sync back.
+    var syncClient: SyncClient? {
+        guard var c = client else { return nil }
+        if UITestHooks.enabled, UITestHooks.blockSync {
+            c.baseURL = URL(string: "http://127.0.0.1:9")!
+        }
+        return c
     }
 
     func reload() {

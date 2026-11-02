@@ -40,6 +40,7 @@ struct ScanView: View {
                 if pasting || !QRScanner.isAvailable {
                     VStack(spacing: Tokens.space3) {
                         TextField("Invite link or code", text: $link)
+                            .accessibilityIdentifier("invite-link")
                             .textFieldStyle(.plain)
                             .focused($focus, equals: .link)
                             .font(Tokens.mono(.body))
@@ -53,6 +54,7 @@ struct ScanView: View {
                             .onSubmit { if needsName { focus = .name } else { accept(link) } }
                         if needsName {
                             TextField("Your name, as the family sees it", text: $name)
+                                .accessibilityIdentifier("display-name")
                                 .textFieldStyle(.plain)
                                 .focused($focus, equals: .name)
                                 .padding(Tokens.space3)
@@ -69,6 +71,7 @@ struct ScanView: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("join")
                         .disabled(busy || link.trimmingCharacters(in: .whitespaces).isEmpty || (needsName && name.trimmingCharacters(in: .whitespaces).isEmpty))
                     }
                     .padding(.horizontal, Tokens.space5)
@@ -88,6 +91,13 @@ struct ScanView: View {
         }
         .onAppear {
             if !QRScanner.isAvailable { focus = .link }
+        }
+        .task {
+            // a UI test's QR, read as the camera would read it
+            if let png = UITestHooks.qrPNG, scanned == nil, let code = UITestHooks.decodeQR(png: png) {
+                scanned = code
+                accept(code)
+            }
         }
         .toolbar {
             if asSheet {

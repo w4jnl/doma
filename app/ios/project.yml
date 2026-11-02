@@ -75,6 +75,8 @@ targets:
     sources:
       - path: DomaTests
       - path: ../shared/Tests
+        excludes:
+          - Snapshots
     dependencies:
       - target: Doma
     settings:
@@ -83,12 +85,26 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/doma.app/doma
         BUNDLE_LOADER: $(TEST_HOST)
         GENERATE_INFOPLIST_FILE: true
+  DomaUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: DomaUITests
+    dependencies:
+      - target: Doma
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: nl.w4j.doma.uitests
+        TEST_TARGET_NAME: Doma
+        GENERATE_INFOPLIST_FILE: true
 schemes:
   Doma:
     build:
       targets:
         Doma: all
         DomaTests: [test]
+        DomaUITests: [test]
     test:
       targets:
         - DomaTests
+        - DomaUITests

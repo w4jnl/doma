@@ -19,6 +19,10 @@ updates this file first. Dates are the tag dates.
   Recent, shop mode, reorder, and the long-press menu (For a home, Bought, Rename, Merge with);
   Family with members, invites as a QR with Share, guest links, Remove and Leave armed in
   place; Settings; the Mac in a split view with its keyboard. English, Dutch and Slovak.
+- **The apps, phase 0, step 4.** The UI tests against a throwaway doma (`make ui-test`): join
+  from a QR picture, add, strike and clear, add while offline and then sync, the invite's QR;
+  the snapshots of every screen in light and dark at two Dynamic Type sizes on both platforms
+  (`make snapshots` records, the test suites compare).
 - **The server, phase 0.** `doma serve` with `doma.toml` and `DOMA_*` overrides; the setup page
   that shows once; households with their default list and first home; the owner invite as a QR;
   invites and roles; device keys with a signature on every app request; `POST /sync/v1` with

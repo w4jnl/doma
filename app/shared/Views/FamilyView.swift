@@ -4,6 +4,8 @@
 import SwiftUI
 
 struct FamilyView: View {
+    /// A model given instead of loaded: the snapshot tests.
+    var preset: FamilyModel?
     @Environment(Session.self) private var session
     @State private var model: FamilyModel?
     @State private var invite: Invite?
@@ -104,6 +106,7 @@ struct FamilyView: View {
                 }
                 Section {
                     Button("Add a household") { scanning = true }
+                        .buttonStyle(.plain)
                         .foregroundStyle(Tokens.accent)
                         .listRowBackground(Tokens.ground)
                     ArmedButton(title: "Leave this household", armedTitle: "Really leave?") {
@@ -148,7 +151,7 @@ struct FamilyView: View {
             }
         }
         .task(id: session.scope) {
-            let m = FamilyModel(session: session)
+            let m = preset ?? FamilyModel(session: session)
             model = m
             await m.load()
         }

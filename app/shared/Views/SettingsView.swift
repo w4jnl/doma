@@ -1,5 +1,6 @@
 // Settings: this device's name, the staleness for owners, the devices of this person with
 // Revoke armed in place, and About with the server's name and the app's version.
+import GRDB
 import SwiftUI
 
 struct SettingsView: View {
@@ -7,6 +8,7 @@ struct SettingsView: View {
     @Environment(Session.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var staleness: Double = 14
+    @State private var waiting: Live<Int>?
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
 
@@ -92,6 +94,13 @@ struct SettingsView: View {
                         RelativeText(millis: millis(at))
                     }
                 }
+                if let n = waiting?.value, n > 0 {
+                    LabeledContent("Waiting to go up") {
+                        Text(verbatim: String(n))
+                            .font(Tokens.mono(.body))
+                    }
+                    .accessibilityIdentifier("waiting")
+                }
                 ProblemLine(text: session.syncer.lastError)
             }
         }
@@ -106,6 +115,12 @@ struct SettingsView: View {
         }
         .onAppear {
             staleness = Double(session.current?.stalenessDays ?? 14)
+        }
+        .task(id: session.context?.serverID) {
+            guard let server = session.context?.serverID else { return }
+            waiting = Live(session.store, initial: 0) { db in
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM outbox WHERE server_id = ?", arguments: [server]) ?? 0
+            }
         }
     }
 }

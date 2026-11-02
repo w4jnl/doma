@@ -37,7 +37,7 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   households, household and server pages (APNs key upload, back up now, log level, TOTP), the
   guest links and the guest view polled with vendored htmx 2.0.4; the cross-tenant and
   cross-person suite in `internal/http/crosstenant_test.go`, the e2e smoke under `scripts/e2e`
-  and the README. The apps under `app/` are at step 3 of prompt 1: the two XcodeGen projects
+  and the README. The apps under `app/` are at step 4 of prompt 1: the two XcodeGen projects
   (`app/ios`, `app/macos`) over `app/shared`, GRDB pinned, `Design/Tokens.swift` with its drift
   test, the custom symbols in `Design/Symbols.xcassets` written by `assets/icons/gen.py`, the
   `mac-*` and `ios-*` make targets; DomaKit: `Model` (HLC, ULID, the name key, the typed line,
@@ -48,8 +48,11 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   the screens under `Views` (Scan, Lists, List, Family, Settings, the Mac split view) over
   `Store/Queries.swift` (what they read, live through GRDB observation) and
   `Store/ListActions.swift` (what they write, as events), with one string catalogue in English,
-  Dutch and Slovak. Not yet: UI and snapshot tests (step 4), TestFlight (step 5), Homes and Trip
-  (phase 1). Check `git log` and `ls` before assuming otherwise.
+  Dutch and Slovak; the UI tests in `app/ios/DomaUITests` against the throwaway server
+  `scripts/ui-test.sh` starts, the snapshot tests in `app/shared/Tests/SnapshotTests.swift` with
+  their pictures under `Snapshots/`, and the hooks they use in `Identity/UITestHooks.swift`. Not
+  yet: TestFlight (step 5), Homes and Trip (phase 1). Check `git log` and `ls` before assuming
+  otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;
   flags are derived from all their candidates; everything else is last-writer-wins or add and
@@ -136,6 +139,8 @@ the fold can rebuild from the log, and a test proves it.
 - `make mac-project`, `make mac-build`, `make mac-test`, `make mac-run`: the Mac app (Xcode 26+,
   XcodeGen); `make ios-project`, `make ios-build`, `make ios-test`, `make ios-device`,
   `make ios-testflight`: the iOS app in the simulator, its tests, on a connected iPhone, or uploaded
-  for TestFlight. `make ui-test` and `make snapshots` run the UI and snapshot suites.
+  for TestFlight. `make ui-test` runs the UI tests and the live test against a throwaway server;
+  `make snapshots` records the screen pictures the test suites compare against, after a change
+  to a screen.
 - `scripts/release.sh <version>`: tag a release; goreleaser builds the binaries and the image in
   CI. It needs a `## <version> (YYYY-MM-DD)` section in `CHANGELOG.md`.

@@ -70,6 +70,8 @@ targets:
     sources:
       - path: DomaTests
       - path: ../shared/Tests
+        excludes:
+          - Snapshots
     dependencies:
       - target: Doma
     settings:

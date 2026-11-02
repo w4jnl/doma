@@ -19,7 +19,7 @@ GOLANGCI   := $(call tool,golangci-lint)
 GORELEASER := $(call tool,goreleaser)
 
 .PHONY: build run test vet lint fmt generate generate-check migrate e2e check-tenancy check-egress release-check tools brand clean \
-	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight
+	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight ui-test snapshots
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN)/doma ./cmd/doma
@@ -121,6 +121,22 @@ ios-build: ios-project
 
 ios-test: ios-project
 	$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' test CODE_SIGN_IDENTITY=- -collect-test-diagnostics never -quiet
+
+# The UI tests and the live test against a throwaway doma that scripts/ui-test.sh starts, sets up
+# and stops; it writes tmp/live.json for them.
+ui-test: ios-project
+	scripts/ui-test.sh sh -c "$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' test -only-testing:DomaUITests -only-testing:DomaTests/LiveTests CODE_SIGN_IDENTITY=- -quiet"
+
+# Record the snapshots of every screen, light and dark at two Dynamic Type sizes, on both
+# platforms, into app/shared/Tests/Snapshots; make mac-test and make ios-test compare against them.
+snapshots: ios-project mac-project
+	@mkdir -p tmp && touch tmp/record-snapshots
+	@rm -rf "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots"
+	@$(MAC_XCODEBUILD) test -only-testing:DomaTests/SnapshotTests -quiet || { rm -f tmp/record-snapshots; exit 1; }
+	@mkdir -p app/shared/Tests/Snapshots/macos && cp "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots/"*.png app/shared/Tests/Snapshots/macos/
+	@$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' test -only-testing:DomaTests/SnapshotTests CODE_SIGN_IDENTITY=- -collect-test-diagnostics never -quiet || { rm -f tmp/record-snapshots; exit 1; }
+	@rm -f tmp/record-snapshots
+	@ls app/shared/Tests/Snapshots/*/ | wc -l | xargs echo "snapshots:"
 
 # Build, install and launch on the iPhone (unlocked; on a cable, or on Wi-Fi once paired), signed
 # with Local.xcconfig's team. The first device devicectl lists as reachable is taken;
