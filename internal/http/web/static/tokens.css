@@ -50,6 +50,12 @@
   --out-soft: #FBE4E2;
   --on-out: #FFFFFF;
   --unknown: #5A686B;
+  --list-1: #0B7A7E;
+  --list-2: #1F63B5;
+  --list-3: #5F3FB8;
+  --list-4: #9A2E7E;
+  --list-5: #7A6400;
+  --list-6: #4F7A1A;
   --shadow-drawer: 0 16px 40px rgba(20, 24, 26, 0.14);
 }
 @media (prefers-color-scheme: dark) {
@@ -77,6 +83,12 @@
     --out-soft: #3A1A18;
     --on-out: #1C0B09;
     --unknown: #8A999C;
+    --list-1: #3FD0D4;
+    --list-2: #5AA9F0;
+    --list-3: #A48BF2;
+    --list-4: #E07BC5;
+    --list-5: #E8D15A;
+    --list-6: #9DC26B;
     --shadow-drawer: 0 16px 40px rgba(0, 0, 0, 0.5);
   }
 }
@@ -104,6 +116,12 @@
   --out-soft: #3A1A18;
   --on-out: #1C0B09;
   --unknown: #8A999C;
+  --list-1: #3FD0D4;
+  --list-2: #5AA9F0;
+  --list-3: #A48BF2;
+  --list-4: #E07BC5;
+  --list-5: #E8D15A;
+  --list-6: #9DC26B;
   --shadow-drawer: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 /* touch: controls and chips grow to tap size */
