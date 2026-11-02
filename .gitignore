@@ -11,4 +11,5 @@ __pycache__/
 app/*/*.xcodeproj
 app/*/xcuserdata/
 app/*/Local.xcconfig
+app/*/build/
 DerivedData/

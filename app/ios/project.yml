@@ -1,0 +1,94 @@
+# doma for iPhone: the Xcode project is generated from this file (brew install xcodegen; make
+# ios-project). Local.xcconfig (gitignored) holds your team id, DOMA_TEAM_ID, which a device
+# build needs; the simulator needs none.
+#
+# ../shared is DomaKit, compiled into this app and the Mac app (app/macos): the design tokens, the
+# store, the fold, sync, identity and the views, with #if os() where the platforms differ. GRDB,
+# pinned, is the one dependency. The fonts come from the design system. docs/design.md, "iPhone
+# and Mac apps", is the spec.
+name: Doma
+options:
+  bundleIdPrefix: nl.w4j
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+configs:
+  Debug: debug
+  Release: release
+configFiles:
+  Debug: Local.xcconfig
+  Release: Local.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: $(DOMA_TEAM_ID)
+    ENABLE_USER_SCRIPT_SANDBOXING: true
+packages:
+  GRDB:
+    url: https://github.com/groue/GRDB.swift.git
+    exactVersion: 7.12.0
+targets:
+  Doma:
+    type: application
+    platform: iOS
+    sources:
+      - path: Doma
+      - path: ../shared
+        excludes:
+          - Tests
+      - path: ../../docs/design-system/fonts
+        type: folder
+    dependencies:
+      - package: GRDB
+    settings:
+      base:
+        PRODUCT_NAME: doma
+        PRODUCT_MODULE_NAME: Doma
+        PRODUCT_BUNDLE_IDENTIFIER: nl.w4j.doma
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_UIUserInterfaceStyle: Automatic
+    info:
+      path: Doma/Info.plist
+      properties:
+        CFBundleDisplayName: doma
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.lifestyle
+        UILaunchScreen: {}
+        UIBackgroundModes: [fetch, remote-notification]
+        BGTaskSchedulerPermittedIdentifiers: [nl.w4j.doma.refresh]
+        NSCameraUsageDescription: Scan your family's invite.
+        CFBundleURLTypes:
+          - CFBundleURLName: nl.w4j.doma
+            CFBundleURLSchemes: [doma]
+        # export compliance: only https and signatures, which are exempt
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+  DomaTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: DomaTests
+      - path: ../shared/Tests
+    dependencies:
+      - target: Doma
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: nl.w4j.doma.tests
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/doma.app/doma
+        BUNDLE_LOADER: $(TEST_HOST)
+        GENERATE_INFOPLIST_FILE: true
+schemes:
+  Doma:
+    build:
+      targets:
+        Doma: all
+        DomaTests: [test]
+    test:
+      targets:
+        - DomaTests

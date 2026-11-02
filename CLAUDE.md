@@ -37,9 +37,11 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   households, household and server pages (APNs key upload, back up now, log level, TOTP), the
   guest links and the guest view polled with vendored htmx 2.0.4; the cross-tenant and
   cross-person suite in `internal/http/crosstenant_test.go`, the e2e smoke under `scripts/e2e`
-  and the README. The apps under `app/` are not started: no `project.yml`, no `app/shared`
-  code, and the `mac-*` and `ios-*` make targets do not exist yet. Check `git log` and `ls`
-  before assuming otherwise.
+  and the README. The apps under `app/` are at step 1 of prompt 1: the two XcodeGen projects
+  (`app/ios`, `app/macos`) over `app/shared`, GRDB pinned, `Design/Tokens.swift` with its drift
+  test, the custom symbols in `Design/Symbols.xcassets` written by `assets/icons/gen.py`, and
+  the `mac-*` and `ios-*` make targets. No store, fold, sync or screens yet: `RootView` shows the
+  mark. Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;
   flags are derived from all their candidates; everything else is last-writer-wins or add and

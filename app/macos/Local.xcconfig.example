@@ -1,0 +1,3 @@
+// Copy to Local.xcconfig (gitignored; make mac-project writes an empty one). Your Apple team id;
+// it can stay empty for a build that runs on this Mac only.
+DOMA_TEAM_ID =

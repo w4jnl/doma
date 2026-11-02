@@ -1,0 +1,90 @@
+# doma for Mac: the Xcode project is generated from this file (brew install xcodegen; make
+# mac-project). Local.xcconfig (gitignored) holds your team id, DOMA_TEAM_ID; it can stay empty
+# for a build that runs on this Mac only.
+#
+# ../shared is DomaKit, compiled into this app and the iPhone app (app/ios): the design tokens,
+# the store, the fold, sync, identity and the views, with #if os() where the platforms differ.
+# The app is sandboxed: it talks to the configured server and, for an invite, to the camera.
+name: Doma
+options:
+  bundleIdPrefix: nl.w4j
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+configs:
+  Debug: debug
+  Release: release
+configFiles:
+  Debug: Local.xcconfig
+  Release: Local.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: $(DOMA_TEAM_ID)
+    ENABLE_USER_SCRIPT_SANDBOXING: true
+    ENABLE_HARDENED_RUNTIME: true
+packages:
+  GRDB:
+    url: https://github.com/groue/GRDB.swift.git
+    exactVersion: 7.12.0
+targets:
+  Doma:
+    type: application
+    platform: macOS
+    sources:
+      - path: Doma
+      - path: ../shared
+        excludes:
+          - Tests
+      - path: ../../docs/design-system/fonts
+        type: folder
+    dependencies:
+      - package: GRDB
+    settings:
+      base:
+        PRODUCT_NAME: doma
+        PRODUCT_MODULE_NAME: Doma
+        PRODUCT_BUNDLE_IDENTIFIER: nl.w4j.doma.mac
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: Doma/Doma.entitlements
+        CODE_SIGN_IDENTITY: "-"
+    info:
+      path: Doma/Info.plist
+      properties:
+        CFBundleDisplayName: doma
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.lifestyle
+        NSHumanReadableCopyright: w4j.nl
+        NSCameraUsageDescription: Scan your family's invite.
+        CFBundleURLTypes:
+          - CFBundleURLName: nl.w4j.doma
+            CFBundleURLSchemes: [doma]
+  DomaTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: DomaTests
+      - path: ../shared/Tests
+    dependencies:
+      - target: Doma
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: nl.w4j.doma.mac.tests
+        CODE_SIGN_IDENTITY: "-"
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/doma.app/Contents/MacOS/doma
+        BUNDLE_LOADER: $(TEST_HOST)
+        GENERATE_INFOPLIST_FILE: true
+schemes:
+  Doma:
+    build:
+      targets:
+        Doma: all
+        DomaTests: [test]
+    test:
+      targets:
+        - DomaTests
