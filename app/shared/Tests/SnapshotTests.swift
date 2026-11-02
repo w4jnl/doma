@@ -2,6 +2,9 @@
 // Snapshots/<platform>. make snapshots records them (tmp/record-snapshots); make mac-test and
 // make ios-test compare, allowing one pixel in a hundred to differ for the renderer's own
 // drift. The data is seeded, and "now" is pinned, so a picture does not change with the day.
+// A recording notes the OS it was made on (recorded.json); on another major version the
+// comparison is skipped, because glass, forms and type render differently there and a diff
+// would say nothing about the app.
 import SwiftUI
 import XCTest
 @testable import Doma
@@ -14,13 +17,13 @@ import AppKit
 @MainActor
 final class SnapshotTests: XCTestCase {
     #if os(iOS)
-    static let platform = "ios"
+    nonisolated static let platform = "ios"
     static let size = CGSize(width: 393, height: 852)
     #else
-    static let platform = "macos"
+    nonisolated static let platform = "macos"
     static let size = CGSize(width: 900, height: 600)
     #endif
-    static let dir = Fixture.root.appendingPathComponent("app/shared/Tests/Snapshots/" + platform)
+    nonisolated static let dir = Fixture.root.appendingPathComponent("app/shared/Tests/Snapshots/" + platform)
     static let recording = FileManager.default.fileExists(atPath: Fixture.root.appendingPathComponent("tmp/record-snapshots").path)
     /// Where a recording lands: the repository on the simulator; on the Mac the sandboxed app
     /// cannot write there, so its temp folder, from where make snapshots copies the files.
@@ -37,6 +40,19 @@ final class SnapshotTests: XCTestCase {
     var session: Session!
     var shopping = ""
     var weekend = ""
+
+    /// The OS this runs on, as the recording notes it.
+    nonisolated static var osVersion: String {
+        let v = ProcessInfo.processInfo.operatingSystemVersion
+        return "\(v.majorVersion).\(v.minorVersion).\(v.patchVersion)"
+    }
+
+    /// The major version the pictures were recorded on, from recorded.json next to them.
+    nonisolated static var recordedMajor: Int? {
+        guard let data = try? Data(contentsOf: dir.appendingPathComponent("recorded.json")),
+              let v = try? JSONValue(data: data), let os = v["os"]?.stringValue else { return nil }
+        return os.split(separator: ".").first.flatMap { Int($0) }
+    }
 
     override func setUp() async throws {
         RelativeText.now = { Self.now }
@@ -139,6 +155,13 @@ final class SnapshotTests: XCTestCase {
     // MARK: The harness
 
     func check(_ name: String, @ViewBuilder _ view: @escaping @MainActor () -> some View, file: StaticString = #filePath, line: UInt = #line) async throws {
+        if !Self.recording, let major = Self.recordedMajor, major != ProcessInfo.processInfo.operatingSystemVersion.majorVersion {
+            throw XCTSkip("the pictures were recorded on \(Self.platform) \(major); this is \(Self.osVersion)")
+        }
+        if Self.recording {
+            try FileManager.default.createDirectory(at: Self.recordDir, withIntermediateDirectories: true)
+            try Data("{\"os\": \"\(Self.osVersion)\"}\n".utf8).write(to: Self.recordDir.appendingPathComponent("recorded.json"))
+        }
         for dark in [false, true] {
             for (sizeName, size) in [("L", DynamicTypeSize.large), ("XXXL", DynamicTypeSize.xxxLarge)] {
                 let full = "\(name)-\(dark ? "dark" : "light")-\(sizeName)"
