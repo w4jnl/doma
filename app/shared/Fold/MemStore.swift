@@ -7,7 +7,7 @@ final class MemStore: FoldStore {
     private var logIDs = Set<String>()
     private var itemRows: [String: Item] = [:]
     private var aliasRows: [String: ItemAlias] = [:] // by norm
-    private var listRows: [String: List] = [:]
+    private var listRows: [String: ShoppingList] = [:]
     private var entryRows: [String: Entry] = [:]
     private var flagRows: [Key: Flag] = [:]
     private var stapleRows: [Key: Staple] = [:]
@@ -98,8 +98,8 @@ final class MemStore: FoldStore {
     func hasEvent(_ id: String) throws -> Bool { logIDs.contains(id) }
     func hasEvent(stamp: HLC) throws -> Bool { log.contains { $0.hlc == stamp } }
 
-    func list(_ id: String) throws -> List? { listRows[id] }
-    func putList(_ list: List) throws { listRows[list.id] = list }
+    func list(_ id: String) throws -> ShoppingList? { listRows[id] }
+    func putList(_ list: ShoppingList) throws { listRows[list.id] = list }
     func defaultListID() throws -> String? {
         listRows.values.filter(\.isDefault).map(\.id).sorted().first
     }

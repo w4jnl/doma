@@ -82,12 +82,12 @@ struct SQLFoldStore: FoldStore {
 
     // MARK: lists
 
-    func list(_ id: String) throws -> List? {
-        try Row.fetchOne(db, sql: "SELECT * FROM lists WHERE server_id = ? AND household_id = ? AND id = ?", arguments: sh + [id]).map(List.init(row:))
+    func list(_ id: String) throws -> ShoppingList? {
+        try Row.fetchOne(db, sql: "SELECT * FROM lists WHERE server_id = ? AND household_id = ? AND id = ?", arguments: sh + [id]).map(ShoppingList.init(row:))
     }
 
-    func putList(_ list: List) throws {
-        try db.execute(sql: List.insert, arguments: list.arguments(scope))
+    func putList(_ list: ShoppingList) throws {
+        try db.execute(sql: ShoppingList.insert, arguments: list.arguments(scope))
     }
 
     func defaultListID() throws -> String? {
@@ -230,7 +230,7 @@ struct SQLFoldStore: FoldStore {
         var t = Tables()
         t.items = try items()
         t.aliases = try aliases()
-        t.lists = try Row.fetchAll(db, sql: "SELECT * FROM lists WHERE server_id = ? AND household_id = ?", arguments: sh).map(List.init(row:))
+        t.lists = try Row.fetchAll(db, sql: "SELECT * FROM lists WHERE server_id = ? AND household_id = ?", arguments: sh).map(ShoppingList.init(row:))
         t.entries = try Row.fetchAll(db, sql: "SELECT * FROM entries WHERE server_id = ? AND household_id = ?", arguments: sh).map(Entry.init(row:))
         t.flags = try Row.fetchAll(db, sql: "SELECT * FROM flags WHERE server_id = ? AND household_id = ?", arguments: sh).map(Flag.init(row:))
         t.staples = try Row.fetchAll(db, sql: "SELECT * FROM staples WHERE server_id = ? AND household_id = ?", arguments: sh).map(Staple.init(row:))
