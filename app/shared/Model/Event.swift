@@ -10,6 +10,8 @@ struct Event: Hashable, Sendable, Codable {
     var hlc: HLC
     var kind: String
     var payload: JSONValue
+    /// The payload as it came from the log, when it did: decode reads it without re-encoding.
+    var rawPayload: Data?
 
     enum CodingKeys: String, CodingKey {
         case id, hlc, kind, payload
@@ -36,7 +38,7 @@ struct Event: Hashable, Sendable, Codable {
     /// The payload as one of the typed shapes below.
     func decode<T: Decodable>(_ type: T.Type) throws -> T {
         do {
-            return try JSONDecoder().decode(T.self, from: payload.data)
+            return try JSONDecoder().decode(T.self, from: rawPayload ?? payload.data)
         } catch {
             throw FoldError.badPayload(kind: kind, id: id, reason: String(describing: error))
         }

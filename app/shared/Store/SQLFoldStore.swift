@@ -58,7 +58,7 @@ struct SQLFoldStore: FoldStore {
     }
 
     func itemEvents() throws -> [Event] {
-        try Row.fetchAll(db, sql: "SELECT * FROM events WHERE server_id = ? AND household_id = ? AND kind LIKE 'item.%' ORDER BY hlc", arguments: sh).map(Event.init(row:))
+        try Row.fetchAll(db, sql: "SELECT * FROM events WHERE server_id = ? AND household_id = ? AND kind IN ('item.named','item.renamed','item.merged') ORDER BY hlc", arguments: sh).map(Event.init(row:))
     }
 
     func itemEvents(for itemIDs: [String]) throws -> [Event] {
@@ -96,12 +96,20 @@ struct SQLFoldStore: FoldStore {
 
     // MARK: entries
 
+    /// The entry kinds a key's replay reads, spelled out so the (kind, list_id) index serves.
+    static let entryKinds = "('entry.added','entry.edited','entry.checked','entry.unchecked','entry.moved')"
+
+    func checkedItemIDs(listID: String, before: HLC) throws -> [String] {
+        try String.fetchAll(db, sql: "SELECT DISTINCT item_id FROM events WHERE server_id = ? AND household_id = ? AND kind = 'entry.checked' AND list_id = ? AND hlc < ? AND item_id IS NOT NULL",
+                            arguments: sh + [listID, before.description])
+    }
+
     func entryEvents(listID: String, itemIDs: [String]?, isDefault: Bool) throws -> [Event] {
         var clauses = ["(kind = 'entry.cleared' AND list_id = ?)"]
         var args: StatementArguments = sh + [listID]
         if let itemIDs {
             if itemIDs.isEmpty { return try cleared(listID) }
-            clauses.append("(kind LIKE 'entry.%' AND kind != 'entry.cleared' AND list_id = ? AND item_id IN (\(marks(itemIDs.count))))")
+            clauses.append("(kind IN \(Self.entryKinds) AND list_id = ? AND item_id IN (\(marks(itemIDs.count))))")
             args += [listID] + StatementArguments(itemIDs)
             if isDefault {
                 clauses.append("(kind = 'flag.set' AND item_id IN (\(marks(itemIDs.count))))")
@@ -110,7 +118,7 @@ struct SQLFoldStore: FoldStore {
                 args += StatementArguments(itemIDs)
             }
         } else {
-            clauses.append("(kind LIKE 'entry.%' AND kind != 'entry.cleared' AND list_id = ?)")
+            clauses.append("(kind IN \(Self.entryKinds) AND list_id = ?)")
             args += [listID]
             if isDefault {
                 clauses.append("(kind = 'flag.set')")

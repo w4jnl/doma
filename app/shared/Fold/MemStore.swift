@@ -104,6 +104,15 @@ final class MemStore: FoldStore {
         listRows.values.filter(\.isDefault).map(\.id).sorted().first
     }
 
+    func checkedItemIDs(listID: String, before: HLC) throws -> [String] {
+        var out: [String] = []
+        for ev in log where ev.kind == Kind.entryChecked && ev.hlc < before {
+            guard let p = try? ev.decode(ItemRefs.self), p.listID == listID, let id = p.itemID, !out.contains(id) else { continue }
+            out.append(id)
+        }
+        return out
+    }
+
     func entryEvents(listID: String, itemIDs: [String]?, isDefault: Bool) throws -> [Event] {
         var out: [Event] = []
         func match(_ id: String?) -> Bool {

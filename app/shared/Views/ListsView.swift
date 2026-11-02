@@ -72,10 +72,13 @@ struct ListsView: View {
                 .keyboardShortcut("n", modifiers: .command)
             }
         }
-        .task(id: session.scope) {
-            guard let scope = session.scope else { return }
-            lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
-        }
+        .onAppear(perform: observe)
+        .onChange(of: session.scope) { observe() }
+    }
+
+    private func observe() {
+        guard let scope = session.scope else { return }
+        lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
     }
 
     // MARK: Rows

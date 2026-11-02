@@ -80,11 +80,19 @@ struct RelativeText: View {
             .accessibilityLabel(Text(date, format: .dateTime.day().month().hour().minute()))
     }
 
+    nonisolated(unsafe) private static var formatters: [Locale: RelativeDateTimeFormatter] = [:]
+
     static func string(for date: Date, locale: Locale) -> String {
-        let f = RelativeDateTimeFormatter()
-        f.locale = locale
-        f.unitsStyle = .abbreviated
-        f.dateTimeStyle = .named
+        let f: RelativeDateTimeFormatter
+        if let have = formatters[locale] {
+            f = have
+        } else {
+            f = RelativeDateTimeFormatter()
+            f.locale = locale
+            f.unitsStyle = .abbreviated
+            f.dateTimeStyle = .named
+            formatters[locale] = f
+        }
         return f.localizedString(for: date, relativeTo: now())
     }
 }

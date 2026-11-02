@@ -11,11 +11,12 @@ final class Live<Value: Sendable> {
     nonisolated(unsafe) private var task: Task<Void, Never>?
 
     init(_ store: DomaStore, initial: Value, _ fetch: @escaping @Sendable (Database) throws -> Value) {
-        value = (try? store.dbQueue.read(fetch)) ?? initial
+        value = (try? store.db.read(fetch)) ?? initial
         let observation = ValueObservation.tracking(fetch)
         task = Task { [weak self] in
             do {
-                for try await v in observation.values(in: store.dbQueue) {
+                // fetched on a reader after each commit, delivered on the main actor in one hop
+                for try await v in observation.values(in: store.db, scheduling: .mainActor) {
                     guard let self else { return }
                     self.value = v
                 }

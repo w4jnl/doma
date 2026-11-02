@@ -34,6 +34,9 @@ protocol FoldStore {
     /// (nil: any item), clears of the list, and, on the default list, out flags and trips that
     /// name one of the ids.
     func entryEvents(listID: String, itemIDs: [String]?, isDefault: Bool) throws -> [Event]
+    /// The raw item ids with an entry.checked event on the list stamped before `before`: the
+    /// only keys a clear at that stamp can close.
+    func checkedItemIDs(listID: String, before: HLC) throws -> [String]
     /// The lists with entry events naming any of the ids, from the log.
     func entryListIDs(itemIDs: [String]) throws -> [String]
     func entries(listID: String, itemIDs: [String]) throws -> [Entry]
