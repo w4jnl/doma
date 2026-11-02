@@ -78,7 +78,7 @@ enum Tokens {
     nonisolated static let sizes: [String: CGFloat] = [
         "space-1": 4, "space-2": 8, "space-3": 12, "space-4": 16, "space-5": 24, "space-6": 32, "space-7": 48,
         "radius-xs": 3, "radius-sm": 6, "radius-md": 10,
-        "row-h": 44, "control-h": 32, "chip-h": 28, "thumb": 72, "content-max": 720, "mark-min": 16,
+        "row-h": 44, "row-h-list": 52, "control-h": 32, "chip-h": 28, "thumb": 72, "content-max": 720, "mark-min": 16,
     ]
 
     static let space1: CGFloat = 4
@@ -93,7 +93,7 @@ enum Tokens {
     static let radiusMD: CGFloat = 10
     static let rowH: CGFloat = 44
     /// Shop mode raises a row to 56pt (tokens.json, row-h's note).
-    static let rowHShop: CGFloat = 56
+    static let rowHList: CGFloat = 52
     static let controlH: CGFloat = 32
     static let chipH: CGFloat = 28
     static let thumb: CGFloat = 72

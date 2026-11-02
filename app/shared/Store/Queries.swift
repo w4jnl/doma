@@ -28,16 +28,17 @@ struct EntryRow: Identifiable, Hashable, Sendable {
 
     var isChecked: Bool { checkedHLC != nil }
 
-    /// "2x", "500 g", "1.5 l", with the note after it: what shows muted after the item.
+    /// "2x", "500 g", "1.5 l": the quantity and unit, or empty.
+    var quantity: String {
+        guard let q = qty else { return "" }
+        let n = q == q.rounded() ? String(Int64(q)) : String(q)
+        let u = unit ?? "x"
+        return u == "x" ? n + "x" : n + " " + u
+    }
+
+    /// The quantity with the note after it: what VoiceOver reads after the item.
     var detail: String {
-        var parts: [String] = []
-        if let q = qty {
-            let n = q == q.rounded() ? String(Int64(q)) : String(q)
-            let u = unit ?? "x"
-            parts.append(u == "x" ? n + "x" : n + " " + u)
-        }
-        if !note.isEmpty { parts.append(note) }
-        return parts.joined(separator: " ")
+        [quantity, note].filter { !$0.isEmpty }.joined(separator: " ")
     }
 }
 
@@ -137,6 +138,20 @@ enum Queries {
             LIMIT ?
             """, arguments: [s.serverID, s.householdID, like + "%", "% " + like + "%", like + "%", "% " + like + "%", matchLimit]).map { r in
             Match(itemID: r["id"], name: r["name"], useCount: r["use_count"], lastBought: r["last_bought"])
+        }
+    }
+
+    /// The household's most used items that are not on the list now: the chips over an empty
+    /// add field.
+    static func usual(_ db: Database, _ s: Scope, listID: String, limit: Int = 8) throws -> [Match] {
+        try Row.fetchAll(db, sql: """
+            SELECT i.id, i.name, i.use_count FROM items i
+            WHERE i.server_id = ? AND i.household_id = ? AND i.merged_into IS NULL AND i.archived_at IS NULL AND i.use_count > 0
+              AND NOT EXISTS (SELECT 1 FROM entries e WHERE e.server_id = i.server_id AND e.household_id = i.household_id AND e.list_id = ? AND e.item_id = i.id AND e.cleared_hlc IS NULL)
+            ORDER BY i.use_count DESC, i.last_used_at DESC, i.norm_name
+            LIMIT ?
+            """, arguments: [s.serverID, s.householdID, listID, limit]).map { r in
+            Match(itemID: r["id"], name: r["name"], useCount: r["use_count"], lastBought: nil)
         }
     }
 

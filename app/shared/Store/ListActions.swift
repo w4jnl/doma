@@ -117,6 +117,27 @@ enum ListActions {
         try session.record(Kind.entryEdited, p)
     }
 
+    /// Edit, as the row's line would be typed ("melk 2 (the small jar)"): a changed name renames
+    /// the item, the quantity, unit and note replace the entry's, and a changed home sets it.
+    static func editLine(_ row: EntryRow, text: String, home: String?, on listID: String, in session: Session) throws {
+        let parsed = EntryText.parse(text)
+        guard !Norm.name(parsed.name).isEmpty else { return }
+        if Norm.name(parsed.name) != Norm.name(row.name) {
+            try rename(row, to: parsed.name, in: session)
+        }
+        var p = EntryPayload(listID: listID, itemID: row.itemID, note: parsed.note.isEmpty ? nil : parsed.note)
+        if let q = parsed.qty {
+            p.qty = q
+            p.unit = parsed.unit.isEmpty ? "x" : parsed.unit
+        }
+        if home != row.forHomeID {
+            p.forHomeID = home
+            try session.record(Kind.entryAdded, p)
+        } else {
+            try session.record(Kind.entryEdited, p)
+        }
+    }
+
     static func rename(_ row: EntryRow, to name: String, in session: Session) throws {
         let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !Norm.name(n).isEmpty else { return }

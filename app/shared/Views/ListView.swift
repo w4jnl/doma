@@ -1,8 +1,14 @@
-// A list: the add field under the title, the match rows under it, the open rows, one hairline,
-// the struck rows newest first, Recent collapsed at the foot. Clear and Shop mode in the
-// toolbar, the long-press menu on a row. Everything is optimistic: the tap writes the store
-// and the row moves; sync follows.
+// A list, one layout at home and in the shop: the open rows, a hairline that says how many are
+// got with Clear beside it, the struck rows under it, Recent at the foot, and the add bar pinned
+// at the bottom with the catalog's answers above it, nearest the thumb first. A tap strikes the
+// row where it is; it stays there for a breath so a second tap can take it back, then it sinks.
+// Everything is optimistic: the tap writes the store and the row answers; sync follows. The
+// screen stays awake and syncs every 5 s while it is in front.
+import GRDB
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 struct ListView: View {
     let listID: String
@@ -12,173 +18,222 @@ struct ListView: View {
     @State private var rows: Live<[EntryRow]>?
     @State private var recent: Live<[RecentRow]>?
     @State private var homes: Live<[HomeRow]>?
+    @State private var usual: [Match] = []
     @State private var matches: [Match] = []
     @State private var text = ""
     @State private var flash: String?
     @State private var showRecent = false
-    @State private var shop = false
-    @State private var editing: Editing?
+    @State private var editing: String?
     @State private var editText = ""
-    @State private var selected: String?
-    @FocusState private var fieldFocused: Bool
-    @FocusState private var editFocused: Bool
-
-    enum Editing: Hashable {
-        case bought(String)
-        case rename(String)
-    }
-
-    private var shopKey: String { "shop." + listID }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if !shop { addField }
-            List(selection: $selected) {
-                if !shop, !matches.isEmpty, !text.isEmpty {
-                    matchRows
-                }
-                let all = rows?.value ?? []
-                let open = all.filter { !$0.isChecked }
-                let struck = all.filter(\.isChecked)
-                if all.isEmpty, text.isEmpty {
-                    emptyState
-                }
-                Section {
-                    ForEach(open) { row in
-                        entryRow(row)
-                            .tag(row.id)
-                    }
-                    .onMove { from, to in
-                        try? ListActions.move(all, from: from, to: to, on: listID, in: session)
-                    }
-                }
-                if !struck.isEmpty {
-                    // the struck rows sink under one line: the last open row's separator, after a breath
-                    Section {
-                        ForEach(struck) { row in
-                            entryRow(row)
-                                .tag(row.id)
-                        }
-                    } header: {
-                        Color.clear
-                            .frame(height: Tokens.space2)
-                            .accessibilityHidden(true)
-                    }
-                    .textCase(nil)
-                }
-                if let recent = recent?.value, !recent.isEmpty {
-                    recentSection(recent)
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .environment(\.defaultMinListRowHeight, shop ? Tokens.rowHShop : Tokens.rowH)
-            // the sink: on after the first strike here, so a screen never animates its first load
-            .animation(reduceMotion || strikes == 0 ? nil : .easeOut(duration: 0.25), value: rows?.value)
-            if shop { addField }
-        }
-        .background(Tokens.ground)
-        .sensoryFeedback(.impact(weight: .light), trigger: strikes)
-        .sensoryFeedback(.success, trigger: clears)
-        .navigationTitle(summary?.value?.name ?? "")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .toolbar {
-            ToolbarItem(placement: .automatic) { OfflineBadge() }
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    setShop(!shop)
-                } label: {
-                    if shop {
-                        Label("Shop mode", systemImage: "basket")
-                            .labelStyle(.titleAndIcon)
-                    } else {
-                        Label("Shop mode", systemImage: "basket")
-                    }
-                }
-                .transaction { $0.animation = nil }
-                .accessibilityValue(shop ? Text("on") : Text("off"))
-                ArmedButton(title: "Clear", armedTitle: "Really clear?") {
-                    clear()
-                }
-                .accessibilityIdentifier("clear")
-                .keyboardShortcut(.delete, modifiers: .command)
-                .disabled((rows?.value ?? []).allSatisfy { !$0.isChecked })
-            }
-        }
-        .onAppear {
-            shop = UserDefaults.standard.bool(forKey: shopKey)
-            applyShop()
-        }
-        .onDisappear {
-            session.syncer.setPolling(seconds: nil)
-            #if os(iOS)
-            UIApplication.shared.isIdleTimerDisabled = false
-            #endif
-        }
-        .onAppear(perform: observe)
-        .onChange(of: session.scope) { observe() }
-        .task(id: text) {
-            // the catalog answers 80 ms after the last keystroke, from a reader connection
-            let t = text
-            guard !t.isEmpty, let scope = session.scope else { matches = []; return }
-            try? await Task.sleep(for: .milliseconds(80))
-            guard !Task.isCancelled else { return }
-            let found = (try? await session.store.db.read { db in try Queries.matches(db, scope, prefix: t) }) ?? []
-            if !Task.isCancelled { matches = found }
-        }
-        #if os(iOS)
-        .onShake {
-            // shake to clear, with the same armed confirm as the button
-            if !(rows?.value ?? []).allSatisfy({ !$0.isChecked }) { shakeArmed = true }
-        }
-        .alert("Clear the struck items?", isPresented: $shakeArmed) {
-            Button("Clear", role: .destructive) { clear() }
-            Button("Cancel", role: .cancel) {}
-        }
-        #endif
-        .onKeyPress(.space) {
-            guard let id = selected, let row = (rows?.value ?? []).first(where: { $0.id == id }) else { return .ignored }
-            toggle(row)
-            return .handled
-        }
-    }
-
-    @State private var shakeArmed = false
+    @State private var editHome: String?
+    @State private var held: [String: Hold] = [:]
+    @State private var shown: [String: Bool] = [:]
+    @State private var release: Task<Void, Never>?
     @State private var strikes = 0
     @State private var clears = 0
+    @FocusState private var fieldFocused: Bool
+    @FocusState private var editFocused: Bool
+    #if os(macOS)
+    @State private var selected: String?
+    #endif
 
-    // MARK: The add field and its matches
+    /// A row just struck or restored keeps its place for a breath: the group it stays in and
+    /// its order there.
+    struct Hold: Hashable {
+        var open: Bool
+        var sort: Double
+    }
 
-    private var addField: some View {
-        HStack(spacing: Tokens.space2) {
-            Image(systemName: "plus")
-                .foregroundStyle(Tokens.accent)
-                .accessibilityHidden(true)
-            TextField("Add", text: $text)
-                .accessibilityIdentifier("add-field")
-                .textFieldStyle(.plain)
-                .focused($fieldFocused)
-                .submitLabel(.done)
-                .onSubmit(addTyped)
+    static let holdSeconds: Double = 1.5
+
+    var body: some View {
+        let all = rows?.value ?? []
+        let open = all.filter { held[$0.id]?.open ?? !$0.isChecked }
+            .sorted { (held[$0.id]?.sort ?? $0.sort, $0.addedHLC) < (held[$1.id]?.sort ?? $1.sort, $1.addedHLC) }
+        let struck = all.filter { !(held[$0.id]?.open ?? !$0.isChecked) }
+            .sorted { (held[$0.id]?.sort ?? Self.struckSort($0)) < (held[$1.id]?.sort ?? Self.struckSort($1)) }
+        let openCount = all.filter { !$0.isChecked }.count
+        list(all: all, open: open, struck: struck)
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, Tokens.rowHList)
+            #if os(iOS)
+            .scrollDismissesKeyboard(.interactively)
+            #endif
+            .background(Tokens.ground)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if editing == nil { addBar }
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: strikes)
+            .sensoryFeedback(.success, trigger: clears)
+            .navigationTitle(summary?.value?.name ?? "")
+            .navigationSubtitle(openCount == 0 ? Text("Nothing to get") : Text("\(openCount) to get"))
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.large)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .automatic) { OfflineBadge() }
+            }
+            .onAppear {
+                observe()
+                session.syncer.setPolling(seconds: 5)
                 #if os(iOS)
-                .textInputAutocapitalization(.never)
+                UIApplication.shared.isIdleTimerDisabled = true
                 #endif
-                .autocorrectionDisabled()
-                .accessibilityLabel(Text("Add an item"))
+            }
+            .onChange(of: session.scope) { observe() }
+            .onDisappear {
+                session.syncer.setPolling(seconds: nil)
+                #if os(iOS)
+                UIApplication.shared.isIdleTimerDisabled = false
+                #endif
+            }
+            .onChange(of: rows?.value) { _, now in
+                // the store caught up with what the rows already show
+                for r in now ?? [] where shown[r.id] == r.isChecked { shown[r.id] = nil }
+                loadUsual()
+            }
+            .task(id: text) {
+                // the catalog answers 80 ms after the last keystroke, from a reader connection
+                let t = text
+                guard !t.isEmpty, let scope = session.scope else { matches = []; return }
+                try? await Task.sleep(for: .milliseconds(80))
+                guard !Task.isCancelled else { return }
+                let found = (try? await session.store.db.read { db in try Queries.matches(db, scope, prefix: t) }) ?? []
+                if !Task.isCancelled { matches = found }
+            }
+            #if os(macOS)
+            .onKeyPress(.space) {
+                guard let id = selected, let row = (rows?.value ?? []).first(where: { $0.id == id }) else { return .ignored }
+                toggle(row)
+                return .handled
+            }
+            #endif
+    }
+
+    @ViewBuilder
+    private func list(all: [EntryRow], open: [EntryRow], struck: [EntryRow]) -> some View {
+        #if os(macOS)
+        List(selection: $selected) { sections(all: all, open: open, struck: struck) }
+        #else
+        List { sections(all: all, open: open, struck: struck) }
+        #endif
+    }
+
+    @ViewBuilder
+    private func sections(all: [EntryRow], open: [EntryRow], struck: [EntryRow]) -> some View {
+        if all.isEmpty, text.isEmpty {
+            emptyState
         }
-        .font(shop ? .title3 : .body)
-        .padding(.horizontal, Tokens.space3)
-        .frame(minHeight: shop ? Tokens.rowHShop : Tokens.rowH)
-        .background(Tokens.surfaceSunk, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
-        .padding(.horizontal, Tokens.space4)
+        Section {
+            ForEach(open) { row in
+                entryRow(row)
+                    #if os(macOS)
+                    .tag(row.id)
+                    #endif
+            }
+            .onMove { from, to in
+                try? ListActions.move(all, from: from, to: to, on: listID, in: session)
+            }
+        }
+        if !struck.isEmpty {
+            Section {
+                ForEach(struck) { row in
+                    entryRow(row)
+                        #if os(macOS)
+                        .tag(row.id)
+                        #endif
+                }
+            } header: {
+                dividerRow(count: struck.count)
+            }
+            .textCase(nil)
+        }
+        if let recent = recent?.value, !recent.isEmpty {
+            recentSection(recent)
+        }
+    }
+
+    /// A list with nothing on it: the mark and the one thing to know, under the title.
+    private var emptyState: some View {
+        Section {
+            VStack(spacing: Tokens.space3) {
+                Mark(size: 32)
+                HelpLine(text: "Type what you need. Return adds it.")
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Tokens.space6)
+            .listRowBackground(Tokens.ground)
+            .listRowSeparator(.hidden)
+        }
+    }
+
+    /// The hairline between open and struck rows: how many are got, and Clear, armed in place.
+    private func dividerRow(count: Int) -> some View {
+        HStack {
+            Text("\(count) got")
+                .font(Tokens.mono(.footnote))
+                .foregroundStyle(Tokens.inkMuted)
+            Spacer()
+            ArmedButton(title: "Clear", armedTitle: "Really clear?") {
+                clear()
+            }
+            .font(.subheadline)
+            .accessibilityIdentifier("clear")
+            .keyboardShortcut(.delete, modifiers: .command)
+        }
         .padding(.vertical, Tokens.space2)
     }
 
-    private var matchRows: some View {
-        Section {
-            ForEach(Array(matches.enumerated()), id: \.element.id) { i, m in
+    // MARK: The add bar, its matches and the usual items
+
+    private var addBar: some View {
+        VStack(spacing: 0) {
+            if !text.isEmpty {
+                suggestionRows
+            } else if fieldFocused, !usual.isEmpty {
+                usualChips
+            }
+            Rectangle()
+                .fill(Tokens.line)
+                .frame(height: 1)
+                .accessibilityHidden(true)
+            HStack(spacing: Tokens.space3) {
+                ZStack {
+                    Circle()
+                        .fill(Tokens.accent)
+                        .frame(width: Tokens.space5, height: Tokens.space5)
+                    Image(systemName: "plus")
+                        .font(.footnote.bold())
+                        .foregroundStyle(Tokens.onAccent)
+                }
+                .accessibilityHidden(true)
+                TextField("Add", text: $text)
+                    .accessibilityIdentifier("add-field")
+                    .textFieldStyle(.plain)
+                    .focused($fieldFocused)
+                    .submitLabel(.return)
+                    .onSubmit(addTyped)
+                    #if os(iOS)
+                    .textInputAutocapitalization(.never)
+                    #endif
+                    .autocorrectionDisabled()
+                    .accessibilityLabel(Text("Add an item"))
+            }
+            .padding(.horizontal, Tokens.space4)
+            .frame(minHeight: Tokens.rowHList)
+        }
+        .background(Tokens.ground)
+    }
+
+    /// The catalog's answers above the bar, the best nearest the thumb; the row nearest the bar
+    /// is what Return does: the exact item when the name exists, the typed line as new otherwise.
+    private var suggestionRows: some View {
+        let norm = Norm.name(text)
+        let exact = matches.contains { Norm.name($0.name) == norm }
+        return VStack(spacing: 0) {
+            ForEach(Array(matches.prefix(5).reversed().enumerated()), id: \.element.id) { i, m in
+                let nearest = exact && i == min(matches.count, 5) - 1
                 Button {
                     add(itemID: m.itemID)
                 } label: {
@@ -195,12 +250,58 @@ struct ListView: View {
                             }
                         }
                     }
-                    .rowHeight()
+                    .padding(.horizontal, Tokens.space4)
+                    .frame(minHeight: Tokens.rowH)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .listRowBackground(i == 0 ? Tokens.accentSoft : Tokens.surface)
-                .listRowSeparatorTint(Tokens.line)
+                .background(nearest ? Tokens.accentSoft : Tokens.surface)
+                Rectangle().fill(Tokens.line).frame(height: 1)
             }
+            if !exact {
+                Button(action: addTyped) {
+                    HStack(spacing: Tokens.space2) {
+                        Image(systemName: "plus")
+                            .foregroundStyle(Tokens.accent)
+                        Text(text)
+                            .foregroundStyle(Tokens.ink)
+                        Spacer()
+                        Text("new")
+                            .font(.footnote)
+                            .foregroundStyle(Tokens.inkMuted)
+                    }
+                    .padding(.horizontal, Tokens.space4)
+                    .frame(minHeight: Tokens.rowH)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .background(Tokens.accentSoft)
+            }
+        }
+    }
+
+    /// The household's usual items as one row of chips while the field is empty: Saturday's
+    /// list in eight taps.
+    private var usualChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Tokens.space2) {
+                ForEach(usual) { m in
+                    Button {
+                        add(itemID: m.itemID)
+                    } label: {
+                        Text(m.name)
+                            .font(.footnote)
+                            .foregroundStyle(Tokens.ink)
+                            .padding(.horizontal, Tokens.space3)
+                            .frame(height: Tokens.chipH)
+                            .background(Tokens.surface, in: Capsule())
+                            .overlay(Capsule().strokeBorder(Tokens.line))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, Tokens.space4)
+            .padding(.vertical, Tokens.space2)
         }
     }
 
@@ -229,107 +330,131 @@ struct ListView: View {
         }
     }
 
+    // MARK: Strike, hold, clear
+
     private func toggle(_ row: EntryRow) {
-        guard (try? ListActions.toggle(row, on: listID, in: session)) != nil else { return }
+        let wasOpen = shown[row.id].map { !$0 } ?? !row.isChecked
+        // a second tap within the hold keeps the place the first tap kept
+        let hold = held[row.id] ?? Hold(open: !row.isChecked, sort: row.isChecked ? Self.struckSort(row) : row.sort)
+        held[row.id] = hold
+        shown[row.id] = wasOpen
+        guard (try? ListActions.toggle(row, on: listID, in: session)) != nil else {
+            held[row.id] = nil
+            shown[row.id] = nil
+            return
+        }
         strikes += 1
+        release?.cancel()
+        release = Task {
+            try? await Task.sleep(for: .seconds(Self.holdSeconds))
+            guard !Task.isCancelled else { return }
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) { held = [:] }
+        }
+    }
+
+    private static func struckSort(_ row: EntryRow) -> Double {
+        -Double(row.checkedHLC?.wall ?? 0)
     }
 
     private func clear() {
         guard (try? ListActions.clear(listID, in: session)) != nil else { return }
         clears += 1
-    }
-
-    /// A list with nothing on it: the mark and the one thing to know.
-    private var emptyState: some View {
-        Section {
-            VStack(spacing: Tokens.space3) {
-                Mark(size: 32)
-                HelpLine(text: "Type what you need. Return adds it.")
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Tokens.space6)
-            .listRowBackground(Tokens.ground)
-            .listRowSeparator(.hidden)
-        }
+        release?.cancel()
+        held = [:]
     }
 
     // MARK: Rows
 
     @ViewBuilder
     private func entryRow(_ row: EntryRow) -> some View {
-        let isFlash = flash == row.id
-        Group {
-            if editing == .bought(row.id) || editing == .rename(row.id) {
-                editRow(row)
-            } else {
-                Button {
-                    toggle(row)
-                } label: {
-                    EntryRowView(row: row, shop: shop)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("entry-" + row.name)
+        if editing == row.id {
+            editRow(row)
+        } else {
+            let checked = shown[row.id] ?? row.isChecked
+            Button {
+                toggle(row)
+            } label: {
+                EntryRowView(row: row, checked: checked)
             }
-        }
-        .listRowBackground(isFlash ? Tokens.accentSoft : Tokens.ground)
-        .listRowSeparatorTint(Tokens.line)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: isFlash)
-        .contextMenu {
-            if let homes = homes?.value, !homes.isEmpty {
-                Menu("For a home") {
-                    ForEach(homes) { h in
-                        Button(h.name) { try? ListActions.setHome(row, h.id, on: listID, in: session) }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("entry-" + row.name)
+            .listRowBackground(flash == row.id ? Tokens.accentSoft : Tokens.ground)
+            .listRowSeparatorTint(Tokens.line)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: flash == row.id)
+            #if os(iOS)
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button("Edit") { startEdit(row) }
+                    .tint(Tokens.accent)
+            }
+            #else
+            .contextMenu {
+                Button("Edit") { startEdit(row) }
+                if let homes = homes?.value, !homes.isEmpty {
+                    Menu("For a home") {
+                        ForEach(homes) { h in
+                            Button(h.name) { try? ListActions.setHome(row, h.id, on: listID, in: session) }
+                        }
+                        if row.forHomeID != nil {
+                            Button("No home") { try? ListActions.setHome(row, nil, on: listID, in: session) }
+                        }
                     }
-                    if row.forHomeID != nil {
-                        Button("No home") { try? ListActions.setHome(row, nil, on: listID, in: session) }
-                    }
                 }
-            }
-            if row.isChecked {
-                Button("Bought…") {
-                    editText = row.detail
-                    editing = .bought(row.id)
-                    editFocused = true
-                }
-            }
-            Button("Rename") {
-                editText = row.name
-                editing = .rename(row.id)
-                editFocused = true
-            }
-            if let scope = session.scope, let others = try? session.store.read(scope, { db, s in try Queries.otherItems(db, s, listID: listID, except: row.itemID) }), !others.isEmpty {
-                Menu("Merge with…") {
-                    ForEach(others) { o in
-                        Button(o.name) { try? ListActions.merge(row, into: o.itemID, in: session) }
+                if let scope = session.scope, let others = try? session.store.read(scope, { db, s in try Queries.otherItems(db, s, listID: listID, except: row.itemID) }), !others.isEmpty {
+                    Menu("Merge with…") {
+                        ForEach(others) { o in
+                            Button(o.name) { try? ListActions.merge(row, into: o.itemID, in: session) }
+                        }
                     }
                 }
             }
+            #endif
         }
     }
 
+    private func startEdit(_ row: EntryRow) {
+        editText = row.detail.isEmpty ? row.name : row.name + " " + row.quantity
+        if !row.note.isEmpty { editText += " " + row.note }
+        editHome = row.forHomeID
+        editing = row.id
+        editFocused = true
+    }
+
+    /// Edit, in the row: the line as it would be typed, and the home when the household has
+    /// homes. The add bar steps aside so one field is live.
     private func editRow(_ row: EntryRow) -> some View {
-        HStack {
-            if editing == .bought(row.id) {
-                Text(row.name)
-                    .foregroundStyle(Tokens.ink)
-            }
-            TextField(editing == .bought(row.id) ? "Quantity" : "Name", text: $editText)
+        HStack(spacing: Tokens.space3) {
+            TextField("Name", text: $editText)
                 .textFieldStyle(.plain)
                 .focused($editFocused)
-                .font(editing == .bought(row.id) ? Tokens.mono(.body) : .body)
+                .submitLabel(.done)
                 .onSubmit {
-                    if editing == .bought(row.id) {
-                        try? ListActions.edit(row, text: editText, on: listID, in: session)
-                    } else {
-                        try? ListActions.rename(row, to: editText, in: session)
-                    }
+                    try? ListActions.editLine(row, text: editText, home: editHome, on: listID, in: session)
                     editing = nil
                 }
+            if let homes = homes?.value, !homes.isEmpty {
+                Menu {
+                    Button("No home") { editHome = nil }
+                    ForEach(homes) { h in
+                        Button(h.name) { editHome = h.id }
+                    }
+                } label: {
+                    Text(homes.first { $0.id == editHome }?.name ?? String(localized: "Home"))
+                        .font(.footnote)
+                        .foregroundStyle(Tokens.inkMuted)
+                        .padding(.horizontal, Tokens.space2)
+                        .frame(height: Tokens.chipH)
+                        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.radiusXS))
+                        .overlay(RoundedRectangle(cornerRadius: Tokens.radiusXS).strokeBorder(Tokens.line))
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+            }
             Button("Cancel") { editing = nil }
                 .buttonStyle(.plain)
                 .foregroundStyle(Tokens.inkMuted)
         }
-        .rowHeight(shop: shop)
+        .frame(minHeight: Tokens.rowHList)
+        .listRowBackground(Tokens.surface)
     }
 
     private func recentSection(_ recent: [RecentRow]) -> some View {
@@ -345,7 +470,7 @@ struct ListView: View {
                             Spacer()
                             RelativeText(millis: r.clearedAt)
                         }
-                        .rowHeight(shop: shop)
+                        .frame(minHeight: Tokens.rowH)
                     }
                     .buttonStyle(.plain)
                     .listRowBackground(Tokens.ground)
@@ -357,12 +482,15 @@ struct ListView: View {
             Button {
                 showRecent.toggle()
             } label: {
-                HStack {
+                HStack(spacing: Tokens.space1) {
                     Text("Recent")
+                        .font(.subheadline)
                     Image(systemName: showRecent ? "chevron.down" : "chevron.right")
-                        .font(.caption)
+                        .font(.caption2)
+                        .foregroundStyle(Tokens.inkFaint)
                 }
                 .foregroundStyle(Tokens.inkMuted)
+                .padding(.vertical, Tokens.space2)
             }
             .buttonStyle(.plain)
             .accessibilityValue(showRecent ? Text("open") : Text("collapsed"))
@@ -370,13 +498,7 @@ struct ListView: View {
         .textCase(nil)
     }
 
-    // MARK: Shop mode
-
-    private func setShop(_ on: Bool) {
-        shop = on
-        UserDefaults.standard.set(on, forKey: shopKey)
-        applyShop()
-    }
+    // MARK: Reading
 
     /// The lives are made on appear, before the first frame, so the screen never shows empty.
     private func observe() {
@@ -386,37 +508,52 @@ struct ListView: View {
         rows = Live(session.store, initial: []) { db in try Queries.entries(db, scope, listID: id) }
         recent = Live(session.store, initial: []) { db in try Queries.recent(db, scope, listID: id) }
         homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }
+        loadUsual()
     }
 
-    private func applyShop() {
-        session.syncer.setPolling(seconds: shop ? 5 : 10)
-        #if os(iOS)
-        UIApplication.shared.isIdleTimerDisabled = shop
-        #endif
+    private func loadUsual() {
+        guard let scope = session.scope else { return }
+        let id = listID
+        Task {
+            let found = (try? await session.store.db.read { db in try Queries.usual(db, scope, listID: id) }) ?? []
+            usual = found
+        }
     }
 }
 
-/// One entry: the glyph, the item in ink, the quantity, unit and note in mono ink-muted, the
-/// home chip; struck text through and in ink-faint. VoiceOver reads glyph and word.
+/// One entry: the glyph in its column, the item in ink, the note in mono ink-muted after it, the
+/// home chip and the quantity in a mono column at the right; struck, the text goes ink-faint
+/// under a line that draws across it and the glyph pops once in accent. VoiceOver reads glyph
+/// and word.
 struct EntryRowView: View {
     var row: EntryRow
-    var shop = false
+    var checked: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pop = false
 
     var body: some View {
         HStack(spacing: Tokens.space3) {
-            Text(verbatim: row.isChecked ? Tokens.Glyph.done : Tokens.Glyph.open)
-                .foregroundStyle(row.isChecked ? Tokens.inkFaint : Tokens.inkMuted)
+            Text(verbatim: checked ? Tokens.Glyph.done : Tokens.Glyph.open)
+                .foregroundStyle(pop ? Tokens.accent : (checked ? Tokens.inkFaint : Tokens.inkMuted))
+                .scaleEffect(pop ? 1.2 : 1)
+                .frame(width: Tokens.space5)
                 .accessibilityHidden(true)
             Text(row.name)
-                .strikethrough(row.isChecked, color: Tokens.inkFaint)
-                .foregroundStyle(row.isChecked ? Tokens.inkFaint : Tokens.ink)
-            if !row.detail.isEmpty {
-                Text(row.detail)
-                    .font(Tokens.mono(shop ? .body : .subheadline))
-                    .foregroundStyle(row.isChecked ? Tokens.inkFaint : Tokens.inkMuted)
+                .foregroundStyle(checked ? Tokens.inkFaint : Tokens.ink)
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(Tokens.inkMuted)
+                        .frame(height: 1)
+                        .scaleEffect(x: checked ? 1 : 0, anchor: .leading)
+                        .accessibilityHidden(true)
+                }
+            if !row.note.isEmpty {
+                Text(row.note)
+                    .font(Tokens.mono(.subheadline))
+                    .foregroundStyle(checked ? Tokens.inkFaint : Tokens.inkMuted)
                     .lineLimit(1)
             }
-            Spacer(minLength: 0)
+            Spacer(minLength: Tokens.space2)
             if let home = row.homeName {
                 Text(home)
                     .font(.footnote)
@@ -424,12 +561,26 @@ struct EntryRowView: View {
                     .padding(.horizontal, Tokens.space2)
                     .frame(height: Tokens.chipH)
                     .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.radiusXS))
+                    .overlay(RoundedRectangle(cornerRadius: Tokens.radiusXS).strokeBorder(Tokens.line))
+            }
+            if !row.quantity.isEmpty {
+                Text(row.quantity)
+                    .font(Tokens.mono(.subheadline))
+                    .foregroundStyle(checked ? Tokens.inkFaint : Tokens.inkMuted)
             }
         }
-        .font(shop ? .title3 : .body)
-        .rowHeight(shop: shop)
+        .frame(minHeight: Tokens.rowHList)
         .contentShape(Rectangle())
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: checked)
+        .onChange(of: checked) { _, now in
+            guard now, !reduceMotion else { return }
+            withAnimation(.spring(duration: 0.15)) { pop = true }
+            Task {
+                try? await Task.sleep(for: .milliseconds(200))
+                withAnimation(.easeOut(duration: 0.2)) { pop = false }
+            }
+        }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(row.isChecked ? "checked, \(row.name) \(row.detail)" : "\(row.name) \(row.detail)"))
+        .accessibilityLabel(Text(checked ? "checked, \(row.name) \(row.detail)" : "\(row.name) \(row.detail)"))
     }
 }
