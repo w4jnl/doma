@@ -12,6 +12,8 @@ import UIKit
 
 struct ListView: View {
     let listID: String
+    /// Set when the list is the Lists tab's root: the title becomes a menu over the lists.
+    var switcher: ListSwitcher?
     @Environment(Session.self) private var session
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var summary: Live<ListSummary?>?
@@ -58,7 +60,7 @@ struct ListView: View {
             .scrollContentBackground(.hidden)
             .environment(\.defaultMinListRowHeight, Tokens.rowHList)
             #if os(iOS)
-            .scrollDismissesKeyboard(.interactively)
+            .scrollDismissesKeyboard(.immediately)
             #endif
             .background(Tokens.ground)
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -67,7 +69,8 @@ struct ListView: View {
             .sensoryFeedback(.impact(weight: .light), trigger: strikes)
             .sensoryFeedback(.success, trigger: clears)
             .navigationTitle(summary?.value?.name ?? "")
-            .navigationSubtitle(openCount == 0 ? Text("Nothing to get") : Text("\(openCount) to get"))
+            .navigationSubtitle(subtitle(open: openCount))
+            .listTitleMenu(switcher, current: listID)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
             #endif
@@ -83,6 +86,8 @@ struct ListView: View {
             }
             .onChange(of: session.scope) { observe() }
             .onDisappear {
+                // the keyboard belongs to this screen: it goes when the screen goes
+                fieldFocused = false
                 session.syncer.setPolling(seconds: nil)
                 #if os(iOS)
                 UIApplication.shared.isIdleTimerDisabled = false
@@ -109,6 +114,12 @@ struct ListView: View {
                 return .handled
             }
             #endif
+    }
+
+    /// The list's dot and how many are to get, under the title.
+    private func subtitle(open: Int) -> Text {
+        let dot = Text(verbatim: "● ").foregroundStyle(Tokens.listColor(summary?.value?.colour ?? ""))
+        return dot + (open == 0 ? Text("Nothing to get") : Text("\(open) to get"))
     }
 
     @ViewBuilder

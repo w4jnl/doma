@@ -277,8 +277,8 @@ A list is a blank screen with one add control; the item catalog does the rest. T
 
 **Lists**
 
-- The Lists screen shows shared lists first, then the person's own, each with its colour dot, name and open count. Badge on the app icon = open entries across shared lists plus the person's own, per household currently selected.
-- Creating a list asks for a name and *Shared with the household* or *Just me*; a personal list cannot be made shared later (create a new one), a shared one cannot be made personal.
+- The Lists tab opens into the last-used list, the default shared list the first time, remembered per household on the device. The list's title is a menu: the household's other lists with their open counts, then *All lists*, the overview one level down. The overview shows the household's lists first, then the person's own (*Just me*), each with its colour dot, name and how many are to get; `+` creates one. Badge on the app icon = open entries across shared lists plus the person's own, per household currently selected.
+- Creating a list asks for a name and *Household* or *Just me*; the list takes the first of the six list colours no list wears, changeable in *Rename*. A personal list cannot be made shared later (create a new one), a shared one cannot be made personal.
 - A long-press or a swipe on a list row offers *Rename* and *Archive*, armed in place like every destructive action; the default list offers only *Rename*. An archived list keeps its history and leaves the screen.
 - Each household has one default shared list, created with the household, used by `flag.set out` and by guests. It can be renamed, not deleted.
 - *Recent* at the bottom of a list, collapsed by default, shows the last 30 cleared items for one-tap re-adding. This replaces ShopShop's habit of leaving struck items as memory.
@@ -344,7 +344,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | Screen | Content | Writes |
 | --- | --- | --- |
 | Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join | registers the device, accepts the invite |
-| Lists | shared lists, then personal; colour dot, name, open count; `+` to create | `list.created` |
+| Lists | opens into the last-used list; the title's menu switches lists and leads to All lists: household lists, then personal, colour dot, name, how many to get; `+` to create | `list.created` |
 | List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it; swipe left for Edit, long-press to drag | `item.named`, `entry.*` |
 | Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails | — |
 | Home | staples grouped by spot with flag buttons; other flagged items; *Take photos*; manage staples and spots behind Edit | `flag.set`, `staple.*`, `spot.*`, `photo.added` |

@@ -11,7 +11,6 @@ struct MacMainView: View {
     @State private var adding = false
     @State private var newName = ""
     @State private var personal = false
-    @State private var colour = Tokens.listColours[0]
 
     enum Selection: Hashable {
         case lists
@@ -27,14 +26,14 @@ struct MacMainView: View {
                         listRow(l)
                     }
                 } header: {
-                    Text("Lists")
+                    Text("Household")
                 }
                 Section {
                     ForEach((lists?.value ?? []).filter(\.isPersonal)) { l in
                         listRow(l)
                     }
                 } header: {
-                    Text("Only yours")
+                    Text("Just me")
                 }
                 Section {
                     Label("Family", systemImage: "person.2")
@@ -115,15 +114,11 @@ struct MacMainView: View {
                 .foregroundStyle(Tokens.inkMuted)
                 .onSubmit(create)
             Picker("Who sees it", selection: $personal) {
-                Text("Everyone").tag(false)
-                Text("Only you").tag(true)
+                Text("Household").tag(false)
+                Text("Just me").tag(true)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            Text("Colour")
-                .font(.footnote)
-                .foregroundStyle(Tokens.inkMuted)
-            ColourDots(colour: $colour)
             HStack {
                 Spacer()
                 Button("Cancel") { adding = false }
@@ -138,7 +133,7 @@ struct MacMainView: View {
     }
 
     private func create() {
-        if let id = try? ListActions.createList(named: newName, personal: personal, colour: colour, in: session) {
+        if let id = try? ListActions.createList(named: newName, personal: personal, colour: ListActions.nextColour(lists?.value ?? []), in: session) {
             selection = .list(id)
         }
         newName = ""

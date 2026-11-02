@@ -44,7 +44,7 @@ struct FamilyView: View {
                         .listRowSeparatorTint(Tokens.line)
                     }
                 } header: {
-                    Text("Members")
+                    SectionHeader("Members")
                 }
                 if isOwner, !m.invites.isEmpty {
                     Section {
@@ -69,7 +69,7 @@ struct FamilyView: View {
                             .listRowSeparatorTint(Tokens.line)
                         }
                     } header: {
-                        Text("Invites")
+                        SectionHeader("Invites")
                     }
                 }
                 if isOwner, !m.guests.isEmpty {
@@ -101,11 +101,11 @@ struct FamilyView: View {
                             .listRowSeparatorTint(Tokens.line)
                         }
                     } header: {
-                        Text("Guest links")
+                        SectionHeader("Guest links")
                     }
                 }
                 Section {
-                    Button("Add a household") { scanning = true }
+                    Button("Join another household") { scanning = true }
                         .buttonStyle(.plain)
                         .foregroundStyle(Tokens.accent)
                         .listRowBackground(Tokens.ground)
@@ -125,7 +125,9 @@ struct FamilyView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
-        .navigationTitle(session.current?.name ?? "")
+        .navigationTitle("Family")
+        .navigationSubtitle(session.current?.name ?? "")
+        .textCase(nil)
         .toolbar {
             HouseholdTitle()
             ToolbarItem(placement: .automatic) { OfflineBadge() }
@@ -138,12 +140,14 @@ struct FamilyView: View {
                         Label("Invite", systemImage: "qrcode")
                             .labelStyle(.titleOnly)
                     }
+                    .buttonStyle(.borderedProminent)
                     Button {
                         makingGuest = true
                     } label: {
                         Label("Guest link", image: Symbol.guest.name)
                             .labelStyle(.titleOnly)
                     }
+                    .buttonStyle(.borderedProminent)
                 }
                 Button {
                     settings = true

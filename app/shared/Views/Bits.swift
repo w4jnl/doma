@@ -27,6 +27,9 @@ struct ArmedButton: View {
     var title: LocalizedStringKey
     var armedTitle: LocalizedStringKey
     var role: ButtonRole? = .destructive
+    /// The unarmed word's colour: muted, as a destructive verb is until it is armed; Clear,
+    /// which finishes a shop, passes the accent.
+    var tint: Color = Tokens.inkMuted
     var action: () -> Void
     @State private var armed = false
     @State private var disarm: Task<Void, Never>?
@@ -57,8 +60,64 @@ struct ArmedButton: View {
             }
         }
         .buttonStyle(.plain)
-        .foregroundStyle(armed ? Tokens.onOut : Tokens.accent)
+        .foregroundStyle(armed ? Tokens.onOut : tint)
         .accessibilityHint(armed ? Text("Tap again to confirm") : Text(""))
+    }
+}
+
+/// A section's word over its rows: subheadline, muted, never shouting.
+struct SectionHeader: View {
+    var text: LocalizedStringKey
+
+    init(_ text: LocalizedStringKey) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.subheadline)
+            .foregroundStyle(Tokens.inkMuted)
+            .textCase(nil)
+    }
+}
+
+/// What a list's title menu offers when the list is the Lists tab's root: the household's other
+/// lists and the overview behind All lists.
+struct ListSwitcher {
+    var lists: [ListSummary]
+    var pick: (String) -> Void
+    var all: () -> Void
+}
+
+extension View {
+    /// The list's title as a menu, when the list has a switcher; a pushed list has none.
+    @ViewBuilder
+    func listTitleMenu(_ s: ListSwitcher?, current: String) -> some View {
+        if let s {
+            toolbarTitleMenu {
+                ForEach(s.lists) { l in
+                    Button {
+                        s.pick(l.id)
+                    } label: {
+                        if l.id == current {
+                            Label(l.name, systemImage: "checkmark")
+                        } else if l.openCount > 0 {
+                            Text(verbatim: "\(l.name)  \(l.openCount)")
+                        } else {
+                            Text(l.name)
+                        }
+                    }
+                }
+                Divider()
+                Button {
+                    s.all()
+                } label: {
+                    Label("All lists…", systemImage: "list.bullet")
+                }
+            }
+        } else {
+            self
+        }
     }
 }
 

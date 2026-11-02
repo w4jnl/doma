@@ -97,18 +97,18 @@
         }
       }
     },
-    "A list only you see. Tap + and choose Only you.": {
+    "A list only you see. Tap + and choose Just me.": {
       "localizations": {
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Een lijst die alleen jij ziet. Tik op + en kies Alleen jij."
+            "value": "Een lijst die alleen jij ziet. Tik op + en kies Alleen ik."
           }
         },
         "sk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zoznam, ktorý vidíš len ty. Ťukni na + a vyber Len ty."
+            "value": "Zoznam, ktorý vidíš len ty. Ťukni na + a vyber Len ja."
           }
         }
       }
@@ -145,22 +145,6 @@
         }
       }
     },
-    "Add a household": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Huishouden toevoegen"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pridať domácnosť"
-          }
-        }
-      }
-    },
     "Add an item": {
       "localizations": {
         "nl": {
@@ -189,6 +173,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pridá to znova"
+          }
+        }
+      }
+    },
+    "All lists…": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle lijsten…"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Všetky zoznamy…"
           }
         }
       }
@@ -365,22 +365,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Upraviť"
-          }
-        }
-      }
-    },
-    "Everyone": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iedereen"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Všetci"
           }
         }
       }
@@ -657,6 +641,38 @@
         }
       }
     },
+    "Join another household": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bij een ander huishouden"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridať sa k inej domácnosti"
+          }
+        }
+      }
+    },
+    "Just me": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alleen ik"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Len ja"
+          }
+        }
+      }
+    },
     "Last refreshed": {
       "localizations": {
         "nl": {
@@ -877,38 +893,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nič na kúpu"
-          }
-        }
-      }
-    },
-    "Only you": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alleen jij"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Len ty"
-          }
-        }
-      }
-    },
-    "Only yours": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alleen van jou"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Len tvoje"
           }
         }
       }
@@ -1165,22 +1149,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zdieľané"
-          }
-        }
-      }
-    },
-    "Shared with everyone": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gedeeld met iedereen"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zdieľané so všetkými"
           }
         }
       }
