@@ -133,7 +133,7 @@ snapshots: ios-project mac-project
 	@mkdir -p tmp && touch tmp/record-snapshots
 	@rm -rf "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots"
 	@$(MAC_XCODEBUILD) test -only-testing:DomaTests/SnapshotTests -quiet || { rm -f tmp/record-snapshots; exit 1; }
-	@mkdir -p app/shared/Tests/Snapshots/macos && cp "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots/"*.png app/shared/Tests/Snapshots/macos/
+	@mkdir -p app/shared/Tests/Snapshots/macos && cp "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots/"*.png "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots/recorded.json" app/shared/Tests/Snapshots/macos/
 	@$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' test -only-testing:DomaTests/SnapshotTests CODE_SIGN_IDENTITY=- -collect-test-diagnostics never -quiet || { rm -f tmp/record-snapshots; exit 1; }
 	@rm -f tmp/record-snapshots
 	@ls app/shared/Tests/Snapshots/*/ | wc -l | xargs echo "snapshots:"
