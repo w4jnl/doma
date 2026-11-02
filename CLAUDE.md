@@ -37,15 +37,21 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   households, household and server pages (APNs key upload, back up now, log level, TOTP), the
   guest links and the guest view polled with vendored htmx 2.0.4; the cross-tenant and
   cross-person suite in `internal/http/crosstenant_test.go`, the e2e smoke under `scripts/e2e`
-  and the README. The apps under `app/` are at step 1 of prompt 1: the two XcodeGen projects
+  and the README. The apps under `app/` are at step 2 of prompt 1: the two XcodeGen projects
   (`app/ios`, `app/macos`) over `app/shared`, GRDB pinned, `Design/Tokens.swift` with its drift
-  test, the custom symbols in `Design/Symbols.xcassets` written by `assets/icons/gen.py`, and
-  the `mac-*` and `ios-*` make targets. No store, fold, sync or screens yet: `RootView` shows the
-  mark. Check `git log` and `ls` before assuming otherwise.
+  test, the custom symbols in `Design/Symbols.xcassets` written by `assets/icons/gen.py`, the
+  `mac-*` and `ios-*` make targets; DomaKit: `Model` (HLC, ULID, the name key, the typed line,
+  events and rows), `Fold` (the port, `MemStore`, tested against the fixture in every order),
+  `Store` (GRDB schema, `SQLFoldStore`, `DomaStore` with log, outbox, cursor and snapshot import),
+  `Identity` (`DeviceKey` in the Keychain, `InviteLink`, `Session`), `Sync` (`SyncClient` with
+  the signature, `Syncer` with the triggers, `Background` for the phone's refresh and push). No
+  screens yet: `RootView` shows the mark. Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;
   flags are derived from all their candidates; everything else is last-writer-wins or add and
-  remove maxima. `internal/fold/fold.go` says why, and the property test proves it.
+  remove maxima. `internal/fold/fold.go` says why, and the property test proves it. The Swift
+  port adds one thing the server does not need: rows a snapshot brought without their events
+  are replayed as the events that made them, at their own stamps (`app/shared/Fold/Fold.swift`).
 - The package map to build to is "Architecture and repository layout" in `docs/design.md`; the
   tables are in "Data model and tenancy", the event kinds and fold rules in "Event log and sync",
   the task lists and the open-decisions table in "Testing, milestones, open decisions".
