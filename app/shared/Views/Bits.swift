@@ -16,6 +16,7 @@ struct OfflineBadge: View {
             .foregroundStyle(Tokens.inkMuted)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Text("offline"))
+            .accessibilityIdentifier("offline")
         }
     }
 }
@@ -64,15 +65,27 @@ struct ArmedButton: View {
 /// "3 wk ago", "yesterday", "in 2 days", with the absolute time for VoiceOver and on hover.
 struct RelativeText: View {
     var millis: Int64
+    @Environment(\.locale) private var locale
+
+    /// What "now" is; the snapshot tests pin it.
+    nonisolated(unsafe) static var now: @Sendable () -> Date = { Date() }
 
     var date: Date { Date(timeIntervalSince1970: Double(millis) / 1000) }
 
     var body: some View {
-        Text(date, format: .relative(presentation: .named, unitsStyle: .abbreviated))
+        Text(Self.string(for: date, locale: locale))
             .font(Tokens.mono(.footnote))
             .foregroundStyle(Tokens.inkMuted)
             .help(Text(date, format: .dateTime))
             .accessibilityLabel(Text(date, format: .dateTime.day().month().hour().minute()))
+    }
+
+    static func string(for date: Date, locale: Locale) -> String {
+        let f = RelativeDateTimeFormatter()
+        f.locale = locale
+        f.unitsStyle = .abbreviated
+        f.dateTimeStyle = .named
+        return f.localizedString(for: date, relativeTo: now())
     }
 }
 

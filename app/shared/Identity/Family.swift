@@ -64,9 +64,20 @@ final class FamilyModel {
     private(set) var loading = false
 
     private let session: Session
+    private var preset = false
 
     init(session: Session) {
         self.session = session
+    }
+
+    /// Rows given, nothing loaded: the snapshot tests and the previews.
+    init(session: Session, members: [Member], invites: [Invite] = [], guests: [GuestLink] = [], devices: [Credential] = []) {
+        self.session = session
+        self.members = members
+        self.invites = invites
+        self.guests = guests
+        self.devices = devices
+        preset = true
     }
 
     private var base: String? { session.current.map { "/api/v1/h/" + $0.id } }
@@ -82,7 +93,7 @@ final class FamilyModel {
     }
 
     func load() async {
-        guard let client = session.client, let base else { return }
+        guard !preset, let client = session.client, let base else { return }
         loading = true
         defer { loading = false }
         do {

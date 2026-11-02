@@ -1,8 +1,15 @@
 // The signed client against a stub transport: the three headers, a signature the public key
 // verifies over the server's signing string, the problem documents, and the invite link forms.
+import CoreImage
+import CoreImage.CIFilterBuiltins
 import CryptoKit
 import XCTest
 @testable import Doma
+#if canImport(UIKit)
+import UIKit
+#else
+import AppKit
+#endif
 
 final class ClientTests: XCTestCase {
     override func setUp() {
@@ -104,6 +111,24 @@ final class ClientTests: XCTestCase {
         XCTAssertNil(InviteLink("short"))
         XCTAssertNil(InviteLink("https://doma.example/i/has space in it 1234567"))
         XCTAssertNil(InviteLink(""))
+    }
+
+    func testQRRoundTripsThroughVision() throws {
+        let text = "http://127.0.0.1:8097/i/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"
+        let cg = try XCTUnwrap(QR.image(text))
+        #if canImport(UIKit)
+        let png = try XCTUnwrap(UIImage(cgImage: cg).pngData())
+        #else
+        let rep = NSBitmapImageRep(cgImage: cg)
+        let png = try XCTUnwrap(rep.representation(using: .png, properties: [:]))
+        #endif
+        XCTAssertEqual(UITestHooks.decodeQR(png: png), text)
+        // and the picture the UI test makes, a CIImage written as PNG
+        let filter = CIFilter.qrCodeGenerator()
+        filter.message = Data(text.utf8)
+        let image = filter.outputImage!.transformed(by: CGAffineTransform(scaleX: 8, y: 8))
+        let png2 = try XCTUnwrap(CIContext().pngRepresentation(of: image, format: .RGBA8, colorSpace: CGColorSpaceCreateDeviceRGB()))
+        XCTAssertEqual(UITestHooks.decodeQR(png: png2), text)
     }
 
     func testDeviceKeyRoundTripsThroughTheKeychain() throws {

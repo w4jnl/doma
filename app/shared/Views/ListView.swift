@@ -50,15 +50,15 @@ struct ListView: View {
                     }
                 }
                 if !struck.isEmpty {
+                    // the struck rows sink under one line: the last open row's separator, after a breath
                     Section {
                         ForEach(struck) { row in
                             entryRow(row)
                                 .tag(row.id)
                         }
                     } header: {
-                        Rectangle()
-                            .fill(Tokens.line)
-                            .frame(height: 1)
+                        Color.clear
+                            .frame(height: Tokens.space2)
                             .accessibilityHidden(true)
                     }
                     .textCase(nil)
@@ -89,6 +89,7 @@ struct ListView: View {
                 ArmedButton(title: "Clear", armedTitle: "Really clear?") {
                     try? ListActions.clear(listID, in: session)
                 }
+                .accessibilityIdentifier("clear")
                 .keyboardShortcut(.delete, modifiers: .command)
                 .disabled((rows?.value ?? []).allSatisfy { !$0.isChecked })
             }
@@ -142,6 +143,7 @@ struct ListView: View {
                 .foregroundStyle(Tokens.accent)
                 .accessibilityHidden(true)
             TextField("Add", text: $text)
+                .accessibilityIdentifier("add-field")
                 .textFieldStyle(.plain)
                 .focused($fieldFocused)
                 .submitLabel(.done)
@@ -228,6 +230,7 @@ struct ListView: View {
                     EntryRowView(row: row, shop: shop)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("entry-" + row.name)
             }
         }
         .listRowBackground(isFlash ? Tokens.accentSoft : Tokens.ground)
