@@ -71,7 +71,7 @@ final class SnapshotTests: XCTestCase {
         weekend = "L2"
         try store.applyRemote([
             ev("l1", Kind.listCreated, ListPayload(listID: "L1", name: "Shopping", isDefault: true)),
-            ev("l2", Kind.listCreated, ListPayload(listID: "L2", name: "Weekend", ownerPersonID: "pa")),
+            ev("l2", Kind.listCreated, ListPayload(listID: "L2", name: "Weekend", colour: "list-4", ownerPersonID: "pa")),
             ev("h1", Kind.homeCreated, HomePayload(homeID: "G", name: "Gouda")),
             ev("i1", Kind.itemNamed, ItemPayload(itemID: "I1", name: "melk")),
             ev("i2", Kind.itemNamed, ItemPayload(itemID: "I2", name: "brood")),

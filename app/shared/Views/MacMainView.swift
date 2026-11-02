@@ -11,6 +11,7 @@ struct MacMainView: View {
     @State private var adding = false
     @State private var newName = ""
     @State private var personal = false
+    @State private var colour = Tokens.listColours[0]
 
     enum Selection: Hashable {
         case lists
@@ -91,7 +92,8 @@ struct MacMainView: View {
 
     private func listRow(_ l: ListSummary) -> some View {
         HStack {
-            Label(l.name, systemImage: l.isPersonal ? "person" : "list.bullet")
+            ListDot(colour: l.colour)
+            Text(l.name)
             Spacer()
             if l.openCount > 0 {
                 Text(verbatim: String(l.openCount))
@@ -118,6 +120,10 @@ struct MacMainView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            Text("Colour")
+                .font(.footnote)
+                .foregroundStyle(Tokens.inkMuted)
+            ColourDots(colour: $colour)
             HStack {
                 Spacer()
                 Button("Cancel") { adding = false }
@@ -132,7 +138,7 @@ struct MacMainView: View {
     }
 
     private func create() {
-        if let id = try? ListActions.createList(named: newName, personal: personal, in: session) {
+        if let id = try? ListActions.createList(named: newName, personal: personal, colour: colour, in: session) {
             selection = .list(id)
         }
         newName = ""

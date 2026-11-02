@@ -92,13 +92,17 @@ final class ScreenLogicTests: XCTestCase {
 
     func testPersonalListsAreMineOnly() throws {
         let s = try session()
-        let mine = try XCTUnwrap(ListActions.createList(named: "Weekend", personal: true, in: s))
-        try ListActions.createList(named: "Hut", personal: false, in: s)
+        let mine = try XCTUnwrap(ListActions.createList(named: "Weekend", personal: true, colour: "list-4", in: s))
+        try ListActions.createList(named: "Hut", personal: false, colour: "list-2", in: s)
         // another person's personal list, as the server would never send it but the store could hold it
         try s.store.applyRemote([SyncEvent(seq: 99, id: "x", personID: "pb", hlc: "9999999999999:0:b", kind: Kind.listCreated, payload: ListPayload(listID: "L9", name: "Theirs", ownerPersonID: "pb").jsonValue)], scope: s.scope!, clock: nil)
         let all = try lists(s)
         XCTAssertEqual(all.map(\.name), ["Shopping", "Hut", "Weekend"], "shared first, the default list first of those, then mine")
         XCTAssertEqual(all.first { $0.id == mine }?.isPersonal, true)
+        XCTAssertEqual(all.map(\.colour), ["", "list-2", "list-4"], "the default list has no colour of its own")
+        try ListActions.renameList(mine, to: "Weekend away", colour: "list-4", in: s)
+        XCTAssertEqual(try lists(s).first { $0.id == mine }.map { ($0.name, $0.colour) }?.0, "Weekend away")
+        XCTAssertEqual(try lists(s).first { $0.id == mine }?.colour, "list-4", "a rename keeps the colour")
         try ListActions.archiveList(mine, in: s)
         XCTAssertEqual(try lists(s).map(\.name), ["Shopping", "Hut"])
     }

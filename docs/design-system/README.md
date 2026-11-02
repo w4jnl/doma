@@ -84,6 +84,10 @@ shapes, so a person who has seen one of them reads the others.
 - Flag colours mean a flag and nothing else: `have`, `low`, `out`, with their `-soft` fills for
   pills and home-card counts. `unknown` is `ink-muted`: an absence, not a state. `out` also marks
   destructive buttons once armed, with `on-out` text.
+- A list has one of six colours, `list-1` to `list-6` (teal, sky, violet, plum, gold, moss),
+  chosen when it is made and carried on its events; the default list wears `accent`. It shows
+  as the dot before the list's name and nowhere else. The six keep at least 15 degrees of hue
+  from every flag colour and 4.7:1 or better on both grounds, so a list is never read as a state.
 - Every flag and list state has its own glyph and word, so the UI reads in greyscale and to
   colour-blind people. Never show a flag by colour alone, and never use a flag colour for anything
   that is not a flag (not a tab, not a chart, not a decoration).
@@ -97,6 +101,7 @@ shapes, so a person who has seen one of them reads the others.
 | entry | open | `○` | `ink` | the text in `ink`, the glyph in `ink-muted` |
 | entry | struck | `✓` and the text struck through | `ink-faint` | grey; the strike says it |
 | entry | for a home | the home's name as a chip after the item | `ink-muted` on `surface` | no colour |
+| list | any | a dot before the name | `list-1` to `list-6`, the default list `accent` | which list, never a state |
 | trip | bring | the item with its from-home flag | its flag colour | the group says what to do |
 | trip | buy | the item with an *Add to list* button | `accent` on the button only | |
 | trip | check on arrival | `◌` | `unknown` | grey |
