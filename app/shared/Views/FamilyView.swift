@@ -136,11 +136,13 @@ struct FamilyView: View {
                         Button("Invite an owner") { Task { invite = await model?.invite(role: "owner") } }
                     } label: {
                         Label("Invite", systemImage: "qrcode")
+                            .labelStyle(.titleOnly)
                     }
                     Button {
                         makingGuest = true
                     } label: {
                         Label("Guest link", image: Symbol.guest.name)
+                            .labelStyle(.titleOnly)
                     }
                 }
                 Button {

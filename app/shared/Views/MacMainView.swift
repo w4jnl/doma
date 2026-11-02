@@ -33,7 +33,7 @@ struct MacMainView: View {
                         listRow(l)
                     }
                 } header: {
-                    Text("Just me")
+                    Text("Only yours")
                 }
                 Section {
                     Label("Family", systemImage: "person.2")
@@ -106,12 +106,15 @@ struct MacMainView: View {
         VStack(alignment: .leading, spacing: Tokens.space3) {
             Text("New list")
                 .font(.headline)
-            TextField("Name", text: $newName)
+            TextField("List name", text: $newName)
                 .textFieldStyle(.roundedBorder)
+            Text("Who sees it")
+                .font(.footnote)
+                .foregroundStyle(Tokens.inkMuted)
                 .onSubmit(create)
             Picker("Who sees it", selection: $personal) {
-                Text("Shared with the household").tag(false)
-                Text("Just me").tag(true)
+                Text("Everyone").tag(false)
+                Text("Only you").tag(true)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -119,7 +122,7 @@ struct MacMainView: View {
                 Spacer()
                 Button("Cancel") { adding = false }
                     .keyboardShortcut(.cancelAction)
-                Button("Add", action: create)
+                Button("Create list", action: create)
                     .keyboardShortcut(.defaultAction)
                     .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
             }

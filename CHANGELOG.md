@@ -33,3 +33,9 @@ updates this file first. Dates are the tag dates.
   `push.enabled` with the APNs key encrypted at rest; the admin pages (households, devices,
   quotas, export, backup, log level, a second step on sign-in); guest links and the guest view.
   The apps are next.
+- **Lists you can read and manage.** The Lists screen says how many items are still to get,
+  under the household name and per list; the new-list form says what it makes and who will see
+  it; a long-press or swipe on a list offers Rename and Archive, armed in place. Invite and
+  Guest link are words in the Family toolbar; the flags setting waits for the first home. A
+  strike and a clear answer with a haptic, struck rows sink, and an empty list shows the mark
+  and one line of help.

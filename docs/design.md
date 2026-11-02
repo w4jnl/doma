@@ -279,6 +279,7 @@ A list is a blank screen with one add control; the item catalog does the rest. T
 
 - The Lists screen shows shared lists first, then the person's own, each with its colour dot, name and open count. Badge on the app icon = open entries across shared lists plus the person's own, per household currently selected.
 - Creating a list asks for a name and *Shared with the household* or *Just me*; a personal list cannot be made shared later (create a new one), a shared one cannot be made personal.
+- A long-press or a swipe on a list row offers *Rename* and *Archive*, armed in place like every destructive action; the default list offers only *Rename*. An archived list keeps its history and leaves the screen.
 - Each household has one default shared list, created with the household, used by `flag.set out` and by guests. It can be renamed, not deleted.
 - *Recent* at the bottom of a list, collapsed by default, shows the last 30 cleared items for one-tap re-adding. This replaces ShopShop's habit of leaving struck items as memory.
 - Reorder by drag; the order is per list, stored as a `sort` field on the entry, LWW. Default order is by time added, newest at the bottom, so the list reads like the shop walk the family already has.

@@ -40,6 +40,9 @@ struct ListView: View {
                 let all = rows?.value ?? []
                 let open = all.filter { !$0.isChecked }
                 let struck = all.filter(\.isChecked)
+                if all.isEmpty, text.isEmpty {
+                    emptyState
+                }
                 Section {
                     ForEach(open) { row in
                         entryRow(row)
@@ -70,9 +73,13 @@ struct ListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .environment(\.defaultMinListRowHeight, shop ? Tokens.rowHShop : Tokens.rowH)
+            // the sink: on after the first strike here, so a screen never animates its first load
+            .animation(reduceMotion || strikes == 0 ? nil : .easeOut(duration: 0.25), value: rows?.value)
             if shop { addField }
         }
         .background(Tokens.ground)
+        .sensoryFeedback(.impact(weight: .light), trigger: strikes)
+        .sensoryFeedback(.success, trigger: clears)
         .navigationTitle(summary?.value?.name ?? "")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -83,11 +90,17 @@ struct ListView: View {
                 Button {
                     setShop(!shop)
                 } label: {
-                    Label("Shop mode", systemImage: "basket")
+                    if shop {
+                        Label("Shop mode", systemImage: "basket")
+                            .labelStyle(.titleAndIcon)
+                    } else {
+                        Label("Shop mode", systemImage: "basket")
+                    }
                 }
+                .transaction { $0.animation = nil }
                 .accessibilityValue(shop ? Text("on") : Text("off"))
                 ArmedButton(title: "Clear", armedTitle: "Really clear?") {
-                    try? ListActions.clear(listID, in: session)
+                    clear()
                 }
                 .accessibilityIdentifier("clear")
                 .keyboardShortcut(.delete, modifiers: .command)
@@ -122,18 +135,20 @@ struct ListView: View {
             if !(rows?.value ?? []).allSatisfy({ !$0.isChecked }) { shakeArmed = true }
         }
         .alert("Clear the struck items?", isPresented: $shakeArmed) {
-            Button("Clear", role: .destructive) { try? ListActions.clear(listID, in: session) }
+            Button("Clear", role: .destructive) { clear() }
             Button("Cancel", role: .cancel) {}
         }
         #endif
         .onKeyPress(.space) {
             guard let id = selected, let row = (rows?.value ?? []).first(where: { $0.id == id }) else { return .ignored }
-            try? ListActions.toggle(row, on: listID, in: session)
+            toggle(row)
             return .handled
         }
     }
 
     @State private var shakeArmed = false
+    @State private var strikes = 0
+    @State private var clears = 0
 
     // MARK: The add field and its matches
 
@@ -215,6 +230,30 @@ struct ListView: View {
         }
     }
 
+    private func toggle(_ row: EntryRow) {
+        guard (try? ListActions.toggle(row, on: listID, in: session)) != nil else { return }
+        strikes += 1
+    }
+
+    private func clear() {
+        guard (try? ListActions.clear(listID, in: session)) != nil else { return }
+        clears += 1
+    }
+
+    /// A list with nothing on it: the mark and the one thing to know.
+    private var emptyState: some View {
+        Section {
+            VStack(spacing: Tokens.space3) {
+                Mark(size: 32)
+                HelpLine(text: "Type what you need. Return adds it.")
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Tokens.space6)
+            .listRowBackground(Tokens.ground)
+            .listRowSeparator(.hidden)
+        }
+    }
+
     // MARK: Rows
 
     @ViewBuilder
@@ -225,7 +264,7 @@ struct ListView: View {
                 editRow(row)
             } else {
                 Button {
-                    try? ListActions.toggle(row, on: listID, in: session)
+                    toggle(row)
                 } label: {
                     EntryRowView(row: row, shop: shop)
                 }

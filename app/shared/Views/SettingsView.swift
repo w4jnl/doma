@@ -9,6 +9,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var staleness: Double = 14
     @State private var waiting: Live<Int>?
+    @State private var homes: Live<[HomeRow]>?
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
 
@@ -23,7 +24,7 @@ struct SettingsView: View {
                     LabeledContent("You") { Text(c.displayName) }
                 }
             }
-            if isOwner {
+            if isOwner, !(homes?.value ?? []).isEmpty {
                 Section {
                     Stepper(value: $staleness, in: 1...365, step: 1) {
                         LabeledContent("Ask again after") {
@@ -117,6 +118,9 @@ struct SettingsView: View {
             staleness = Double(session.current?.stalenessDays ?? 14)
         }
         .task(id: session.context?.serverID) {
+            if let scope = session.scope {
+                homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }
+            }
             guard let server = session.context?.serverID else { return }
             waiting = Live(session.store, initial: 0) { db in
                 try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM outbox WHERE server_id = ?", arguments: [server]) ?? 0

@@ -136,6 +136,8 @@ row, not a new screen.
   the item name in `ink`, then quantity, unit and note in mono `ink-muted`, then a home chip if the
   entry is for a home. Struck rows sink under one `line` divider, newest first, text struck and in
   `ink-faint`. *Recent* is a collapsed group at the foot.
+  A list with nothing on it shows the mark small and one line of help; the Lists screen says
+  under the household name how many items are still to get across its lists.
 - **Shop mode.** Rows grow to 56pt, type one step larger, the screen stays awake, the add field
   goes to the bottom. Nothing else changes: no new colours, no new controls.
 - **A home.** Staples first, grouped by spot where an item is pinned to one, each row the flag
@@ -152,7 +154,7 @@ row, not a new screen.
 - **Scan.** The first screen before any household: the camera full-bleed, the mark above it, one
   line of help, *Paste a link* as a text button. It is also Family → Add.
 - **States and feedback.** Glyph and word, as everywhere. Optimistic everywhere: the row appears,
-  strikes or moves on the tap. A sync failure is one small `◌ offline` badge in the toolbar,
+  strikes or moves on the tap, with a light haptic on a strike and a success haptic on a clear. A sync failure is one small `◌ offline` badge in the toolbar,
   never an alert. Destructive actions arm in place (*Remove → Really remove?*); no modals except
   the camera and the system share sheet.
 - **Keyboard on the Mac.** `⌘N` new list, return adds, space strikes the selected row, `⌘⌫`
