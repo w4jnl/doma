@@ -23,6 +23,8 @@ updates this file first. Dates are the tag dates.
   from a QR picture, add, strike and clear, add while offline and then sync, the invite's QR;
   the snapshots of every screen in light and dark at two Dynamic Type sizes on both platforms
   (`make snapshots` records, the test suites compare).
+- **The apps, phase 0, step 5.** The TestFlight path: the push entitlement for device builds,
+  `make ios-testflight` with the App Store Connect export, and the apps' READMEs.
 - **The server, phase 0.** `doma serve` with `doma.toml` and `DOMA_*` overrides; the setup page
   that shows once; households with their default list and first home; the owner invite as a QR;
   invites and roles; device keys with a signature on every app request; `POST /sync/v1` with

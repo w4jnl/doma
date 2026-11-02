@@ -51,6 +51,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: nl.w4j.doma
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: Doma/Doma.entitlements
         INFOPLIST_KEY_UIUserInterfaceStyle: Automatic
     info:
       path: Doma/Info.plist
