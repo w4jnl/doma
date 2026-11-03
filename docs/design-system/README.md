@@ -170,8 +170,16 @@ row, not a new screen.
   strikes or moves on the tap, with a light haptic on a strike and a success haptic on a clear. A sync failure is one small `◌ offline` badge in the toolbar,
   never an alert. Destructive actions arm in place (*Remove → Really remove?*); no modals except
   the camera and the system share sheet.
-- **Keyboard on the Mac.** `⌘N` new list, return adds, space strikes the selected row, `⌘⌫`
-  clears, `⌘1`–`⌘4` the sections. Nothing else.
+- **The Mac.** The sidebar lists the household's lists, then *Just me* when there are any, then
+  Family, selection in `accent` (the app's accent colour is the token, in the asset catalogue, so
+  the system draws it); *New list* is a plain accent button at the sidebar's foot that opens a
+  small form there, never a sheet. A right-click on a list offers *Rename* (in the row), *Colour*
+  (the six names) and *Archive*, armed in place. The pane shows the list's name large with the
+  dot and count under it, rows at `row-h` and no wider than `content-max`, the add bar at the
+  bottom with the field live from the start; a right-click on a row offers *Got it* or *Put
+  back*, then *Edit*.
+- **Keyboard on the Mac.** `⌘N` new list, return adds, space or `⌫` strikes the selected row,
+  `⌘⌫` clears, `⌘1`–`⌘4` the sections. Nothing else.
 - **Accessibility.** Dynamic Type on every row, VoiceOver labels that say glyph and word
   ("out, olive oil, since Tuesday"), 44pt targets, and a Reduce Motion check before the one
   animation (a struck row sinking).
