@@ -193,7 +193,10 @@ row, not a new screen.
   The family's doma out of reach is one small `◌ offline` badge in the toolbar after the second
   failed exchange, never an alert; after a minute it says since when; when the spell ends and
   something went up, the badge says `✓ caught up` once, for 1.5 s. Settings' About row is the
-  one place the wordmark appears: the mark, `doma` in mono bold, the version in mono muted. Nothing moves on a timer. Destructive
+  one place the wordmark appears: the mark, `doma` in mono bold, the version in mono muted. A
+  notification, when the person allows them, says who added what to which list or who cleared
+  it, in the same words as the row, under the list's name; never for the person's own changes,
+  never a check, and nothing of the app's own while it is in front. Nothing moves on a timer. Destructive
   actions arm in place (*Remove → Really remove?*), the pill springing in and fading back after
   4 s; no modals except the camera and the system share sheet.
 - **Motion.** Three durations and nothing else: `motion-quick` (150 ms) for a crossfade, a

@@ -6,6 +6,11 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **A word from the family.** A push carries words when someone else added to a list or cleared
+  it: "Sam added melk and brood" under the list's name, threaded per list, composed on the
+  server from the events since the device was last pushed; your own changes stay silent, and
+  checks never speak. The phone asks once after joining; Settings shows whether notifications
+  are on and where to change it. Nothing shows while the app is in front, it just syncs.
 - **Presence, small.** A struck row names who got it when it was someone else; the offline badge
   says since when after a minute; About carries the lockup. The family's names come with the
   members the Family screen and the foreground refresh already fetch, held in memory only.

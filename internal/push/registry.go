@@ -18,7 +18,7 @@ func (r ServiceRegistry) PushTargets(ctx context.Context, householdID string, no
 	}
 	out := make([]Target, 0, len(rows))
 	for _, t := range rows {
-		out = append(out, Target{CredentialID: t.CredentialID, Token: t.Token})
+		out = append(out, Target{CredentialID: t.CredentialID, Token: t.Token, PersonID: t.PersonID, LastSeq: t.LastSeq})
 	}
 	return out, nil
 }
@@ -29,6 +29,18 @@ func (r ServiceRegistry) RecordPush(ctx context.Context, householdID, credential
 
 func (r ServiceRegistry) ClearPushToken(ctx context.Context, credentialID string) error {
 	return r.Svc.ClearPushToken(ctx, credentialID)
+}
+
+func (r ServiceRegistry) Changes(ctx context.Context, householdID string, after, upTo int64) ([]Change, error) {
+	rows, err := r.Svc.Changes(ctx, householdID, after, upTo)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Change, 0, len(rows))
+	for _, c := range rows {
+		out = append(out, Change{PersonID: c.PersonID, Person: c.Person, ListID: c.ListID, List: c.List, Item: c.Item, Cleared: c.Cleared})
+	}
+	return out, nil
 }
 
 var _ Registry = ServiceRegistry{}

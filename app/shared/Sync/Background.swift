@@ -1,7 +1,8 @@
 // The phone's two ways to sync with the app off screen: a silent push from the server, and the
 // system's background refresh about every 15 minutes. Push is a hint; a device that misses it
-// catches up on the next trigger. No visible notifications in v1, and only the badge permission
-// is asked, for the open count on the icon.
+// catches up on the next trigger. A push may also carry words, when someone else added to a
+// list or cleared it: the system shows them while the app is away, and the app shows nothing
+// of its own while it is in front, it just syncs.
 import Foundation
 #if os(iOS)
 import BackgroundTasks
@@ -41,11 +42,30 @@ enum BackgroundRefresh {
     }
 }
 
-/// The app delegate: the push token and silent pushes.
-final class PushDelegate: NSObject, UIApplicationDelegate {
+/// The app delegate: the push token, silent pushes, and what a visible one does.
+final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         BackgroundRefresh.register()
+        UNUserNotificationCenter.current().delegate = self
         return true
+    }
+
+    /// A notification arriving while the app is in front: no banner, the list is already
+    /// showing the change; one exchange so it shows now.
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void) {
+        Task { @MainActor in
+            await Session.current?.syncer.sync()
+            completionHandler([])
+        }
+    }
+
+    /// A tap on a notification opens the app; the list it names is the one in front already
+    /// when it is the current list, and one exchange brings the rest.
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping @Sendable () -> Void) {
+        Task { @MainActor in
+            await Session.current?.syncer.sync()
+            completionHandler()
+        }
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
@@ -62,10 +82,16 @@ final class PushDelegate: NSObject, UIApplicationDelegate {
         return .newData
     }
 
-    /// Registers for silent pushes and asks for the badge only.
+    /// Registers for pushes and asks, once, to show the family's adds and clears and the
+    /// badge; the system remembers the answer, and Settings says where to change it.
     @MainActor static func enable() {
         UIApplication.shared.registerForRemoteNotifications()
-        UNUserNotificationCenter.current().requestAuthorization(options: [.badge]) { _, _ in }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+    }
+
+    /// Whether the person lets the family's changes show as notifications.
+    static func notificationsAllowed() async -> UNAuthorizationStatus {
+        await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
     }
 }
 #endif

@@ -83,7 +83,7 @@ func NewAPNs(key *ecdsa.PrivateKey, keyID, teamID, topic string, sandbox bool) *
 }
 
 // Send posts one background push.
-func (a *APNs) Send(ctx context.Context, deviceToken string, payload []byte) error {
+func (a *APNs) Send(ctx context.Context, deviceToken string, payload []byte, alert bool) error {
 	jwt, err := a.providerToken()
 	if err != nil {
 		return err
@@ -94,8 +94,13 @@ func (a *APNs) Send(ctx context.Context, deviceToken string, payload []byte) err
 	}
 	req.Header.Set("authorization", "bearer "+jwt)
 	req.Header.Set("apns-topic", a.topic)
-	req.Header.Set("apns-push-type", "background")
-	req.Header.Set("apns-priority", "5")
+	if alert {
+		req.Header.Set("apns-push-type", "alert")
+		req.Header.Set("apns-priority", "10")
+	} else {
+		req.Header.Set("apns-push-type", "background")
+		req.Header.Set("apns-priority", "5")
+	}
 	req.Header.Set("content-type", "application/json")
 	resp, err := a.client.Do(req)
 	if err != nil {

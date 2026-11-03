@@ -2,6 +2,9 @@
 // Revoke armed in place, and About with the server's name and the app's version.
 import GRDB
 import SwiftUI
+#if os(iOS)
+import UserNotifications
+#endif
 
 struct SettingsView: View {
     var model: FamilyModel?
@@ -12,6 +15,9 @@ struct SettingsView: View {
     @State private var homes: Live<[HomeRow]>?
     @State private var deviceInvite: Invite?
     @State private var makingDevice = false
+    #if os(iOS)
+    @State private var notifications: UNAuthorizationStatus?
+    #endif
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
 
@@ -29,6 +35,41 @@ struct SettingsView: View {
             }
             .listRowBackground(FamilyView.rowGround)
             .listRowSeparatorTint(Tokens.line)
+            #if os(iOS)
+            Section {
+                LabeledContent("Notifications") {
+                    switch notifications {
+                    case .authorized, .provisional, .ephemeral:
+                        Text("On")
+                            .foregroundStyle(Tokens.inkMuted)
+                    case .denied:
+                        Button("Turn on in Settings") { openSystemSettings() }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Tokens.accent)
+                    case .notDetermined:
+                        Button("Allow") {
+                            PushDelegate.enable()
+                            Task {
+                                try? await Task.sleep(for: .seconds(1))
+                                notifications = await PushDelegate.notificationsAllowed()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Tokens.accent)
+                    default:
+                        EmptyView()
+                    }
+                }
+            } header: {
+                SectionHeader("Notifications")
+            } footer: {
+                Text("A word when someone else adds to a list or clears it. Never for what you did yourself.")
+                    .font(.footnote)
+                    .foregroundStyle(Tokens.inkMuted)
+            }
+            .listRowBackground(FamilyView.rowGround)
+            .listRowSeparatorTint(Tokens.line)
+            #endif
             if isOwner, !(homes?.value ?? []).isEmpty {
                 Section {
                     Stepper(value: $staleness, in: 1...365, step: 1) {
@@ -169,6 +210,9 @@ struct SettingsView: View {
         }
         .onAppear {
             staleness = Double(session.current?.stalenessDays ?? 14)
+            #if os(iOS)
+            Task { notifications = await PushDelegate.notificationsAllowed() }
+            #endif
             #if os(macOS)
             if let m = model, m.devices.isEmpty { Task { await m.load() } }
             #endif
@@ -184,3 +228,14 @@ struct SettingsView: View {
         }
     }
 }
+
+#if os(iOS)
+extension SettingsView {
+    /// The system's page for this app, where notifications are turned on or off.
+    func openSystemSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+}
+#endif

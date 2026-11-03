@@ -253,7 +253,7 @@ The server appends and folds in one transaction per household, then publishes `H
 
 **Push**
 
-APNs with token-based auth (`.p8` key, key id, team id in config). On `HouseholdChanged`, one silent push (`content-available: 1`) per device that has a token and has not been pushed in the last 30 s, with `{"server": base_url, "household": id, "seq": n}` so the app pulls the right cursor. Push is a hint: a device that misses it catches up on the next trigger. No visible notifications in v1.
+APNs with token-based auth (`.p8` key, key id, team id in config). On `HouseholdChanged`, one silent push (`content-available: 1`) per device that has a token and has not been pushed in the last 30 s, with `{"server": base_url, "household": id, "seq": n}` so the app pulls the right cursor. Push is a hint: a device that misses it catches up on the next trigger. A push also carries words when it can: the server composes, from the events since the device was last pushed, what other members added to which list or that they cleared it ("Sam added melk and brood" under the list's name, threaded per list), and sends that as an alert with `content-available` still set; a device whose own person made every change gets the silent push. Only `entry.added` and `entry.cleared` speak; checks never do. Whether the words show is the phone's notification permission, asked once after joining and shown in Settings; the server keeps no preference and the Mac, which polls, gets none.
 
 **Compaction and retention**
 
@@ -352,7 +352,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | Home | staples grouped by spot with flag buttons; other flagged items; *Take photos*; manage staples and spots behind Edit | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
 | Trip | from/to pickers, date; Bring, Buy, Check on arrival groups; *Arrived* | `entry.added`, `trip.arrived` |
 | Family | household name, members with role and last seen, pending invites, guest links, Invite (prominent), Guest link, Settings, Leave; Remove and Revoke behind a swipe, armed in the row; household switcher at the top when the person is in more than one | invites and guests through the REST API, not events |
-| Settings | this device's name, staleness (owners), the person's devices with Revoke and *Add a device* (a QR the new device scans to join as the same person), notifications later, About with server name and version | REST |
+| Settings | this device's name, notifications (on, or a way to allow them), staleness (owners), the person's devices with Revoke and *Add a device* (a QR the new device scans to join as the same person), About with the lockup, server name and version | REST |
 
 **Interaction rules**
 
