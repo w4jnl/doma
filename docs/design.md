@@ -582,4 +582,4 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 | Photo size | 1600 px long edge, JPEG 0.8 | originals; 4–8× the storage |
 | Second server in one app | refused in v1 with a message | supported from v1; adds a context picker to Scan |
 | Admin TOTP | in v1 | phase 2 |
-| Licence and repo visibility | private | MIT if opened later, as vink |
+| Licence and repo visibility | public, MIT, as vink (opened 2026-11-03) | private until the public install |
