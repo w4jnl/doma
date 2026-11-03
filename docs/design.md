@@ -246,7 +246,7 @@ The server appends and folds in one transaction per household, then publishes `H
 
 - Outbox table: `(event_id, household_id, body, created_at, attempts)`. Events are written to the outbox and folded locally in one GRDB transaction, so the UI updates before any network.
 - Cursor table: `(server_id, household_id, since)`.
-- Triggers: on foreground, after any outbox write (debounced 300 ms), every 10 s while a list screen is visible, every 5 s while the screen is in shop mode, on silent push, and on `BGAppRefreshTask` roughly every 15 min in the background.
+- Triggers: on foreground, after any outbox write (debounced 300 ms), every 5 s while a list screen is visible, on silent push, and on `BGAppRefreshTask` roughly every 15 min in the background.
 - Conflicts do not exist at the fold level; the only user-visible merge is two people renaming the same list, which LWW resolves silently.
 
 **Push**
@@ -263,16 +263,16 @@ A list is a blank screen with one add control; the item catalog does the rest. T
 
 **Add**
 
-- Tapping the add field or pressing `+` focuses a text field above the keyboard. Each keystroke filters the catalog by prefix on any word of `norm_name` or an alias, ordered by `use_count` desc, then `last_used_at` desc; the top 8 matches show as one-tap rows, each with a muted *last bought 5 days ago* when the history has it.
+- The add bar is pinned at the bottom of the list, above the keyboard when it is up, and never moves. Each keystroke filters the catalog by prefix on any word of `norm_name` or an alias, ordered by `use_count` desc, then `last_used_at` desc; the top 5 matches show as one-tap rows above the bar, the best nearest the bar, each with a muted *last bought 5 days ago* when the history has it. The row nearest the bar is what Return does: the exact item when the typed name exists, the typed line as a new item otherwise. With the field empty and focused, one row of chips shows the household's most used items that are not on the list.
 - Tapping a match adds it and clears the field with the keyboard still up, so a run of items is tap, tap, tap. Pressing return adds the typed text as-is: an exact `norm_name` match reuses the item, anything else creates one (`item.named` + `entry.added` in one outbox write).
 - A leading or trailing quantity is split off into `qty` and `unit`, any other trailing text into `note`: "melk 2", "2 melk", "2x melk", "500 g gehakt", "1,5 l melk" and "melk (the small jar)" give item *melk* or *gehakt* with qty 2 / 2 / 2 / 500 / 1.5 / none and unit x / x / x / g / l / none. Units recognised: x, ×, st, stuks, pcs, g, kg, ml, cl, l, pak, fles, zak, blik, bos; anything else stays in `note`. The item name is what is matched; qty, unit and note are shown muted after it.
 - Adding an item that is already open on the list flashes the existing row instead of duplicating. Adding one that is checked but not cleared unchecks it.
-- From the list screen a long-press on an item offers *For a home* (sets `for_home_id`), *Bought…* (edit qty and unit on a checked row, for when the shop only had the big pack), *Rename*, *Merge with…* (owners and members).
+- A swipe left on a row offers *Edit*: the row becomes one field holding the line as it would be typed ("melk 2 (the small jar)"), with a home chip when the household has homes. A changed name renames the item, the quantity, unit and note replace the entry's (for when the shop only had the big pack), a changed home sets `for_home_id`. Long-press is drag to reorder and nothing else. *Merge with…* is a Mac menu item, not a phone action.
 
 **Strike and clear**
 
-- Tapping a row strikes it (`entry.checked`); struck rows sink below a thin divider, newest struck at the top of that group. Tapping a struck row restores it.
-- *Clear* in the toolbar removes struck rows (`entry.cleared` with the current `hlc`); shake-to-clear on iPhone, with the same confirmation sheet. Cleared entries leave the screen but stay in the store as the purchase history, for the catalog's `use_count` and for *Recent* below.
+- Tapping a row strikes it (`entry.checked`) where it is: the glyph pops, the line draws through, one light haptic, and the row keeps its place for 1.5 s so a second tap takes it back; then it sinks below a thin divider, newest struck at the top of that group. A run of taps sinks together after the last. Tapping a struck row restores it the same way. A scroll never strikes.
+- The divider says how many are got and carries *Clear*, armed in place (*Really clear?*), which removes the struck rows (`entry.cleared` with the current `hlc`) with a success haptic; it exists only while something is struck. Cleared entries leave the screen but stay in the store as the purchase history, for the catalog's `use_count` and for *Recent* below.
 - Checking an entry with `for_home_id` set flags that item `have` at that home when the list is cleared, not when it is checked; a mis-tap in the shop should not move stock. The flag change rides on the same `entry.cleared` fold rule.
 
 **Lists**
@@ -291,9 +291,9 @@ A list is a blank screen with one add control; the item catalog does the rest. T
 - In v1 the history surfaces in two places only: *Recent* under each list, and the *last bought* hint on autocomplete rows. Overview screens come in phase 3 and read the same rows: purchases per item and per month, totals of `qty` by `unit`, per home, who shops what. No new events are needed for them.
 - The history is in every export as `purchases.csv` (one row per cleared entry) and in the household snapshot, so pruning old events loses nothing a family can see.
 
-**Shop mode**
+**In the shop**
 
-A toggle in the list toolbar: larger rows, screen stays awake, sync every 5 s, and the add field moves to the bottom. The last mode per list is remembered on the device.
+There is no shop mode: the list screen is always ready for the shop. Rows are 52pt, the add bar is at the bottom, the screen stays awake while a list is in front, and sync runs every 5 s while it is visible. One layout, learnt once.
 
 **Guest view**
 
@@ -345,7 +345,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | --- | --- | --- |
 | Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join | registers the device, accepts the invite |
 | Lists | shared lists, then personal; colour dot, name, open count; `+` to create | `list.created` |
-| List | add field, open rows, divider, struck rows, Recent; toolbar: Clear, Shop mode; long-press menu | `item.named`, `entry.*` |
+| List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it; swipe left for Edit, long-press to drag | `item.named`, `entry.*` |
 | Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails | — |
 | Home | staples grouped by spot with flag buttons; other flagged items; *Take photos*; manage staples and spots behind Edit | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
 | Trip | from/to pickers, date; Bring, Buy, Check on arrival groups; *Arrived* | `entry.added`, `trip.arrived` |

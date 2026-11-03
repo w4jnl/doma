@@ -141,8 +141,8 @@ struct ProblemLine: View {
 
 extension View {
     /// Row height from the tokens, taller in shop mode.
-    func rowHeight(shop: Bool = false) -> some View {
-        frame(minHeight: shop ? Tokens.rowHShop : Tokens.rowH)
+    func rowHeight(_ h: CGFloat = Tokens.rowH) -> some View {
+        frame(minHeight: h)
     }
 }
 

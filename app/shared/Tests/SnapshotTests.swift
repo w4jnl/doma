@@ -121,12 +121,6 @@ final class SnapshotTests: XCTestCase {
         try await check("list") { NavigationStack { ListView(listID: id) } }
     }
 
-    func testListInShopMode() async throws {
-        let id = shopping
-        UserDefaults.standard.set(true, forKey: "shop." + id)
-        try await check("list-shop") { NavigationStack { ListView(listID: id) } }
-    }
-
     func testFamily() async throws {
         let m = family()
         try await check("family") { NavigationStack { FamilyView(preset: m) } }

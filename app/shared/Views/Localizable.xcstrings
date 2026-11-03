@@ -49,6 +49,22 @@
         }
       }
     },
+    "%lld got": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld gehaald"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld máme"
+          }
+        }
+      }
+    },
     "%lld to get": {
       "localizations": {
         "nl": {
@@ -209,22 +225,6 @@
         }
       }
     },
-    "Bought…": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gekocht…"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kúpené…"
-          }
-        }
-      }
-    },
     "Camera": {
       "localizations": {
         "nl": {
@@ -289,22 +289,6 @@
         }
       }
     },
-    "Clear the struck items?": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Doorgestreepte items opruimen?"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vyčistiť preškrtnuté položky?"
-          }
-        }
-      }
-    },
     "Colour": {
       "localizations": {
         "nl": {
@@ -365,6 +349,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hotovo"
+          }
+        }
+      }
+    },
+    "Edit": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bewerken"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upraviť"
           }
         }
       }
@@ -945,22 +945,6 @@
         }
       }
     },
-    "Quantity": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hoeveelheid"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Množstvo"
-          }
-        }
-      }
-    },
     "Really archive?": {
       "localizations": {
         "nl": {
@@ -1069,22 +1053,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Odstrániť"
-          }
-        }
-      }
-    },
-    "Rename": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hernoem"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Premenovať"
           }
         }
       }
@@ -1213,22 +1181,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zdieľané so všetkými"
-          }
-        }
-      }
-    },
-    "Shop mode": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Winkelstand"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Režim nákupu"
           }
         }
       }
@@ -1633,18 +1585,18 @@
         }
       }
     },
-    "off": {
+    "new": {
       "localizations": {
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "uit"
+            "value": "nieuw"
           }
         },
         "sk": {
           "stringUnit": {
             "state": "translated",
-            "value": "vyp"
+            "value": "nové"
           }
         }
       }
@@ -1661,22 +1613,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "offline"
-          }
-        }
-      }
-    },
-    "on": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "aan"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "zap"
           }
         }
       }

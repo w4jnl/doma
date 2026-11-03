@@ -49,3 +49,9 @@ updates this file first. Dates are the tag dates.
   connections and refresh after a commit instead of inside it, the syncer never holds a frame,
   a clear replays only the keys it can close, the catalog answers 80 ms after the last
   keystroke off the main thread, and a screen makes its observations before its first frame.
+- **The list, redesigned.** One layout at home and in the shop, no shop mode: rows at 52pt, the
+  add bar pinned at the bottom with the catalog's matches above it and the usual items as chips,
+  the screen awake while a list is in front. A tap strikes the row where it is, with a pop and a
+  haptic, and it keeps its place for a breath so a second tap takes it back; then it sinks under
+  a divider that counts the got and holds Clear. Swipe left to edit the line; long-press drags.
+  Shake-to-clear and the long-press menu are gone from the phone.

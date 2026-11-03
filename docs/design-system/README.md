@@ -135,16 +135,19 @@ row, not a new screen.
 - **Tabs.** Lists, Homes, Trip, Family, in that order, with SF Symbols (see Pictograms). On the
   Mac the same four are sidebar sections. The household name is the title; a switcher appears in
   its place only when the person is in more than one household.
-- **A list.** Rows `row-h` (44pt) with hairlines in `line`; no cards, no zebra. The add field sits
-  at the top under the title and moves to the bottom in shop mode. Match rows appear under it on
-  `surface`, at most eight, the first one preselected on `accent-soft`. An entry row is the glyph,
-  the item name in `ink`, then quantity, unit and note in mono `ink-muted`, then a home chip if the
-  entry is for a home. Struck rows sink under one `line` divider, newest first, text struck and in
-  `ink-faint`. *Recent* is a collapsed group at the foot.
-  A list with nothing on it shows the mark small and one line of help; the Lists screen says
-  under the household name how many items are still to get across its lists.
-- **Shop mode.** Rows grow to 56pt, type one step larger, the screen stays awake, the add field
-  goes to the bottom. Nothing else changes: no new colours, no new controls.
+- **A list.** Entry rows `row-h-list` (52pt) with hairlines in `line`; no cards, no zebra. The
+  add bar is pinned at the bottom under a hairline: an `accent` disc with a `+` in `on-accent`,
+  the field with no box. Match rows stack above the bar on `surface`, at most five, the best
+  nearest the bar on `accent-soft`; with the field empty, one row of chips with the usual items.
+  An entry row is the glyph in a 24pt column in `ink-muted`, the item name in `ink`, the note in
+  mono `ink-muted` after it, a home chip (`surface` with a `line` ring) and the quantity in a
+  mono `ink-muted` column at the right. A strike pops the glyph once in `accent`, draws a line
+  in `ink-muted` across the name and turns the text `ink-faint`; the row stays put for 1.5 s and
+  then sinks under the divider, which reads the got count in mono at the left and *Clear* in
+  `accent` at the right, present only while something is struck. *Recent* is a collapsed group
+  at the foot in `ink-muted`. A list with nothing on it shows the mark small and one line of
+  help under the title; the title's subtitle says how many are still to get. There is no shop
+  mode: one layout, the screen awake while a list is in front.
 - **A home.** Staples first, grouped by spot where an item is pinned to one, each row the flag
   glyph and word at the right, the item at the left, and the flag's age in mono `ink-muted` once it
   passes half the staleness threshold. An unknown staple shows three small buttons, have / low /
@@ -203,7 +206,7 @@ asset catalogue. No emoji, no icon fonts. Never an icon without a word or `title
 | `trip` | the Trip tab | `arrow.right` |
 | `family` | the Family tab, members and roles | `person.2` |
 | `guest` | a guest on a link | custom symbol from `guest.svg` |
-| `basket` | shop mode | `basket` |
+| `basket` | reserved; shop mode is gone | `basket` |
 | `qr` | an invite or a guest link | `qrcode` |
 | `add` | add | `plus` |
 | `clear` | clear struck entries | `tray.and.arrow.down` |
