@@ -78,7 +78,7 @@ enum Tokens {
     nonisolated static let sizes: [String: CGFloat] = [
         "space-1": 4, "space-2": 8, "space-3": 12, "space-4": 16, "space-5": 24, "space-6": 32, "space-7": 48,
         "radius-xs": 3, "radius-sm": 6, "radius-md": 10,
-        "row-h": 44, "row-h-list": 52, "control-h": 32, "chip-h": 28, "thumb": 72, "content-max": 720, "mark-min": 16,
+        "row-h": 44, "row-h-list": 52, "row-h-compact": 32, "control-h": 32, "chip-h": 28, "thumb": 72, "content-max": 720, "mark-min": 16,
     ]
 
     static let space1: CGFloat = 4
@@ -94,6 +94,7 @@ enum Tokens {
     static let rowH: CGFloat = 44
     /// Shop mode raises a row to 56pt (tokens.json, row-h's note).
     static let rowHList: CGFloat = 52
+    static let rowHCompact: CGFloat = 32
     static let controlH: CGFloat = 32
     static let chipH: CGFloat = 28
     static let thumb: CGFloat = 72
@@ -183,7 +184,25 @@ enum Tokens {
     }
 
     /// The default point size of a text style at the large (default) Dynamic Type size.
+    /// The platform's own text-style sizes, so mono sits level with the sans beside it: the
+    /// Mac's body is 13pt where the phone's is 17.
     private static func baseSize(_ style: Font.TextStyle) -> CGFloat {
+        #if os(macOS)
+        switch style {
+        case .largeTitle: 26
+        case .title: 22
+        case .title2: 17
+        case .title3: 15
+        case .headline: 13
+        case .body: 13
+        case .callout: 12
+        case .subheadline: 11
+        case .footnote: 10
+        case .caption: 10
+        case .caption2: 10
+        @unknown default: 13
+        }
+        #else
         switch style {
         case .largeTitle: 34
         case .title: 28
@@ -198,6 +217,7 @@ enum Tokens {
         case .caption2: 11
         @unknown default: 17
         }
+        #endif
     }
 
     private static let fontsRegistered: Bool = {

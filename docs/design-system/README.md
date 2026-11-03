@@ -204,14 +204,24 @@ row, not a new screen.
   lift, and never a cascade: the list arrives whole.
 - **The Mac.** The sidebar lists the household's lists, then *Just me* when there are any, then
   Family, selection in `accent` (the app's accent colour is the token, in the asset catalogue, so
-  the system draws it); *New list* is a plain accent button at the sidebar's foot that opens a
-  small form there, never a sheet. A right-click on a list offers *Rename* (in the row), *Colour*
-  (the six names) and *Archive*, armed in place. The pane shows the list's name large with the
-  dot and count under it, rows at `row-h` and no wider than `content-max`, the add bar at the
-  bottom with the field live from the start; a right-click on a row offers *Got it* or *Put
-  back*, then *Edit*.
-- **Keyboard on the Mac.** `⌘N` new list, return adds, space or `⌫` strikes the selected row,
-  `⌘⌫` clears, `⌘1`–`⌘4` the sections. Nothing else.
+  the system draws it), the open count as the system's badge in mono; *New list* at the
+  sidebar's foot is a plain accent button whose menu offers *Just me*; it opens one field in the
+  sidebar, return creates, escape cancels. A right-click on a list offers *Rename* (in the row),
+  *Colour* (the six names) and *Archive*, armed in place. The pane hangs off the left at
+  `content-max`: the list's name in title weight with the dot and count under it, rows at
+  `row-h-compact` (32pt) with hairlines from the text column, a hovered row on `surface`, the
+  selected row on `accent-soft`. A click selects a row, the symbol strikes it (and turns
+  `accent` under the pointer), a double click or return edits it in the row, escape leaves a
+  field for the list. The add row is the last row of the open items, the plus in the symbol
+  column and the field after it; matches drop down under it, best first; the field is live only
+  on an empty list, and typing with the list in front starts an entry. A right-click on a row
+  offers *Got it* or *Put back*, then *Edit*. Settings is the Settings window (`⌘,`); the Family
+  toolbar has no gear on the Mac, and an invite or a guest link opens as a popover from its
+  button. Tooltips say what a symbol does. Mono sizes follow the platform's text styles: the
+  Mac's body is 13pt, subheadline 11, footnote 10.
+- **Keyboard on the Mac.** `⌘N` new list, return adds or edits the selected row, escape leaves a
+  field for the list, space or `⌫` strikes the selected row, `⌘E` edits, `⌘⌫` clears, `⌘1`–`⌘4`
+  the sections, `⌘,` Settings. Every shortcut is in the menu bar. Nothing else.
 - **Accessibility.** Dynamic Type on every row, VoiceOver labels that say glyph and word
   ("out, olive oil, since Tuesday"), 44pt targets. Reduce Motion removes displacement and scale
   and keeps opacity and haptics: nothing slides, sinks, grows or pops; what remains is a

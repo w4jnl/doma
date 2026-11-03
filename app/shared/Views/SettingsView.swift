@@ -147,7 +147,9 @@ struct SettingsView: View {
         #if os(iOS)
         .listStyle(.insetGrouped)
         #else
-        .listStyle(.plain)
+        // the Settings window: the Mac's grouped form, 480 wide
+        .listStyle(.inset)
+        .frame(width: 480, height: 560)
         #endif
         .textCase(nil)
         .scrollContentBackground(.hidden)
@@ -156,15 +158,11 @@ struct SettingsView: View {
         .navigationDestination(item: $deviceInvite) { inv in
             InviteSheet(invite: inv)
         }
-        #if os(macOS)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { dismiss() }
-            }
-        }
-        #endif
         .onAppear {
             staleness = Double(session.current?.stalenessDays ?? 14)
+            #if os(macOS)
+            if let m = model, m.devices.isEmpty { Task { await m.load() } }
+            #endif
         }
         .task(id: session.context?.serverID) {
             if let scope = session.scope {

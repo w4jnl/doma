@@ -8,6 +8,7 @@ import SwiftUI
 
 struct MacMainView: View {
     @Environment(Session.self) private var session
+    @Environment(MacNav.self) private var nav
     @State private var lists: Live<[ListSummary]>?
     @State private var selection: Selection? = .lists
     @State private var adding = false
@@ -50,16 +51,12 @@ struct MacMainView: View {
                 }
             }
             .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
             .navigationTitle(session.current?.name ?? "doma")
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 sidebarFoot
             }
-            .background {
-                // ⌘N opens the form at the foot
-                Button("") { startAdding() }
-                    .keyboardShortcut("n", modifiers: .command)
-                    .hidden()
-            }
+            .onChange(of: nav.newList) { startAdding() }
         } detail: {
             switch selection {
             case .list(let id):
@@ -90,8 +87,9 @@ struct MacMainView: View {
                 selection = now.first.map { .list($0.id) }
             }
         }
+        .navigationSplitViewStyle(.balanced)
         .background {
-            // ⌘1 the lists, ⌘4 Family
+            // ⌘1 the lists, ⌘4 Family (⌘2 and ⌘3 arrive with Homes and Trip)
             Button("") { if let first = lists?.value.first { selection = .list(first.id) } }
                 .keyboardShortcut("1", modifiers: .command)
                 .hidden()
@@ -135,14 +133,10 @@ struct MacMainView: View {
                             .background(Tokens.out, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
                     }
                     .buttonStyle(.plain)
-                } else if l.openCount > 0 {
-                    Text(verbatim: String(l.openCount))
-                        .font(Tokens.mono(.footnote))
-                        .foregroundStyle(Tokens.inkMuted)
-                        .contentTransition(.numericText())
-                        .animation(Motion.base, value: l.openCount)
                 }
             }
+            .badge(arming == l.id || l.openCount == 0 ? Text(verbatim: "") : Text(verbatim: String(l.openCount)).font(Tokens.mono(.footnote)))
+            .help(Text("\(l.openCount) to get"))
             .tag(Selection.list(l.id))
             .contextMenu {
                 Button("Rename") { startRename(l) }
@@ -193,41 +187,41 @@ struct MacMainView: View {
 
     // MARK: New list, at the foot of the sidebar
 
+    /// New list at the foot: a click makes a household list, the menu offers Just me; the form
+    /// is one field, return creates, escape cancels.
     @ViewBuilder
     private var sidebarFoot: some View {
         VStack(alignment: .leading, spacing: Tokens.space2) {
             Divider()
             if adding {
-                TextField("List name", text: $newName)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($newNameFocused)
-                    .onSubmit(create)
-                    .onExitCommand { stopAdding() }
-                    .accessibilityIdentifier("new-list-name")
-                Picker("Who sees it", selection: $personal) {
-                    Text("Household").tag(false)
-                    Text("Just me").tag(true)
+                HStack(spacing: Tokens.space2) {
+                    ListDot(colour: ListActions.nextColour(lists?.value ?? []))
+                        .frame(width: Tokens.space5)
+                    TextField(personal ? "Just me" : "List name", text: $newName)
+                        .textFieldStyle(.plain)
+                        .focused($newNameFocused)
+                        .onSubmit(create)
+                        .onExitCommand { stopAdding() }
+                        .accessibilityIdentifier("new-list-name")
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                HStack {
-                    Button("Cancel") { stopAdding() }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Tokens.inkMuted)
-                    Spacer()
-                    Button("Create list", action: create)
-                        .buttonStyle(.borderedProminent)
-                        .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                .padding(.vertical, Tokens.space1)
+                .transition(Motion.arrive(false, from: .bottom))
             } else {
-                Button {
-                    startAdding()
+                Menu {
+                    Button("For the household") { startAdding(personal: false) }
+                    Button("Just me") { startAdding(personal: true) }
                 } label: {
                     Label("New list", systemImage: "plus")
                         .foregroundStyle(Tokens.accent)
+                } primaryAction: {
+                    startAdding(personal: false)
                 }
+                .menuStyle(.button)
                 .buttonStyle(.plain)
+                .padding(.vertical, Tokens.space1)
+                .contentShape(Rectangle())
                 .accessibilityIdentifier("new-list")
+                .help(Text("A new list; the menu offers one only you see"))
             }
         }
         .padding(.horizontal, Tokens.space3)
@@ -235,7 +229,8 @@ struct MacMainView: View {
         .animation(Motion.base, value: adding)
     }
 
-    private func startAdding() {
+    private func startAdding(personal mine: Bool = false) {
+        personal = mine
         adding = true
         newNameFocused = true
     }
