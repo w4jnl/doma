@@ -49,6 +49,15 @@ struct ListView: View {
 
     static let holdSeconds: Double = 1.5
 
+    /// Entry rows are `row-h-list` under a thumb and `row-h` under a pointer.
+    static var rowHeight: CGFloat {
+        #if os(macOS)
+        Tokens.rowH
+        #else
+        Tokens.rowHList
+        #endif
+    }
+
     var body: some View {
         let all = rows?.value ?? []
         let open = all.filter { held[$0.id]?.open ?? !$0.isChecked }
@@ -59,7 +68,7 @@ struct ListView: View {
         list(all: all, open: open, struck: struck)
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .environment(\.defaultMinListRowHeight, Tokens.rowHList)
+            .environment(\.defaultMinListRowHeight, Self.rowHeight)
             #if os(iOS)
             .scrollDismissesKeyboard(.immediately)
             #endif
@@ -73,6 +82,12 @@ struct ListView: View {
             .navigationSubtitle(subtitle(open: openCount))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #else
+            .toolbar(removing: .title)
+            .safeAreaInset(edge: .top, spacing: 0) { paneTitle(open: openCount) }
+            .frame(maxWidth: Tokens.contentMax)
+            .frame(maxWidth: .infinity)
+            .background(Tokens.ground)
             #endif
             .toolbar {
                 #if os(iOS)
@@ -99,6 +114,8 @@ struct ListView: View {
                 session.syncer.setPolling(seconds: 5)
                 #if os(iOS)
                 UIApplication.shared.isIdleTimerDisabled = true
+                #else
+                fieldFocused = true
                 #endif
             }
             .onChange(of: session.scope) { observe() }
@@ -125,13 +142,39 @@ struct ListView: View {
                 if !Task.isCancelled { matches = found }
             }
             #if os(macOS)
-            .onKeyPress(.space) {
-                guard let id = selected, let row = (rows?.value ?? []).first(where: { $0.id == id }) else { return .ignored }
-                toggle(row)
-                return .handled
-            }
+            .onKeyPress(.space) { toggleSelected() ? .handled : .ignored }
+            .onDeleteCommand { _ = toggleSelected() }
             #endif
     }
+
+    #if os(macOS)
+    /// The list's title where the Mac's toolbar would say it small: the name large, the dot and
+    /// the count under it, in the pane.
+    private func paneTitle(open: Int) -> some View {
+        VStack(alignment: .leading, spacing: Tokens.space1) {
+            Text(summary?.value?.name ?? "")
+                .font(.largeTitle.bold())
+                .foregroundStyle(Tokens.ink)
+            subtitle(open: open)
+                .font(.subheadline)
+                .foregroundStyle(Tokens.inkMuted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Tokens.space4)
+        .padding(.top, Tokens.space4)
+        .padding(.bottom, Tokens.space2)
+        .background(Tokens.ground)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    /// Space or ⌫ on the selected row strikes it, or takes it back.
+    private func toggleSelected() -> Bool {
+        guard let id = selected, let row = (rows?.value ?? []).first(where: { $0.id == id }) else { return false }
+        toggle(row)
+        return true
+    }
+    #endif
 
     /// The list's dot and how many are to get, under the title.
     private func subtitle(open: Int) -> Text {
@@ -249,7 +292,7 @@ struct ListView: View {
                     .accessibilityLabel(Text("Add an item"))
             }
             .padding(.horizontal, Tokens.space4)
-            .frame(minHeight: Tokens.rowHList)
+            .frame(minHeight: ListView.rowHeight)
         }
         .background(Tokens.ground)
     }
@@ -416,6 +459,7 @@ struct ListView: View {
             }
             #else
             .contextMenu {
+                Button(checked ? "Put back" : "Got it") { toggle(row) }
                 Button("Edit") { startEdit(row) }
                 if let homes = homes?.value, !homes.isEmpty {
                     Menu("For a home") {
@@ -481,7 +525,7 @@ struct ListView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(Tokens.inkMuted)
         }
-        .frame(minHeight: Tokens.rowHList)
+        .frame(minHeight: ListView.rowHeight)
         .listRowBackground(Tokens.surface)
     }
 
@@ -597,7 +641,7 @@ struct EntryRowView: View {
                     .foregroundStyle(checked ? Tokens.inkFaint : Tokens.inkMuted)
             }
         }
-        .frame(minHeight: Tokens.rowHList)
+        .frame(minHeight: ListView.rowHeight)
         .contentShape(Rectangle())
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: checked)
         .onChange(of: checked) { _, now in

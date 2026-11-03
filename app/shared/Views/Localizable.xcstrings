@@ -449,6 +449,22 @@
         }
       }
     },
+    "Got it": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gehaald"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mám to"
+          }
+        }
+      }
+    },
     "Guest": {
       "localizations": {
         "nl": {
@@ -929,6 +945,22 @@
         }
       }
     },
+    "Put back": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terugzetten"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vrátiť"
+          }
+        }
+      }
+    },
     "Really archive?": {
       "localizations": {
         "nl": {
@@ -1037,6 +1069,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Odstrániť"
+          }
+        }
+      }
+    },
+    "Rename": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hernoemen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Premenovať"
           }
         }
       }

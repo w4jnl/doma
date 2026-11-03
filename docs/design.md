@@ -372,7 +372,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 
 **Mac**
 
-The Mac target reuses every screen in a `NavigationSplitView`: sidebar with Lists, Homes, Trip, Family; the list detail in the main pane. Keyboard: `⌘N` new list, return adds, space strikes the selected row, `⌘⌫` clears. The Mac can accept an invite by pasting the link or by scanning the QR with Continuity Camera.
+The Mac target reuses every screen in a `NavigationSplitView`: sidebar with Lists, Homes, Trip, Family; the list detail in the main pane, its title in the pane and its rows at `content-max`. *New list* sits at the foot of the sidebar and opens a small form there; a right-click on a list offers *Rename*, *Colour* and *Archive*, armed in place. Keyboard: `⌘N` new list, return adds, space or `⌫` strikes the selected row, `⌘⌫` clears. The Mac can accept an invite by pasting the link or by scanning the QR with Continuity Camera.
 
 **Simplicity budget**
 
@@ -584,4 +584,4 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 | Photo size | 1600 px long edge, JPEG 0.8 | originals; 4–8× the storage |
 | Second server in one app | refused in v1 with a message | supported from v1; adds a context picker to Scan |
 | Admin TOTP | in v1 | phase 2 |
-| Licence and repo visibility | private | MIT if opened later, as vink |
+| Licence and repo visibility | public, MIT, as vink (opened 2026-11-03) | private until the public install |

@@ -6,6 +6,7 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Open source.** The repository is public under the MIT licence, as vink.
 - **The apps, phase 0, step 1.** The iPhone and Mac projects under `app/` from XcodeGen, with
   GRDB pinned, the design tokens in Swift with a test against `tokens.json`, the brand's custom
   symbols exported from the pictograms, and the `mac-*` and `ios-*` make targets.
@@ -59,6 +60,11 @@ updates this file first. Dates are the tag dates.
   phone scans to join as the same person, with its own key and every household the person is in,
   instead of becoming a second member. The invites table gains `for_person_id`; the accept answer
   carries the person's name.
+- **The Mac, usable.** New list sits at the foot of the sidebar and opens a small form there,
+  so it no longer hides in the toolbar's overflow; a right-click on a list offers Rename, Colour
+  and Archive; the sidebar selects in the accent; the list pane carries its own title, rows no
+  wider than a readable column, the field live from the start, Got it and Put back in the
+  row's menu, and the delete key strikes the selected row.
 - **Open into the list.** The Lists tab opens the last-used list; a Lists button at the top left
   and a second tap on the tab open the overview. Sections read Household and Just me, a new list
   takes the next free colour, Family has its own title with the household under it, Settings is

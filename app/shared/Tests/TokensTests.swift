@@ -58,6 +58,28 @@ final class TokensTests: XCTestCase {
         XCTAssertEqual(Set(Tokens.glyphs.keys), seen)
     }
 
+    /// The Mac's sidebar selection and focus ring take the accent from the asset catalogue, not
+    /// from .tint, so each app ships an AccentColor set that must stay the accent token.
+    func testAccentAssetMatchesTheToken() throws {
+        let accent = try XCTUnwrap(Tokens.colors["accent"])
+        for platform in ["ios", "macos"] {
+            let url = Self.root.appendingPathComponent("app/\(platform)/Doma/Assets.xcassets/AccentColor.colorset/Contents.json")
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+            let colors = try XCTUnwrap(json["colors"] as? [[String: Any]])
+            XCTAssertEqual(colors.count, 2, platform)
+            for c in colors {
+                let dark = (c["appearances"] as? [[String: Any]])?.contains { $0["value"] as? String == "dark" } ?? false
+                let comps = try XCTUnwrap((c["color"] as? [String: Any])?["components"] as? [String: String])
+                var value: UInt32 = 0
+                for key in ["red", "green", "blue"] {
+                    let hex = try XCTUnwrap(comps[key]).dropFirst(2)
+                    value = value << 8 | UInt32(try XCTUnwrap(UInt8(hex, radix: 16)))
+                }
+                XCTAssertEqual(value, dark ? accent.dark : accent.light, "\(platform) \(dark ? "dark" : "light")")
+            }
+        }
+    }
+
     func testNamedConstantsMatchTheTable() {
         XCTAssertEqual(Tokens.space1, Tokens.sizes["space-1"])
         XCTAssertEqual(Tokens.space7, Tokens.sizes["space-7"])
