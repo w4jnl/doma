@@ -2,14 +2,30 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/w4jnl/doma/internal/db"
 )
 
-// PushTarget is a device to push to.
+// PushTarget is a device to push to: whose it is, and the seq it was last
+// told about, so the next push can say what happened since.
 type PushTarget struct {
 	CredentialID string
 	Token        string
+	PersonID     string
+	LastSeq      int64
+}
+
+// Change is one thing a notification can say: who added which item to which
+// list, or who cleared a list. Only entry.added and entry.cleared count; checks
+// are too many and too small.
+type Change struct {
+	PersonID string
+	Person   string
+	ListID   string
+	List     string
+	Item     string
+	Cleared  bool
 }
 
 // PushTargets returns the household's devices with a token that were not
@@ -22,7 +38,11 @@ func (s *Service) PushTargets(ctx context.Context, householdID string, notBefore
 	out := make([]PushTarget, 0, len(rows))
 	for _, r := range rows {
 		if r.ApnsToken != nil {
-			out = append(out, PushTarget{CredentialID: r.CredentialID, Token: *r.ApnsToken})
+			var last int64
+			if r.LastSeq != nil {
+				last = *r.LastSeq
+			}
+			out = append(out, PushTarget{CredentialID: r.CredentialID, Token: *r.ApnsToken, PersonID: r.PersonID, LastSeq: last})
 		}
 	}
 	return out, nil
@@ -36,4 +56,57 @@ func (s *Service) RecordPush(ctx context.Context, householdID, credentialID stri
 // ClearPushToken forgets a token Apple says is gone.
 func (s *Service) ClearPushToken(ctx context.Context, credentialID string) error {
 	return s.db.Write().ClearAPNSToken(ctx, credentialID)
+}
+
+// Changes lists what happened in the household after seq, up to and including
+// upTo, as things a notification can say: adds and clears with the person's
+// and the list's names. Names are looked up once each.
+func (s *Service) Changes(ctx context.Context, householdID string, after, upTo int64) ([]Change, error) {
+	q := s.db.Read()
+	rows, err := q.EventsSince(ctx, db.EventsSinceParams{HouseholdID: householdID, Seq: after, Limit: 500})
+	if err != nil {
+		return nil, err
+	}
+	persons := map[string]string{}
+	lists := map[string]string{}
+	items := map[string]string{}
+	var out []Change
+	for _, e := range rows {
+		if e.Seq > upTo {
+			break
+		}
+		if e.Kind != "entry.added" && e.Kind != "entry.cleared" {
+			continue
+		}
+		var p struct {
+			ListID string `json:"list_id"`
+			ItemID string `json:"item_id"`
+		}
+		if err := json.Unmarshal([]byte(e.Payload), &p); err != nil || p.ListID == "" {
+			continue
+		}
+		c := Change{PersonID: e.PersonID, ListID: p.ListID, Cleared: e.Kind == "entry.cleared"}
+		if name, ok := persons[e.PersonID]; ok {
+			c.Person = name
+		} else if pr, err := q.GetPerson(ctx, e.PersonID); err == nil {
+			persons[e.PersonID] = pr.DisplayName
+			c.Person = pr.DisplayName
+		}
+		if name, ok := lists[p.ListID]; ok {
+			c.List = name
+		} else if l, err := q.GetList(ctx, db.GetListParams{HouseholdID: householdID, ID: p.ListID}); err == nil {
+			lists[p.ListID] = l.Name
+			c.List = l.Name
+		}
+		if !c.Cleared && p.ItemID != "" {
+			if name, ok := items[p.ItemID]; ok {
+				c.Item = name
+			} else if it, err := q.GetItem(ctx, db.GetItemParams{HouseholdID: householdID, ID: p.ItemID}); err == nil {
+				items[p.ItemID] = it.Name
+				c.Item = it.Name
+			}
+		}
+		out = append(out, c)
+	}
+	return out, nil
 }

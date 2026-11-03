@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -23,9 +24,9 @@ const Coalesce = 30 * time.Second
 // is gone; the token is then forgotten.
 var ErrBadToken = errors.New("bad device token")
 
-// Sender delivers one silent push.
+// Sender delivers one push: silent, or an alert the person sees.
 type Sender interface {
-	Send(ctx context.Context, deviceToken string, payload []byte) error
+	Send(ctx context.Context, deviceToken string, payload []byte, alert bool) error
 }
 
 // Registry is what the pusher needs from the service.
@@ -33,12 +34,26 @@ type Registry interface {
 	PushTargets(ctx context.Context, householdID string, notBefore int64) ([]Target, error)
 	RecordPush(ctx context.Context, householdID, credentialID string, seq int64) error
 	ClearPushToken(ctx context.Context, credentialID string) error
+	// Changes says what happened after a seq, for the words of an alert.
+	Changes(ctx context.Context, householdID string, after, upTo int64) ([]Change, error)
 }
 
-// Target is a device with a token.
+// Target is a device with a token, whose it is, and the seq it last heard.
 type Target struct {
 	CredentialID string
 	Token        string
+	PersonID     string
+	LastSeq      int64
+}
+
+// Change is one add or clear with its names; the service fills it.
+type Change struct {
+	PersonID string
+	Person   string
+	ListID   string
+	List     string
+	Item     string
+	Cleared  bool
 }
 
 // Pusher listens on the bus and sends.
@@ -106,12 +121,13 @@ func (p *Pusher) Handle(ctx context.Context, c bus.HouseholdChanged) {
 		p.log.Error("push targets", "err", err, "household", c.HouseholdID)
 		return
 	}
-	payload, _ := json.Marshal(map[string]any{
+	silent, _ := json.Marshal(map[string]any{
 		"aps":       map[string]any{"content-available": 1},
 		"server":    p.baseURL,
 		"household": c.HouseholdID,
 		"seq":       c.Seq,
 	})
+	changes := map[int64][]Change{}
 	for _, t := range targets {
 		// recorded first: a failure still counts as this device's push for
 		// the window, so a broken token is not retried every second
@@ -119,8 +135,32 @@ func (p *Pusher) Handle(ctx context.Context, c bus.HouseholdChanged) {
 			p.log.Error("record push", "err", err)
 			continue
 		}
+		// what the device missed, minus what its own person did: that is the
+		// alert; nothing left means a silent push, as before
+		payload, alert := silent, false
+		if _, ok := changes[t.LastSeq]; !ok {
+			ch, err := p.reg.Changes(ctx, c.HouseholdID, t.LastSeq, c.Seq)
+			if err != nil {
+				p.log.Error("push changes", "err", err, "household", c.HouseholdID)
+			}
+			changes[t.LastSeq] = ch
+		}
+		if title, body, thread := Compose(changes[t.LastSeq], t.PersonID); body != "" {
+			payload, _ = json.Marshal(map[string]any{
+				"aps": map[string]any{
+					"alert":             map[string]string{"title": title, "body": body},
+					"sound":             "default",
+					"thread-id":         thread,
+					"content-available": 1,
+				},
+				"server":    p.baseURL,
+				"household": c.HouseholdID,
+				"seq":       c.Seq,
+			})
+			alert = true
+		}
 		p.Sent++
-		err := p.send.Send(ctx, t.Token, payload)
+		err := p.send.Send(ctx, t.Token, payload, alert)
 		result := "ok"
 		switch {
 		case err == nil:
@@ -142,4 +182,66 @@ func (p *Pusher) Handle(ctx context.Context, c bus.HouseholdChanged) {
 			p.log.Info("push", "household", c.HouseholdID, "credential", t.CredentialID, "seq", c.Seq)
 		}
 	}
+}
+
+// Compose turns the changes since a device last heard into the words of one
+// notification for the person who holds it, leaving out what they did
+// themselves: "Sam added melk and brood" under the list's name, or "Sam
+// cleared Shopping". Nothing to say gives an empty body. The thread is the
+// list, so a phone stacks one list's notifications together.
+func Compose(changes []Change, forPerson string) (title, body, thread string) {
+	var mine []Change
+	for _, c := range changes {
+		if c.PersonID != forPerson {
+			mine = append(mine, c)
+		}
+	}
+	if len(mine) == 0 {
+		return "", "", ""
+	}
+	lists := map[string]bool{}
+	people := map[string]bool{}
+	var items []string
+	seen := map[string]bool{}
+	cleared := false
+	for _, c := range mine {
+		lists[c.ListID] = true
+		people[c.Person] = true
+		if c.Cleared {
+			cleared = true
+		} else if c.Item != "" && !seen[c.Item] {
+			seen[c.Item] = true
+			items = append(items, c.Item)
+		}
+	}
+	who := "The family"
+	if len(people) == 1 {
+		for name := range people {
+			if name != "" {
+				who = name
+			}
+		}
+	}
+	title = mine[0].List
+	thread = mine[0].ListID
+	if len(lists) > 1 {
+		title = "Lists"
+		thread = "lists"
+	}
+	switch {
+	case len(items) == 0 && cleared:
+		body = who + " cleared " + mine[0].List
+	case len(items) == 1:
+		body = who + " added " + items[0]
+	case len(items) == 2:
+		body = who + " added " + items[0] + " and " + items[1]
+	case len(items) == 3:
+		body = who + " added " + items[0] + ", " + items[1] + " and " + items[2]
+	default:
+		body = fmt.Sprintf("%s added %s, %s and %d more", who, items[0], items[1], len(items)-2)
+	}
+	if cleared && len(items) > 0 {
+		body += ", and cleared " + mine[0].List
+	}
+	return title, body, thread
 }

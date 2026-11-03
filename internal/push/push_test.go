@@ -22,6 +22,11 @@ type fakeReg struct {
 	pushed  map[string]int64 // credential -> sent_at
 	cleared []string
 	now     func() time.Time
+	changes []Change
+}
+
+func (f *fakeReg) Changes(_ context.Context, _ string, _, _ int64) ([]Change, error) {
+	return f.changes, nil
 }
 
 func (f *fakeReg) PushTargets(_ context.Context, _ string, notBefore int64) ([]Target, error) {
@@ -45,18 +50,22 @@ func (f *fakeReg) ClearPushToken(_ context.Context, credentialID string) error {
 }
 
 type fakeSender struct {
-	sent []string
-	fail map[string]error
+	sent   []string
+	alerts int
+	fail   map[string]error
 }
 
-func (s *fakeSender) Send(_ context.Context, token string, payload []byte) error {
+func (s *fakeSender) Send(_ context.Context, token string, payload []byte, alert bool) error {
 	s.sent = append(s.sent, token+" "+string(payload))
+	if alert {
+		s.alerts++
+	}
 	return s.fail[token]
 }
 
 func TestCoalescesAndClearsBadTokens(t *testing.T) {
 	now := time.Unix(1_800_000_000, 0)
-	reg := &fakeReg{targets: []Target{{"c1", "t1"}, {"c2", "t2"}}, pushed: map[string]int64{}, now: func() time.Time { return now }}
+	reg := &fakeReg{targets: []Target{{CredentialID: "c1", Token: "t1"}, {CredentialID: "c2", Token: "t2"}}, pushed: map[string]int64{}, now: func() time.Time { return now }}
 	snd := &fakeSender{fail: map[string]error{"t2": ErrBadToken}}
 	p := New(reg, snd, "https://doma.test", slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 	p.SetClock(func() time.Time { return now })
@@ -84,7 +93,7 @@ func TestCoalescesAndClearsBadTokens(t *testing.T) {
 // sender, which is what push.enabled = false gives, a change costs nothing
 // and dials nothing.
 func TestDisabledNeverSends(t *testing.T) {
-	reg := &fakeReg{targets: []Target{{"c1", "t1"}}, pushed: map[string]int64{}, now: time.Now}
+	reg := &fakeReg{targets: []Target{{CredentialID: "c1", Token: "t1"}}, pushed: map[string]int64{}, now: time.Now}
 	p := New(reg, nil, "https://doma.test", slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 	b := bus.New()
 	ch := b.Subscribe()
@@ -132,5 +141,60 @@ func TestParseKeyAndJWT(t *testing.T) {
 	tok3, _ := a.providerToken()
 	if tok3 == tok1 {
 		t.Error("token not refreshed after its lifetime")
+	}
+}
+
+// TestAlertsSayWhatOthersDid: the person who made the change gets the silent
+// push; everyone else reads who added what, in family words.
+func TestAlertsSayWhatOthersDid(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	reg := &fakeReg{
+		targets: []Target{{CredentialID: "c1", Token: "t1", PersonID: "sam"}, {CredentialID: "c2", Token: "t2", PersonID: "jaro"}},
+		pushed:  map[string]int64{}, now: func() time.Time { return now },
+		changes: []Change{
+			{PersonID: "sam", Person: "Sam", ListID: "L1", List: "Shopping", Item: "melk"},
+			{PersonID: "sam", Person: "Sam", ListID: "L1", List: "Shopping", Item: "brood"},
+		},
+	}
+	snd := &fakeSender{}
+	p := New(reg, snd, "https://doma.test", slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	p.SetClock(func() time.Time { return now })
+	p.Handle(context.Background(), bus.HouseholdChanged{HouseholdID: "h", Seq: 7})
+	if len(snd.sent) != 2 || snd.alerts != 1 {
+		t.Fatalf("sent %v alerts %d", snd.sent, snd.alerts)
+	}
+	if strings.Contains(snd.sent[0], `"alert"`) || !strings.Contains(snd.sent[0], `"content-available":1`) {
+		t.Errorf("sam's own change should be silent: %s", snd.sent[0])
+	}
+	if !strings.Contains(snd.sent[1], `"body":"Sam added melk and brood"`) || !strings.Contains(snd.sent[1], `"title":"Shopping"`) || !strings.Contains(snd.sent[1], `"thread-id":"L1"`) || !strings.Contains(snd.sent[1], `"seq":7`) {
+		t.Errorf("jaro's alert: %s", snd.sent[1])
+	}
+}
+
+func TestCompose(t *testing.T) {
+	sam := func(item string) Change {
+		return Change{PersonID: "sam", Person: "Sam", ListID: "L1", List: "Shopping", Item: item}
+	}
+	cases := []struct {
+		name    string
+		changes []Change
+		want    string
+	}{
+		{"one", []Change{sam("melk")}, "Sam added melk"},
+		{"three", []Change{sam("melk"), sam("brood"), sam("kaas")}, "Sam added melk, brood and kaas"},
+		{"many", []Change{sam("a"), sam("b"), sam("c"), sam("d"), sam("e")}, "Sam added a, b and 3 more"},
+		{"cleared", []Change{{PersonID: "sam", Person: "Sam", ListID: "L1", List: "Shopping", Cleared: true}}, "Sam cleared Shopping"},
+		{"added then cleared", []Change{sam("melk"), {PersonID: "sam", Person: "Sam", ListID: "L1", List: "Shopping", Cleared: true}}, "Sam added melk, and cleared Shopping"},
+		{"two people", []Change{sam("melk"), {PersonID: "ann", Person: "Ann", ListID: "L1", List: "Shopping", Item: "brood"}}, "The family added melk and brood"},
+		{"only mine", []Change{{PersonID: "jaro", Person: "Jaro", ListID: "L1", List: "Shopping", Item: "melk"}}, ""},
+		{"repeat item once", []Change{sam("melk"), sam("melk")}, "Sam added melk"},
+	}
+	for _, c := range cases {
+		if _, body, _ := Compose(c.changes, "jaro"); body != c.want {
+			t.Errorf("%s: %q, want %q", c.name, body, c.want)
+		}
+	}
+	if title, _, thread := Compose([]Change{sam("melk"), {PersonID: "sam", Person: "Sam", ListID: "L2", List: "Weekend", Item: "wijn"}}, "jaro"); title != "Lists" || thread != "lists" {
+		t.Errorf("two lists: %q %q", title, thread)
 	}
 }

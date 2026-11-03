@@ -113,6 +113,22 @@
         }
       }
     },
+    "A word when someone else adds to a list or clears it. Never for what you did yourself.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een berichtje als iemand anders iets op een lijst zet of een lijst leegmaakt. Nooit voor wat je zelf deed."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Správa, keď niekto iný pridá niečo do zoznamu alebo ho vyčistí. Nikdy za to, čo si urobil sám."
+          }
+        }
+      }
+    },
     "About": {
       "localizations": {
         "nl": {
@@ -189,6 +205,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pridá to znova"
+          }
+        }
+      }
+    },
+    "Allow": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toestaan"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Povoliť"
           }
         }
       }
@@ -913,6 +945,38 @@
         }
       }
     },
+    "Notifications": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meldingen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upozornenia"
+          }
+        }
+      }
+    },
+    "On": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aan"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapnuté"
+          }
+        }
+      }
+    },
     "Paste a link": {
       "localizations": {
         "nl": {
@@ -1341,6 +1405,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Priveľa požiadaviek. Skús to o chvíľu."
+          }
+        }
+      }
+    },
+    "Turn on in Settings": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aanzetten in Instellingen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapnúť v Nastaveniach"
           }
         }
       }
