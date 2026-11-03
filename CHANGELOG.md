@@ -33,3 +33,6 @@ updates this file first. Dates are the tag dates.
   `push.enabled` with the APNs key encrypted at rest; the admin pages (households, devices,
   quotas, export, backup, log level, a second step on sign-in); guest links and the guest view.
   The apps are next.
+- **Reinstall keeps the seat.** A phone whose key already belongs to the household, after the
+  app was reinstalled, gets its membership back from any valid invite instead of "you are
+  already in this household"; the invite stays unused.
