@@ -18,6 +18,13 @@ final class Syncer {
     /// Failed exchanges in a row; the badge waits for the second, so one dropped request in a
     /// shop does not flicker it.
     private var failures = 0
+
+    /// The device has a family but no key to sign with: offline for good until it joins again,
+    /// and Settings says why in the family's words.
+    func noteMissingKey() {
+        offline = true
+        lastError = String(localized: "This device lost its key to the family's doma. Add it again from Settings on your phone.")
+    }
     /// Events the server refused, kept for Settings and the log.
     private(set) var rejected: [(id: String, reason: String)] = []
 

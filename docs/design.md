@@ -65,7 +65,7 @@ A guest link is the same flow without an app: the owner picks a home and a list,
 
 An owner who belongs to a second household accepts a second invite the same way; the app adds the household to its switcher. If the second household lives on a different server, the app stores a second server context; v1 ships with a single context and refuses a second with a clear message (see open decisions).
 
-A second device of the same person, a Mac or a new phone, joins through *Add a device* in Settings: a one-use invite bound to the person, valid a day, shown as a QR. The new device scans it like any invite and gets its own key under the same name and every household the person is in; it never becomes a second member. A device invite is not among the household's pending invites.
+The apps come back where they were left: the household and the screen last in front on that device, and within a household the list last opened. A second device of the same person, a Mac or a new phone, joins through *Add a device* in Settings: a one-use invite bound to the person, valid a day, shown as a QR. The new device scans it like any invite and gets its own key under the same name and every household the person is in; it never becomes a second member. A device invite is not among the household's pending invites.
 
 **Roles**
 

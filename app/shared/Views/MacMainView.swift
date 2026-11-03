@@ -79,8 +79,24 @@ struct MacMainView: View {
             guard let scope = session.scope else { return }
             lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
             marks = Live(session.store, initial: []) { db in try Queries.openMarks(db, scope) }
-            if case .lists = selection, let first = lists?.value.first {
-                selection = .list(first.id)
+            if case .lists = selection {
+                // the list or screen last in front in this household, else the first list
+                let remembered = UITestHooks.testing ? nil : UserDefaults.standard.string(forKey: "mac.selection." + scope.householdID)
+                if remembered == "family" {
+                    selection = .family
+                } else if let id = remembered, lists?.value.contains(where: { $0.id == id }) == true {
+                    selection = .list(id)
+                } else if let first = lists?.value.first {
+                    selection = .list(first.id)
+                }
+            }
+        }
+        .onChange(of: selection) { _, now in
+            guard let h = session.currentHouseholdID else { return }
+            switch now {
+            case .list(let id): UserDefaults.standard.set(id, forKey: "mac.selection." + h)
+            case .family: UserDefaults.standard.set("family", forKey: "mac.selection." + h)
+            default: break
             }
         }
         .onChange(of: lists?.value) { _, now in

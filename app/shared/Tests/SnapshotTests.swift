@@ -55,6 +55,10 @@ final class SnapshotTests: XCTestCase {
     }
 
     override func setUp() async throws {
+        // the mono face registers on first use; before the first picture, in every run
+        _ = Tokens.mono(.body)
+        // no device key for the pictures' session, whatever a live test left under the test name
+        DeviceKey.forget()
         RelativeText.now = { Self.now }
         UITestHooks.noCamera = true
         let store = try DomaStore.inMemory()
@@ -199,9 +203,11 @@ final class SnapshotTests: XCTestCase {
         }
         let ratio = Double(diff) / Double(max(1, a.width * a.height))
         if ratio > Self.tolerance {
-            // the picture as rendered, next to where a recording would land, for a look
-            try? FileManager.default.createDirectory(at: Self.recordDir, withIntermediateDirectories: true)
-            try? png.write(to: Self.recordDir.appendingPathComponent(name + ".actual.png"))
+            // the picture as rendered, in an `actual` folder beside the recordings, for a look;
+            // never among them, which make snapshots copies whole
+            let actual = Self.recordDir.appendingPathComponent("actual")
+            try? FileManager.default.createDirectory(at: actual, withIntermediateDirectories: true)
+            try? png.write(to: actual.appendingPathComponent(name + ".png"))
             let attachment = XCTAttachment(data: png, uniformTypeIdentifier: "public.png")
             attachment.name = name + ".actual.png"
             attachment.lifetime = .keepAlways
@@ -223,6 +229,19 @@ final class SnapshotTests: XCTestCase {
         return Pixels(width: w, height: h, bytes: bytes)
     }
 
+    /// Takes the picture once layout has settled: two shots 200 ms apart that agree, or the
+    /// last of six. A fixed wait caught the rows mid-settle now and then.
+    func settled(_ shot: () throws -> Data) async throws -> Data {
+        var last = try shot()
+        for _ in 0..<6 {
+            try await Task.sleep(for: .milliseconds(200))
+            let next = try shot()
+            if next == last { return next }
+            last = next
+        }
+        return last
+    }
+
     #if os(iOS)
     func render(_ content: AnyView, dark: Bool) async throws -> Data {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
@@ -233,14 +252,17 @@ final class SnapshotTests: XCTestCase {
         window.rootViewController = host
         window.isHidden = false
         host.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(700))
+        try await Task.sleep(for: .milliseconds(500))
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
-            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        let png = try await settled {
+            let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            return try XCTUnwrap(image.pngData())
         }
         window.isHidden = true
-        return try XCTUnwrap(image.pngData())
+        return png
     }
     #else
     /// A window that always draws as the key window of an active app: whether the test host
@@ -261,18 +283,23 @@ final class SnapshotTests: XCTestCase {
         window.contentView = hosting
         window.orderFront(nil)
         hosting.layoutSubtreeIfNeeded()
-        try await Task.sleep(for: .milliseconds(700))
-        let rep = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
-        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        try await Task.sleep(for: .milliseconds(500))
+        let png = try await settled {
+            let rep = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+            hosting.cacheDisplay(in: hosting.bounds, to: rep)
+            // at 1x: the pictures are for the eye and the diff, not for the shop window; a view
+            // smaller than the canvas (the Settings window) sits top left at its own size
+            let w = Int(Self.size.width), h = Int(Self.size.height)
+            let small = try XCTUnwrap(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w, pixelsHigh: h, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: small)
+            let vw = min(hosting.bounds.width, CGFloat(w)), vh = min(hosting.bounds.height, CGFloat(h))
+            rep.draw(in: NSRect(x: 0, y: CGFloat(h) - vh, width: vw, height: vh))
+            NSGraphicsContext.restoreGraphicsState()
+            return try XCTUnwrap(small.representation(using: .png, properties: [:]))
+        }
         window.orderOut(nil)
-        // at 1x: the pictures are for the eye and the diff, not for the shop window
-        let w = Int(Self.size.width), h = Int(Self.size.height)
-        let small = try XCTUnwrap(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w, pixelsHigh: h, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: small)
-        rep.draw(in: NSRect(x: 0, y: 0, width: w, height: h))
-        NSGraphicsContext.restoreGraphicsState()
-        return try XCTUnwrap(small.representation(using: .png, properties: [:]))
+        return png
     }
     #endif
 }

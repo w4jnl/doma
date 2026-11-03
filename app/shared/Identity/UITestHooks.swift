@@ -15,6 +15,9 @@ enum UITestHooks {
     nonisolated(unsafe) private static let env = ProcessInfo.processInfo.environment
 
     static var enabled: Bool { env["DOMA_UITEST"] == "1" }
+    /// Under any test, unit or UI: remembered screens and tabs are not restored, so pictures and
+    /// flows start from the same place every time.
+    static let testing: Bool = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || enabled
 
     /// An invite URL the session accepts at launch, with this name.
     static var joinURL: String? { env["DOMA_UITEST_JOIN"] }

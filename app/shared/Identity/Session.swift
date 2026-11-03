@@ -15,8 +15,14 @@ final class Session {
     private(set) var key: DeviceKey?
     private(set) var clock: HLCClock?
     private(set) var syncer: Syncer!
-    /// The household the screens show; the first one until the person switches.
-    var currentHouseholdID: String?
+    /// The household the screens show: the one last shown on this device, the first one until
+    /// the person switches.
+    var currentHouseholdID: String? {
+        didSet {
+            guard let id = currentHouseholdID, let c = context else { return }
+            UserDefaults.standard.set(id, forKey: "household.current." + c.serverID)
+        }
+    }
     /// The family's names by person id, from the members the Family screen and the membership
     /// refresh bring; held in memory, never stored. A struck row names who got it from these.
     private(set) var names: [String: String] = [:]
@@ -109,8 +115,14 @@ final class Session {
             households = []
             clock = nil
         }
+        if context != nil, key == nil, !(UITestHooks.testing && !UITestHooks.enabled) {
+            // the store knows the family but the key is gone: nothing can be signed, and the
+            // screens must say so rather than look fine and never sync
+            syncer.noteMissingKey()
+        }
         if currentHouseholdID == nil || !households.contains(where: { $0.id == currentHouseholdID }) {
-            currentHouseholdID = households.first?.id
+            let remembered = UITestHooks.testing ? nil : context.flatMap { UserDefaults.standard.string(forKey: "household.current." + $0.serverID) }
+            currentHouseholdID = households.first { $0.id == remembered }?.id ?? households.first?.id
         }
     }
 
@@ -155,8 +167,13 @@ final class Session {
             if case .transport(let s) = e { throw AcceptError.server("Could not reach the family's doma. " + s) }
             throw AcceptError.server("Could not accept the invite.")
         }
-        if context == nil {
-            let known = acc.displayName?.trimmingCharacters(in: .whitespaces) ?? ""
+        let known = acc.displayName?.trimmingCharacters(in: .whitespaces) ?? ""
+        if let c = context {
+            // a device that joined again with a new key: the context follows the credential
+            if c.credentialID != acc.credentialID || c.personID != acc.personID {
+                try store.saveContext(ServerContext(serverID: c.serverID, baseURL: c.baseURL, credentialID: acc.credentialID, personID: acc.personID, displayName: known.isEmpty ? c.displayName : known, createdAt: c.createdAt))
+            }
+        } else {
             let c = ServerContext(serverID: ULID.make(), baseURL: server, credentialID: acc.credentialID, personID: acc.personID, displayName: known.isEmpty ? name : known, createdAt: millis(Date()))
             try store.saveContext(c)
         }
@@ -174,6 +191,8 @@ final class Session {
     private var seenKey: String { "seen." + (context?.serverID ?? "") }
 
     private func loadSeen() {
+        // under a test the marks stay in memory, so every run starts unseen and pictures agree
+        guard !UITestHooks.testing else { return }
         seen = UserDefaults.standard.dictionary(forKey: seenKey) as? [String: String] ?? [:]
     }
 
@@ -182,7 +201,9 @@ final class Session {
         let key = household + "/" + list
         if let have = seen[key], have >= stamp { return }
         seen[key] = stamp
-        UserDefaults.standard.set(seen, forKey: seenKey)
+        if !UITestHooks.testing {
+            UserDefaults.standard.set(seen, forKey: seenKey)
+        }
     }
 
     /// The stamp a list was last seen up to, or nothing.

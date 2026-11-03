@@ -95,7 +95,12 @@ final class FamilyModel {
     }
 
     func load() async {
-        guard !preset, let client = session.client, let base else { return }
+        guard !preset else { return }
+        guard let client = session.client, let base else {
+            // no key, or no household: the syncer's line says what to do
+            problem = session.syncer.lastError
+            return
+        }
         loading = true
         defer { loading = false }
         do {
