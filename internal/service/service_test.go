@@ -115,12 +115,30 @@ func TestInvitesAndMembers(t *testing.T) {
 	if _, err := s.InviteByToken(ctx, inv.Token); err != nil {
 		t.Errorf("preview: %v", err)
 	}
-	owner, _ := accept(t, s, inv.Token, "Jaro")
+	owner, ownerKey := accept(t, s, inv.Token, "Jaro")
 	if owner.Role != domain.RoleOwner || owner.Household.ID != h.ID || owner.Server != "https://doma.test" {
 		t.Errorf("accepted: %+v", owner)
 	}
 	if _, err := s.AcceptInvite(ctx, inv.Token, service.AcceptInvite{PublicKey: "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", DisplayName: "Again"}); !errors.Is(err, domain.ErrConflict) {
 		t.Errorf("second use: %v", err)
+	}
+	// the same key after a reinstall: the seat comes back, the invite stays
+	again, err := s.CreateInvite(ctx, adminScope, domain.RoleMember)
+	if err != nil {
+		t.Fatal(err)
+	}
+	back, err := s.AcceptInvite(ctx, again.Token, service.AcceptInvite{PublicKey: ownerKey.Public(), Platform: "ios", DisplayName: "Jaro"})
+	if err != nil {
+		t.Fatalf("rejoin: %v", err)
+	}
+	if back.PersonID != owner.PersonID || back.CredentialID != owner.CredentialID || back.Role != domain.RoleOwner || !back.Rejoined {
+		t.Errorf("rejoin: %+v", back)
+	}
+	if _, err := s.InviteByToken(ctx, again.Token); err != nil {
+		t.Errorf("invite after a rejoin should be unused: %v", err)
+	}
+	if err := s.RevokeInvite(ctx, adminScope, again.Invite.ID); err != nil {
+		t.Fatal(err)
 	}
 	if _, err := s.InviteByToken(ctx, "nope-nope-nope-nope-nope"); !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("unknown token: %v", err)
