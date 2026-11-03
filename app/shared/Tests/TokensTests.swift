@@ -78,9 +78,16 @@ final class TokensTests: XCTestCase {
     /// The Mac's sidebar selection and focus ring take the accent from the asset catalogue, not
     /// from .tint, so each app ships an AccentColor set that must stay the accent token.
     func testAccentAssetMatchesTheToken() throws {
-        let accent = try XCTUnwrap(Tokens.colors["accent"])
-        for platform in ["ios", "macos"] {
-            let url = Self.root.appendingPathComponent("app/\(platform)/Doma/Assets.xcassets/AccentColor.colorset/Contents.json")
+        try assetMatches("ios", "AccentColor", token: "accent")
+        try assetMatches("macos", "AccentColor", token: "accent")
+        // the phone's launch colour is the ground
+        try assetMatches("ios", "LaunchBackground", token: "ground")
+    }
+
+    private func assetMatches(_ platform: String, _ set: String, token: String) throws {
+        let accent = try XCTUnwrap(Tokens.colors[token])
+        do {
+            let url = Self.root.appendingPathComponent("app/\(platform)/Doma/Assets.xcassets/\(set).colorset/Contents.json")
             let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
             let colors = try XCTUnwrap(json["colors"] as? [[String: Any]])
             XCTAssertEqual(colors.count, 2, platform)
@@ -92,7 +99,7 @@ final class TokensTests: XCTestCase {
                     let hex = try XCTUnwrap(comps[key]).dropFirst(2)
                     value = value << 8 | UInt32(try XCTUnwrap(UInt8(hex, radix: 16)))
                 }
-                XCTAssertEqual(value, dark ? accent.dark : accent.light, "\(platform) \(dark ? "dark" : "light")")
+                XCTAssertEqual(value, dark ? accent.dark : accent.light, "\(platform) \(set) \(dark ? "dark" : "light")")
             }
         }
     }

@@ -119,6 +119,7 @@ struct ListView: View {
                             fieldFocused = false
                             overview()
                         } label: {
+                            // the toolbar drops a Label's word; this keeps it
                             HStack(spacing: Tokens.space1) {
                                 Image(systemName: "list.bullet")
                                 Text("Lists")
@@ -127,8 +128,11 @@ struct ListView: View {
                         .accessibilityIdentifier("all-lists")
                     }
                 }
-                #endif
                 ToolbarItem(placement: .automatic) { OfflineBadge() }
+                    .sharedBackgroundVisibility(.hidden)
+                #else
+                ToolbarItem(placement: .automatic) { OfflineBadge() }
+                #endif
             }
             .onAppear {
                 observe()
@@ -251,6 +255,11 @@ struct ListView: View {
         }
         if !struck.isEmpty {
             Section {
+                dividerRow(count: struck.count)
+                    .transition(.opacity)
+                    .listRowBackground(Tokens.ground)
+                    .listRowSeparator(.hidden, edges: .bottom)
+                    .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
                 ForEach(struck) { row in
                     entryRow(row)
                         .transition(.opacity)
@@ -258,11 +267,7 @@ struct ListView: View {
                         .tag(row.id)
                         #endif
                 }
-            } header: {
-                dividerRow(count: struck.count)
-                    .transition(.opacity)
             }
-            .textCase(nil)
         }
         if let recent = recent?.value, !recent.isEmpty {
             recentSection(recent)
@@ -336,7 +341,34 @@ struct ListView: View {
 
     // MARK: The add bar, its matches and the usual items
 
+    @ViewBuilder
     private var addBar: some View {
+        #if os(iOS)
+        // the one glass in the app: the bar floats like the tab bar it sits over, the matches
+        // and chips in the same glass above it
+        GlassEffectContainer(spacing: Tokens.space2) {
+            VStack(spacing: Tokens.space2) {
+                if !text.isEmpty {
+                    suggestionRows
+                        .clipShape(RoundedRectangle(cornerRadius: Tokens.radiusMD))
+                        .glassEffect(.regular, in: .rect(cornerRadius: Tokens.radiusMD))
+                        .transition(Motion.arrive(reduceMotion, from: .bottom))
+                } else if fieldFocused, !usual.isEmpty {
+                    usualChips
+                        .transition(Motion.arrive(reduceMotion, from: .bottom))
+                }
+                addField
+                    .padding(.horizontal, Tokens.space4)
+                    .frame(minHeight: ListView.rowHeight)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+            }
+            .padding(.horizontal, Tokens.space4)
+            .padding(.bottom, Tokens.space2)
+        }
+        .animation(Motion.of(reduceMotion, Motion.quick), value: matches.map(\.id))
+        .animation(Motion.of(reduceMotion, Motion.quick), value: text.isEmpty)
+        .animation(Motion.of(reduceMotion, Motion.quick), value: fieldFocused && !usual.isEmpty)
+        #else
         VStack(spacing: 0) {
             if !text.isEmpty {
                 suggestionRows
@@ -349,35 +381,41 @@ struct ListView: View {
                 .fill(Tokens.line)
                 .frame(height: 1)
                 .accessibilityHidden(true)
-            HStack(spacing: Tokens.space3) {
-                ZStack {
-                    Circle()
-                        .fill(Tokens.accent)
-                        .frame(width: Tokens.space5, height: Tokens.space5)
-                    Image(systemName: "plus")
-                        .font(.footnote.bold())
-                        .foregroundStyle(Tokens.onAccent)
-                }
-                .accessibilityHidden(true)
-                TextField("Add", text: $text)
-                    .accessibilityIdentifier("add-field")
-                    .textFieldStyle(.plain)
-                    .focused($fieldFocused)
-                    .submitLabel(.return)
-                    .onSubmit(addTyped)
-                    #if os(iOS)
-                    .textInputAutocapitalization(.never)
-                    #endif
-                    .autocorrectionDisabled()
-                    .accessibilityLabel(Text("Add an item"))
-            }
-            .padding(.horizontal, Tokens.space4)
-            .frame(minHeight: ListView.rowHeight)
+            addField
+                .padding(.horizontal, Tokens.space4)
+                .frame(minHeight: ListView.rowHeight)
         }
         .background(Tokens.ground)
         .animation(Motion.of(reduceMotion, Motion.quick), value: matches.map(\.id))
         .animation(Motion.of(reduceMotion, Motion.quick), value: text.isEmpty)
         .animation(Motion.of(reduceMotion, Motion.quick), value: fieldFocused && !usual.isEmpty)
+        #endif
+    }
+
+    /// The accent disc and the field with no box.
+    private var addField: some View {
+        HStack(spacing: Tokens.space3) {
+            ZStack {
+                Circle()
+                    .fill(Tokens.accent)
+                    .frame(width: Tokens.space5, height: Tokens.space5)
+                Image(systemName: "plus")
+                    .font(.footnote.bold())
+                    .foregroundStyle(Tokens.onAccent)
+            }
+            .accessibilityHidden(true)
+            TextField("Add", text: $text)
+                .accessibilityIdentifier("add-field")
+                .textFieldStyle(.plain)
+                .focused($fieldFocused)
+                .submitLabel(.return)
+                .onSubmit(addTyped)
+                #if os(iOS)
+                .textInputAutocapitalization(.never)
+                #endif
+                .autocorrectionDisabled()
+                .accessibilityLabel(Text("Add an item"))
+        }
     }
 
     /// The catalog's answers above the bar, the best nearest the thumb; the row nearest the bar
@@ -411,7 +449,11 @@ struct ListView: View {
                 .buttonStyle(.plain)
                 .background(nearest ? Tokens.accentSoft : Tokens.surface)
                 .transition(.opacity)
+                #if os(macOS)
                 Rectangle().fill(Tokens.line).frame(height: 1)
+                #else
+                if i < min(matches.count, 5) - 1 || !exact { Rectangle().fill(Tokens.line).frame(height: 1) }
+                #endif
             }
             if !exact {
                 Button(action: addTyped) {

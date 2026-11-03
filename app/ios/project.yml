@@ -60,6 +60,8 @@ targets:
         CFBundleDisplayName: doma
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         LSApplicationCategoryType: public.app-category.lifestyle
         UILaunchScreen: {}
         UIBackgroundModes: [fetch, remote-notification]

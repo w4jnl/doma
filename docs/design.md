@@ -351,7 +351,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails | — |
 | Home | staples grouped by spot with flag buttons; other flagged items; *Take photos*; manage staples and spots behind Edit | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
 | Trip | from/to pickers, date; Bring, Buy, Check on arrival groups; *Arrived* | `entry.added`, `trip.arrived` |
-| Family | household name, members with role and last seen, pending invites, guest links, Invite, Guest link, Leave; household switcher at the top when the person is in more than one | invites and guests through the REST API, not events |
+| Family | household name, members with role and last seen, pending invites, guest links, Invite (prominent), Guest link, Settings, Leave; Remove and Revoke behind a swipe, armed in the row; household switcher at the top when the person is in more than one | invites and guests through the REST API, not events |
 | Settings | this device's name, staleness (owners), the person's devices with Revoke and *Add a device* (a QR the new device scans to join as the same person), notifications later, About with server name and version | REST |
 
 **Interaction rules**

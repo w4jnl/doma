@@ -185,7 +185,7 @@ final class DomaUITests: XCTestCase {
             sleep(1)
         }
         XCTAssertFalse(app.descendants(matching: .any)["waiting"].exists, "everything went up")
-        app.buttons["Done"].tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertFalse(app.descendants(matching: .any)["offline"].exists, "the badge is gone")
     }
 
@@ -199,7 +199,7 @@ final class DomaUITests: XCTestCase {
         app.buttons["Invite a member"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["qr"].waitForExistence(timeout: 10), "the QR is shown")
         XCTAssertTrue(app.buttons["Share the invite"].exists, "with Share under it")
-        app.buttons["Done"].tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.staticTexts["member"].waitForExistence(timeout: 5), "the pending invite is listed")
     }
 }

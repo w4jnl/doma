@@ -138,12 +138,21 @@ row, not a new screen.
   household name is
   the Family screen's subtitle and a switcher over households takes the title's place only when
   the person is in more than one. Section words are subheadline in `ink-muted`, never capitals.
-  The accent belongs to what makes something: Add, New list, Invite, Guest link, the selected
-  tab; Remove, Revoke and Leave are `ink-muted` words until armed, then `out`.
-- **A list.** Entry rows `row-h-list` (52pt) with hairlines in `line`; no cards, no zebra. The
-  add bar is pinned at the bottom under a hairline: an `accent` disc with a `+` in `on-accent`,
-  the field with no box. Match rows stack above the bar on `surface`, at most five, the best
-  nearest the bar on `accent-soft`; with the field empty, one row of chips with the usual items.
+  The list itself is a plain list on `ground`; the Lists overview, Family and Settings are the
+  phone's grouped inset lists, rows on `surface`, help lines as section footers, and plain
+  lists on the Mac. The accent belongs to what makes something: Add, New list, Invite, the
+  selected tab; one prominent button per screen at most (Invite on Family), everything else a
+  plain toolbar item. Remove and Revoke live behind a swipe and the long-press menu and arm in
+  the row (*Really remove?* on `out`); Leave is a row, an `ink-muted` word until armed. On the
+  phone Settings, an invite and a guest link open one level down, never as a sheet; the phone's
+  first frame is the launch colour, the `ground` token.
+- **A list.** Entry rows `row-h-list` (52pt) with hairlines in `line`; no cards, no zebra. On
+  the phone the add bar is a glass capsule floating at the bottom over the tab bar, the one
+  glass in the app: an `accent` disc with a `+` in `on-accent` at its left, the field with no
+  box; the match rows and the usual chips stack above it in the same glass. On the Mac the bar
+  is pinned under a hairline on `ground`. Match rows are at most five, the best nearest the bar
+  on `accent-soft`; with the field empty, one row of chips with the usual items. The divider
+  between open and struck rows is a row, never a pinned header.
   An entry row is the custom `open` or `done` symbol in a 24pt column in `ink-muted` (never the
   glyph as a text character), the item name in `ink`, the note after it in the system face in
   `ink-muted` (a note is words, not data), a home chip (`surface` capsule with a `line` ring,
@@ -167,8 +176,9 @@ row, not a new screen.
   groups, Bring, Buy, Check on arrival, each a plain list; *Arrived* is the one primary button, at
   the bottom, enabled only while something is packed.
 - **Family.** Members as rows with name, role word and last seen; invites and guest links as
-  rows with their expiry; *Invite* and *Guest link* in the toolbar. An invite opens a sheet with
-  the QR on `surface-sunk` at `radius-md`, the share button under it, and the link in mono.
+  rows with their expiry; *Invite* prominent and *Guest link* plain in the toolbar. An invite
+  opens one level down on the phone and a sheet on the Mac, with the QR on `surface-sunk` at
+  `radius-md`, the share button under it, and the link in mono on one line.
 - **Scan.** The first screen before any household: the camera full-bleed, the mark above it, one
   line of help, *Paste a link* as a text button. It is also Family → Add.
 - **States and feedback.** Glyph and word, as everywhere. Optimistic everywhere: the row appears,
