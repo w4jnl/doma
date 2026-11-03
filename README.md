@@ -129,6 +129,5 @@ house conventions and the gates; [`CONTRIBUTING.md`](CONTRIBUTING.md) what is we
 
 ## Credits and licence
 
-The list mechanics are ShopShop's, which the family used for years. htmx (Zero-Clause BSD) and
-JetBrains Mono (SIL OFL) are vendored with their licences. The repository is private while the
-family runs it; a licence comes with the public install.
+doma is MIT licensed (see `LICENSE`). The list mechanics are ShopShop's, which the family used
+for years. htmx (Zero-Clause BSD) and JetBrains Mono (SIL OFL) are vendored with their licences.

@@ -6,6 +6,7 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Open source.** The repository is public under the MIT licence, as vink.
 - **The apps, phase 0, step 1.** The iPhone and Mac projects under `app/` from XcodeGen, with
   GRDB pinned, the design tokens in Swift with a test against `tokens.json`, the brand's custom
   symbols exported from the pictograms, and the `mac-*` and `ios-*` make targets.
