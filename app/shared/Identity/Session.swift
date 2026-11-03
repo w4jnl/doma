@@ -307,13 +307,19 @@ final class Session {
 
     // MARK: Push
 
-    /// The APNs token, sent to the server for this credential.
+    /// The APNs token, sent to the server for this credential, with which of Apple's gateways
+    /// it belongs to: a build from Xcode registers a development token.
     func registerPush(token: Data) async {
         guard let client, let c = context else { return }
-        struct Body: Encodable { var token: String }
+        struct Body: Encodable { var token: String, sandbox: Bool }
         let hex = token.map { String(format: "%02x", $0) }.joined()
+        #if DEBUG
+        let sandbox = true
+        #else
+        let sandbox = false
+        #endif
         do {
-            let _: SyncClient.Empty = try await client.post("/api/v1/devices/\(c.credentialID)/apns", Body(token: hex))
+            let _: SyncClient.Empty = try await client.post("/api/v1/devices/\(c.credentialID)/apns", Body(token: hex, sandbox: sandbox))
         } catch {
             // the next launch registers again
         }

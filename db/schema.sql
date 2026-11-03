@@ -17,7 +17,7 @@ CREATE TABLE credentials (
   created_at    INTEGER NOT NULL,
   last_used_at  INTEGER,
   revoked_at    INTEGER
-);
+, apns_sandbox INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX credentials_person ON credentials(person_id);
 CREATE UNIQUE INDEX credentials_hash ON credentials(hash) WHERE hash IS NOT NULL;
 CREATE TABLE households (
@@ -204,4 +204,5 @@ CREATE TABLE push_log (
 -- Dbmate schema migrations
 INSERT INTO "schema_migrations" (version) VALUES
   ('20261101000000'),
-  ('20261103000000');
+  ('20261103000000'),
+  ('20261104000000');

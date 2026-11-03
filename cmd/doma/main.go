@@ -218,6 +218,6 @@ func pushSender(cfg *config.Config, keyring *secrets.Keyring, log *slog.Logger) 
 	if err != nil {
 		return nil, err
 	}
-	log.Info("push on", "topic", cfg.Push.Topic, "sandbox", cfg.Push.Sandbox, "key_id", cfg.Push.KeyID)
-	return push.NewAPNs(key, cfg.Push.KeyID, cfg.Push.TeamID, cfg.Push.Topic, cfg.Push.Sandbox), nil
+	log.Info("push on", "topic", cfg.Push.Topic)
+	return push.NewAPNs(key, cfg.Push.KeyID, cfg.Push.TeamID, cfg.Push.Topic), nil
 }

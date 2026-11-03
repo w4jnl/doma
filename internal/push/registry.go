@@ -18,7 +18,7 @@ func (r ServiceRegistry) PushTargets(ctx context.Context, householdID string, no
 	}
 	out := make([]Target, 0, len(rows))
 	for _, t := range rows {
-		out = append(out, Target{CredentialID: t.CredentialID, Token: t.Token, PersonID: t.PersonID, LastSeq: t.LastSeq, LastUsedAt: t.LastUsedAt})
+		out = append(out, Target{CredentialID: t.CredentialID, Token: t.Token, PersonID: t.PersonID, LastSeq: t.LastSeq, LastUsedAt: t.LastUsedAt, Sandbox: t.Sandbox})
 	}
 	return out, nil
 }

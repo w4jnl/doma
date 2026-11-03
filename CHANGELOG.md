@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Each device's own push gateway.** A device says whether its token is a development one when
+  it registers it, and the server sends each push to the matching Apple host, so one server
+  serves a build from Xcode and the family's TestFlight builds alike. The `push.sandbox` config
+  key is gone.
 - **The badge while away, and a chime.** A spoken push carries the number of entries others
   added since the phone last spoke to the server, so the icon shows it while the app is away,
   and the app counts for itself after every sync, in the background too. Seen marks move only

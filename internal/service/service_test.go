@@ -276,10 +276,10 @@ func TestDevices(t *testing.T) {
 	inv3, _ := s.CreateInvite(ctx, domain.Scope{HouseholdID: other.ID, Role: domain.RoleOwner}, domain.RoleOwner)
 	stranger, _ := accept(t, s, inv3.Token, "Alex")
 
-	if err := s.SetAPNSToken(ctx, member.PersonID, member.CredentialID, "tok"); err != nil {
+	if err := s.SetAPNSToken(ctx, member.PersonID, member.CredentialID, "tok", false); err != nil {
 		t.Errorf("own apns: %v", err)
 	}
-	if err := s.SetAPNSToken(ctx, owner.PersonID, member.CredentialID, "tok"); !errors.Is(err, domain.ErrNotFound) {
+	if err := s.SetAPNSToken(ctx, owner.PersonID, member.CredentialID, "tok", false); !errors.Is(err, domain.ErrNotFound) {
 		t.Errorf("someone else's apns: %v", err)
 	}
 	if err := s.RevokeCredential(ctx, stranger.PersonID, member.CredentialID); !errors.Is(err, domain.ErrNotFound) {

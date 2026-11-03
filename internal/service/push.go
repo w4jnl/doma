@@ -17,6 +17,8 @@ type PushTarget struct {
 	// LastUsedAt is when the device last spoke to the server; what others added
 	// after it is the number on its icon until the app counts for itself.
 	LastUsedAt int64
+	// Sandbox: the token belongs to Apple's development gateway.
+	Sandbox bool
 }
 
 // Change is one thing a notification can say: who added which item to which
@@ -49,7 +51,7 @@ func (s *Service) PushTargets(ctx context.Context, householdID string, notBefore
 			if r.LastUsedAt != nil {
 				used = *r.LastUsedAt
 			}
-			out = append(out, PushTarget{CredentialID: r.CredentialID, Token: *r.ApnsToken, PersonID: r.PersonID, LastSeq: last, LastUsedAt: used})
+			out = append(out, PushTarget{CredentialID: r.CredentialID, Token: *r.ApnsToken, PersonID: r.PersonID, LastSeq: last, LastUsedAt: used, Sandbox: r.ApnsSandbox != 0})
 		}
 	}
 	return out, nil

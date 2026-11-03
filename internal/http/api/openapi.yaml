@@ -67,7 +67,7 @@ paths:
         "204": {description: revoked}
   /api/v1/devices/{credential}/apns:
     post:
-      summary: Register or refresh the push token of one's own device
+      summary: Register or refresh the APNs token; body {token, sandbox} where sandbox says the token belongs to Apple's development gateway (a build from Xcode)
       responses:
         "204": {description: stored}
   /api/v1/h/{household}:

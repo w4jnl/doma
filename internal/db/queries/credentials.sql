@@ -24,7 +24,7 @@ ORDER BY c.created_at;
 UPDATE credentials SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL;
 
 -- name: SetAPNSToken :exec
-UPDATE credentials SET apns_token = ? WHERE id = ?;
+UPDATE credentials SET apns_token = ?, apns_sandbox = ? WHERE id = ?;
 
 -- name: TouchCredential :exec
 UPDATE credentials SET last_used_at = ? WHERE id = ?;
