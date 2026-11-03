@@ -98,7 +98,7 @@ paths:
       responses:
         "200": {description: invites}
     post:
-      summary: Create a one-use invite for a member or an owner; owners
+      summary: Create a one-use invite; body {role} for a member or an owner (owners), or {device: true} for a device of the caller's own (any member; valid a day, adds a key to the same person)
       responses:
         "201": {description: the invite with its link}
   /api/v1/h/{household}/invites/{id}:

@@ -71,6 +71,7 @@ type Querier interface {
 	InsertPhoto(ctx context.Context, arg InsertPhotoParams) error
 	InsertSnapshot(ctx context.Context, arg InsertSnapshotParams) error
 	InsertTrip(ctx context.Context, arg InsertTripParams) error
+	// the household's pending invites; a device invite is its person's and is not among them
 	InvitesForHousehold(ctx context.Context, arg InvitesForHouseholdParams) ([]Invite, error)
 	ItemEvents(ctx context.Context, householdID string) ([]Event, error)
 	// The flag, staple and trip events that name one of the item ids, given as

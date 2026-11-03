@@ -1,7 +1,12 @@
 {{define "content"}}
 <div class="dm-card">
+  {{if .Data.Person}}
+  <h1>Add this device to {{.Data.Household}}</h1>
+  <p>Open this link on the new iPhone or Mac with doma installed and it is yours, {{.Data.Person}}, like the one you have.</p>
+  {{else}}
   <h1>Join {{.Data.Household}}</h1>
   <p>Open this link on your iPhone with doma installed and you are in as {{.Data.Role}}.</p>
+  {{end}}
   <p><a class="dm-button" href="{{.Data.AppLink}}">Open in doma</a></p>
   <p class="dm-muted">No doma yet? Install it first, then come back to this link. The invite works once and until {{.Data.Until}}.</p>
 </div>

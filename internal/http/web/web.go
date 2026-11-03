@@ -445,6 +445,8 @@ type inviteData struct {
 	// AppLink is doma://invite#<token>; html/template would otherwise refuse
 	// the scheme. The token is base64url and ours.
 	AppLink template.URL
+	// Person is set when the invite adds a device to that person.
+	Person string
 }
 
 func (h *Web) invitePage(w http.ResponseWriter, r *http.Request) {
@@ -464,7 +466,7 @@ func (h *Web) invitePage(w http.ResponseWriter, r *http.Request) {
 	// the token travels in the fragment, which never reaches a log
 	h.render(w, http.StatusOK, "invite", page{Title: "Invite", Bare: true, Data: inviteData{
 		Household: inv.Household.Name, Role: string(inv.Role), AppLink: template.URL("doma://invite#" + token), //nolint:gosec // G203: see inviteData
-		Until: domain.FromMillis(inv.ExpiresAt).Format("2 January"),
+		Until: domain.FromMillis(inv.ExpiresAt).Format("2 January"), Person: inv.ForPerson,
 	}})
 }
 

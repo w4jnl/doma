@@ -145,6 +145,22 @@
         }
       }
     },
+    "Add a device": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een apparaat toevoegen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridať zariadenie"
+          }
+        }
+      }
+    },
     "Add an item": {
       "localizations": {
         "nl": {
@@ -1185,6 +1201,22 @@
         }
       }
     },
+    "Show the code to your Mac or your new phone; it joins as you.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laat de code aan je Mac of je nieuwe telefoon zien; die doet dan mee als jij."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukáž kód svojmu Macu alebo novému telefónu; pripojí sa ako ty."
+          }
+        }
+      }
+    },
     "Sky": {
       "localizations": {
         "nl": {
@@ -1341,6 +1373,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Platí raz, 7 dní, ako"
+          }
+        }
+      }
+    },
+    "Valid once, for a day. It adds a device to you.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eén keer geldig, één dag. Het voegt een apparaat aan jou toe."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platí raz, jeden deň. Pridá ti zariadenie."
           }
         }
       }

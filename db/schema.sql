@@ -51,7 +51,7 @@ CREATE TABLE invites (
   used_by       TEXT,
   used_at       INTEGER,
   revoked_at    INTEGER
-);
+, for_person_id TEXT REFERENCES persons(id) ON DELETE CASCADE);
 CREATE INDEX invites_household ON invites(household_id);
 CREATE TABLE admin (
   id             INTEGER PRIMARY KEY CHECK (id = 1),
@@ -203,4 +203,5 @@ CREATE TABLE push_log (
 );
 -- Dbmate schema migrations
 INSERT INTO "schema_migrations" (version) VALUES
-  ('20261101000000');
+  ('20261101000000'),
+  ('20261103000000');

@@ -197,9 +197,15 @@ struct InviteSheet: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Tokens.space4)
             }
-            HStack(spacing: Tokens.space1) {
-                Text("Valid once, for 7 days, as")
-                Text(LocalizedStringKey(invite.role))
+            Group {
+                if invite.device == true {
+                    Text("Valid once, for a day. It adds a device to you.")
+                } else {
+                    HStack(spacing: Tokens.space1) {
+                        Text("Valid once, for 7 days, as")
+                        Text(LocalizedStringKey(invite.role))
+                    }
+                }
             }
             .font(.footnote)
             .foregroundStyle(Tokens.inkMuted)
@@ -208,7 +214,7 @@ struct InviteSheet: View {
         .padding(Tokens.space5)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Tokens.ground)
-        .navigationTitle("Invite")
+        .navigationTitle(invite.device == true ? "Add a device" : "Invite")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }

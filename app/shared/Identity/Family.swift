@@ -21,8 +21,10 @@ struct Invite: Decodable, Hashable, Sendable, Identifiable {
     var role: String
     var expiresAt: Int64
     var url: String?
+    /// Set when the invite adds a device to its maker instead of a member to the household.
+    var device: Bool?
     enum CodingKeys: String, CodingKey {
-        case id, role, url
+        case id, role, url, device
         case expiresAt = "expires_at"
     }
 }
@@ -119,6 +121,20 @@ final class FamilyModel {
         do {
             let inv: Invite = try await client.post(base + "/invites", Body(role: role))
             invites.append(inv)
+            return inv
+        } catch {
+            problem = Self.message(error)
+            return nil
+        }
+    }
+
+    /// An invite for a second device of this person: a Mac, a new phone. It is not among the
+    /// household's invites and lives a day.
+    func deviceInvite() async -> Invite? {
+        guard let client = session.client, let base else { return nil }
+        struct Body: Encodable { var device: Bool }
+        do {
+            let inv: Invite = try await client.post(base + "/invites", Body(device: true))
             return inv
         } catch {
             problem = Self.message(error)

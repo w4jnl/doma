@@ -12,7 +12,7 @@ import (
 )
 
 func invite(r db.Invite) domain.Invite {
-	return domain.Invite{ID: r.ID, HouseholdID: r.HouseholdID, Role: domain.Role(r.Role), CreatedBy: r.CreatedBy, ExpiresAt: r.ExpiresAt, UsedBy: r.UsedBy, UsedAt: r.UsedAt, RevokedAt: r.RevokedAt}
+	return domain.Invite{ID: r.ID, HouseholdID: r.HouseholdID, Role: domain.Role(r.Role), CreatedBy: r.CreatedBy, ExpiresAt: r.ExpiresAt, UsedBy: r.UsedBy, UsedAt: r.UsedAt, RevokedAt: r.RevokedAt, ForPersonID: r.ForPersonID}
 }
 
 // NewInvite is a fresh invite with the one-time token and the link.
@@ -48,6 +48,35 @@ func (s *Service) CreateInvite(ctx context.Context, sc domain.Scope, role domain
 			return notFound(err)
 		}
 		return q.InsertInvite(ctx, db.InsertInviteParams{ID: inv.ID, HouseholdID: inv.HouseholdID, Role: string(inv.Role), TokenHash: auth.HashToken(token), CreatedBy: inv.CreatedBy, ExpiresAt: inv.ExpiresAt})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &NewInvite{Invite: inv, Token: token, URL: s.InviteURL(token)}, nil
+}
+
+// DeviceInviteHours is how long a device invite lives: it is made and scanned
+// on the spot.
+const DeviceInviteHours = 24
+
+// CreateDeviceInvite makes a one-use invite that adds a device to the caller:
+// any member, for themselves only. The new device gets its own key under the
+// same person and so every household the person is in.
+func (s *Service) CreateDeviceInvite(ctx context.Context, sc domain.Scope) (*NewInvite, error) {
+	if sc.PersonID == "" {
+		return nil, domain.ErrForbidden
+	}
+	token, err := auth.NewToken()
+	if err != nil {
+		return nil, err
+	}
+	person := sc.PersonID
+	inv := domain.Invite{ID: domain.NewID(), HouseholdID: sc.HouseholdID, Role: sc.Role, CreatedBy: &person, ForPersonID: &person, ExpiresAt: domain.Millis(s.now().Add(DeviceInviteHours * time.Hour))}
+	err = s.db.Tx(ctx, func(q *db.Queries) error {
+		if _, err := q.GetMembership(ctx, db.GetMembershipParams{HouseholdID: sc.HouseholdID, PersonID: sc.PersonID}); err != nil {
+			return notFound(err)
+		}
+		return q.InsertInvite(ctx, db.InsertInviteParams{ID: inv.ID, HouseholdID: inv.HouseholdID, Role: string(inv.Role), TokenHash: auth.HashToken(token), CreatedBy: inv.CreatedBy, ExpiresAt: inv.ExpiresAt, ForPersonID: inv.ForPersonID})
 	})
 	if err != nil {
 		return nil, err
@@ -92,6 +121,8 @@ type InvitePreview struct {
 	Household domain.Household
 	Role      domain.Role
 	ExpiresAt int64
+	// ForPerson is the person's name when the invite adds a device to them.
+	ForPerson string
 }
 
 // inviteByToken loads a usable invite: unknown, expired or revoked is
@@ -124,7 +155,15 @@ func (s *Service) InviteByToken(ctx context.Context, token string) (*InvitePrevi
 	if err != nil {
 		return nil, notFound(err)
 	}
-	return &InvitePreview{Household: household(h), Role: domain.Role(r.Role), ExpiresAt: r.ExpiresAt}, nil
+	out := &InvitePreview{Household: household(h), Role: domain.Role(r.Role), ExpiresAt: r.ExpiresAt}
+	if r.ForPersonID != nil {
+		p, err := q.GetPerson(ctx, *r.ForPersonID)
+		if err != nil {
+			return nil, notFound(err)
+		}
+		out.ForPerson = p.DisplayName
+	}
+	return out, nil
 }
 
 // AcceptInvite is what the app sends after scanning.
@@ -140,22 +179,27 @@ type Accepted struct {
 	Server       string
 	PersonID     string
 	CredentialID string
+	DisplayName  string
 	Household    domain.Household
 	Role         domain.Role
 	// Rejoined is set when the key already belonged to the household and no
 	// invite was used; it is logged, not returned.
 	Rejoined bool
+	// Device is set when a device invite added the key to its person.
+	Device bool
 }
 
 // AcceptInvite registers the device, creates the person when the key is
-// new to this server, and adds the membership. The invite is spent.
+// new to this server, and adds the membership. The invite is spent. A device
+// invite adds the key to its person instead: no new person, no new
+// membership, the name the person has.
 func (s *Service) AcceptInvite(ctx context.Context, token string, req AcceptInvite) (*Accepted, error) {
 	key, err := auth.ParsePublicKey(req.PublicKey)
 	if err != nil {
 		return nil, domain.Invalid("public_key", "%v", err)
 	}
 	name := strings.TrimSpace(req.DisplayName)
-	if name == "" || len(name) > 64 {
+	if len(name) > 64 {
 		return nil, domain.Invalid("display_name", "give a name of up to 64 characters")
 	}
 	label := strings.TrimSpace(req.Label)
@@ -177,6 +221,12 @@ func (s *Service) AcceptInvite(ctx context.Context, token string, req AcceptInvi
 			return notFound(err)
 		}
 		now := s.nowMs()
+		if inv.ForPersonID != nil {
+			return s.acceptDevice(ctx, q, inv, h, key.String(), label, platform, now, &out)
+		}
+		if name == "" {
+			return domain.Invalid("display_name", "give a name of up to 64 characters")
+		}
 		var personID, credentialID string
 		if existing, err := q.GetCredentialByPublicKey(ctx, ptr(key.String())); err == nil {
 			personID, credentialID = existing.PersonID, existing.ID
@@ -196,7 +246,7 @@ func (s *Service) AcceptInvite(ctx context.Context, token string, req AcceptInvi
 			// a device that already belongs here (the app was reinstalled and
 			// the key outlived the store) gets its membership back and the
 			// invite stays unused; its role is the one it has, not the invite's
-			out = &Accepted{Server: s.cfg.BaseURL, PersonID: personID, CredentialID: credentialID, Household: household(h), Role: domain.Role(m.Role), Rejoined: true}
+			out = &Accepted{Server: s.cfg.BaseURL, PersonID: personID, CredentialID: credentialID, DisplayName: name, Household: household(h), Role: domain.Role(m.Role), Rejoined: true}
 			return nil
 		}
 		if err := q.InsertMembership(ctx, db.InsertMembershipParams{PersonID: personID, HouseholdID: inv.HouseholdID, Role: inv.Role, CreatedAt: now}); err != nil {
@@ -209,14 +259,50 @@ func (s *Service) AcceptInvite(ctx context.Context, token string, req AcceptInvi
 		if n == 0 {
 			return fmt.Errorf("%w: that invite was used already", domain.ErrConflict)
 		}
-		out = &Accepted{Server: s.cfg.BaseURL, PersonID: personID, CredentialID: credentialID, Household: household(h), Role: domain.Role(inv.Role)}
+		out = &Accepted{Server: s.cfg.BaseURL, PersonID: personID, CredentialID: credentialID, DisplayName: name, Household: household(h), Role: domain.Role(inv.Role)}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	s.log.Info("invite accepted", "household", out.Household.ID, "person", out.PersonID, "role", out.Role, "rejoined", out.Rejoined)
+	s.log.Info("invite accepted", "household", out.Household.ID, "person", out.PersonID, "role", out.Role, "rejoined", out.Rejoined, "device", out.Device)
 	return out, nil
+}
+
+// acceptDevice redeems a device invite: the key becomes a credential of the
+// invite's person. A key that is already that person's device gets its seat
+// back; a key that belongs to someone else is refused.
+func (s *Service) acceptDevice(ctx context.Context, q *db.Queries, inv *db.Invite, h db.Household, key, label, platform string, now int64, out **Accepted) error {
+	personID := *inv.ForPersonID
+	p, err := q.GetPerson(ctx, personID)
+	if err != nil {
+		return notFound(err)
+	}
+	m, err := q.GetMembership(ctx, db.GetMembershipParams{HouseholdID: inv.HouseholdID, PersonID: personID})
+	if err != nil {
+		return notFound(err)
+	}
+	var credentialID string
+	if existing, err := q.GetCredentialByPublicKey(ctx, ptr(key)); err == nil {
+		if existing.PersonID != personID {
+			return fmt.Errorf("%w: this device already belongs to someone else in the family", domain.ErrConflict)
+		}
+		credentialID = existing.ID
+	} else {
+		credentialID = domain.NewID()
+		if err := q.InsertCredential(ctx, db.InsertCredentialParams{ID: credentialID, PersonID: personID, Kind: domain.KindDeviceKey, PublicKey: ptr(key), Label: label, Platform: platform, CreatedAt: now}); err != nil {
+			return err
+		}
+	}
+	n, err := q.UseInvite(ctx, db.UseInviteParams{UsedBy: &personID, UsedAt: &now, HouseholdID: inv.HouseholdID, ID: inv.ID})
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("%w: that invite was used already", domain.ErrConflict)
+	}
+	*out = &Accepted{Server: s.cfg.BaseURL, PersonID: personID, CredentialID: credentialID, DisplayName: p.DisplayName, Household: household(h), Role: domain.Role(m.Role), Device: true}
+	return nil
 }
 
 func ptr[T any](v T) *T { return &v }

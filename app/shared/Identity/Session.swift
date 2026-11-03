@@ -149,7 +149,8 @@ final class Session {
             throw AcceptError.server("Could not accept the invite.")
         }
         if context == nil {
-            let c = ServerContext(serverID: ULID.make(), baseURL: server, credentialID: acc.credentialID, personID: acc.personID, displayName: name, createdAt: millis(Date()))
+            let known = acc.displayName?.trimmingCharacters(in: .whitespaces) ?? ""
+            let c = ServerContext(serverID: ULID.make(), baseURL: server, credentialID: acc.credentialID, personID: acc.personID, displayName: known.isEmpty ? name : known, createdAt: millis(Date()))
             try store.saveContext(c)
         }
         reload()
