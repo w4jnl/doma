@@ -3,6 +3,7 @@
 // same change comes back from the server, which is a no-op.
 import Foundation
 import GRDB
+import OSLog
 import Observation
 
 @MainActor @Observable
@@ -11,7 +12,13 @@ final class Live<Value: Sendable> {
     nonisolated(unsafe) private var task: Task<Void, Never>?
 
     init(_ store: DomaStore, initial: Value, _ fetch: @escaping @Sendable (Database) throws -> Value) {
-        value = (try? store.db.read(fetch)) ?? initial
+        do {
+            value = try store.db.read(fetch)
+        } catch {
+            // a query that cannot run would otherwise look like an empty screen; say so in the log
+            Logger(subsystem: "nl.w4j.doma", category: "store").error("live query failed: \(String(describing: error), privacy: .public)")
+            value = initial
+        }
         let observation = ValueObservation.tracking(fetch)
         task = Task { [weak self] in
             do {

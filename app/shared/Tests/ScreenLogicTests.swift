@@ -143,4 +143,20 @@ final class ScreenLogicTests: XCTestCase {
         try ListActions.move(r, from: IndexSet(integer: 0), to: 3, on: "L1", in: s)
         XCTAssertEqual(try rows(s).map(\.name), ["a", "b", "c"])
     }
+
+    /// The unseen count rests on a query that must run against the real schema: a wrong column
+    /// would come back as an empty screen, not an error.
+    func testOpenMarksRunAndSkipOwnAdds() throws {
+        let s = try session()
+        let listID = try XCTUnwrap(lists(s).first?.id)
+        _ = try ListActions.add("melk", to: listID, in: s)
+        let marks = try s.store.read(s.scope!) { db, sc in try Queries.openMarks(db, sc) }
+        XCTAssertTrue(marks.contains { $0.listID == listID && !$0.addedHLC.isEmpty }, "the add is an open mark")
+        let me = try XCTUnwrap(s.context?.personID)
+        XCTAssertTrue(marks.filter { $0.listID == listID }.allSatisfy { $0.addedBy == me })
+        // nothing of mine is unseen; someone else's add after the mark is
+        XCTAssertEqual(s.unseen(household: s.currentHouseholdID ?? "", in: marks)[listID] ?? 0, 0)
+        let theirs = OpenMark(listID: listID, addedHLC: "9999999999999:0000:x", addedBy: "someone-else")
+        XCTAssertEqual(s.unseen(household: s.currentHouseholdID ?? "", in: marks + [theirs])[listID], 1)
+    }
 }
