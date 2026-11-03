@@ -7,6 +7,12 @@ import GRDB
 enum Schema {
     static var migrator: DatabaseMigrator {
         var m = DatabaseMigrator()
+        defer {
+            // v2: what the fold's recount and the catalog's last-bought hint look entries up by
+            m.registerMigration("v2") { db in
+                try db.create(indexOn: "entries", columns: ["server_id", "household_id", "item_id"])
+            }
+        }
         m.registerMigration("v1") { db in
             try db.create(table: "contexts") { t in
                 t.column("server_id", .text).primaryKey()
@@ -312,7 +318,9 @@ extension Trip {
 extension Event {
     init(row r: Row) {
         let raw: String = r["payload"]
+        let data = Data(raw.utf8)
         self.init(id: r["id"], personID: r["person_id"], hlc: HLC(column: r["hlc"]) ?? HLC(wall: 0, device: "-"), kind: r["kind"],
-                  payload: (try? JSONValue(data: Data(raw.utf8))) ?? .object([:]))
+                  payload: (try? JSONValue(data: data)) ?? .object([:]))
+        rawPayload = data
     }
 }

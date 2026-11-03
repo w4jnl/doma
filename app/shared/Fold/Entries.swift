@@ -12,15 +12,32 @@ enum Entries {
         try replay(s, listID: p.listID, itemID: item)
     }
 
-    /// Replays every key of the list the clear could touch. The clear is in the list's events,
-    /// so the replay of each key sees it.
+    /// Replays the keys of the list the clear can close: those with an entry.checked stamped
+    /// before it, and base rows that stand checked without their events. The server replays
+    /// every key of the list; the result is the same, since a clear only closes an era that is
+    /// checked at its point in the stamp order, and a checked event that arrives later replays
+    /// its own key with the clear in the log.
     static func applyEntryCleared(_ s: some FoldStore, _ e: Event) throws {
         let p = try e.decode(EntryPayload.self)
         try Fold.need(e, "list_id", p.listID)
         guard let b = p.beforeHLC, HLC(parsing: b) != nil else {
             throw FoldError.badPayload(kind: e.kind, id: e.id, reason: "before_hlc is empty")
         }
-        for item in try listItemIDs(s, listID: p.listID, isDefault: false) {
+        var seen = Set<String>()
+        var items: [String] = []
+        func add(_ raw: String) throws {
+            let id = try Fold.resolveItem(s, raw)
+            if seen.insert(id).inserted { items.append(id) }
+        }
+        for raw in try s.checkedItemIDs(listID: p.listID, before: e.hlc) {
+            try add(raw)
+        }
+        for row in try s.entries(listID: p.listID, itemIDs: []) where row.isChecked {
+            if try !s.hasEvent(openingEventID(of: row)) {
+                try add(row.itemID)
+            }
+        }
+        for item in items {
             try replay(s, listID: p.listID, itemID: item)
         }
     }

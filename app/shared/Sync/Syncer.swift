@@ -98,15 +98,16 @@ final class Syncer {
                 var sent: [String: [String]] = [:]
                 let per = max(1, Self.eventsPerRequest / scopes.count)
                 for scope in scopes {
-                    let items = try store.outbox(scope, limit: per)
+                    let (items, since) = try await store.db.read { db in (try DomaStore.outbox(db, scope, limit: per), try DomaStore.cursor(db, scope)) }
                     sent[scope.householdID] = items.map(\.eventID)
-                    request.households.append(.init(id: scope.householdID, since: try store.cursor(scope), events: items.map(\.body)))
+                    request.households.append(.init(id: scope.householdID, since: since, events: items.map(\.body)))
                 }
                 let response = try await client.sync(request)
                 var progressed = false
                 for hh in response.households {
                     guard let scope = scopes.first(where: { $0.householdID == hh.id }) else { continue }
-                    try store.dequeue(scope, ids: hh.accepted + hh.rejected.map(\.id))
+                    let done = hh.accepted + hh.rejected.map(\.id)
+                    try await store.db.write { db in try DomaStore.dequeue(db, scope, ids: done) }
                     for r in hh.rejected {
                         rejected.append((r.id, r.reason))
                     }
@@ -114,22 +115,26 @@ final class Syncer {
                     if let snap = hh.snapshot, let url = URL(string: snap) {
                         let doc = try await client.snapshot(url)
                         let seq = doc.seq ?? Int64(url.lastPathComponent) ?? 0
-                        try store.importSnapshot(doc.tables, seq: seq, scope: scope)
+                        try await store.db.write { db in try DomaStore.importSnapshot(db, doc.tables, seq: seq, scope: scope) }
                         progressed = true
                         continue
                     }
-                    let since = try store.cursor(scope)
-                    try store.applyRemote(hh.events, scope: scope, clock: clock())
-                    for e in hh.events {
-                        if e.kind == Kind.memberRemoved, (try? JSONDecoder().decode(MemberRemoved.self, from: e.payload.data))?.personID == scope.personID {
-                            try store.removeHousehold(scope)
-                            removed(scope)
+                    let clock = clock()
+                    let events = hh.events
+                    let next = hh.next
+                    let gone = events.contains { e in e.kind == Kind.memberRemoved && (try? JSONDecoder().decode(MemberRemoved.self, from: e.payload.data))?.personID == scope.personID }
+                    let moved = try await store.db.write { db -> Bool in
+                        let since = try DomaStore.cursor(db, scope)
+                        try DomaStore.applyRemote(db, events, scope: scope, clock: clock)
+                        if gone { try DomaStore.removeHousehold(db, scope) }
+                        if next > since {
+                            try DomaStore.setCursor(db, scope, next)
+                            return true
                         }
+                        return false
                     }
-                    if hh.next > since {
-                        try store.setCursor(scope, hh.next)
-                        progressed = true
-                    }
+                    if gone { removed(scope) }
+                    if moved { progressed = true }
                 }
                 if !progressed { break }
             }
@@ -147,8 +152,11 @@ final class Syncer {
             offline = e.isOffline
             if case .problem(let p) = e { lastError = p.message }
             if case .badResponse(let code) = e { lastError = "Unexpected answer (\(code))" }
-            for scope in scopes {
-                try? store.noteAttempt(scope, ids: (try? store.outbox(scope, limit: Self.eventsPerRequest))?.map(\.eventID) ?? [])
+            let limit = Self.eventsPerRequest
+            try? await store.db.write { db in
+                for scope in scopes {
+                    try DomaStore.noteAttempt(db, scope, ids: try DomaStore.outbox(db, scope, limit: limit).map(\.eventID))
+                }
             }
         } catch {
             offline = true

@@ -45,3 +45,7 @@ updates this file first. Dates are the tag dates.
 - **Lists have a colour.** Six list colours in the design system, chosen as a row of dots
   when a list is made; the dot sits before the list's name on the phone and in the Mac sidebar.
   The default list wears the accent.
+- **A tap lands in the same frame.** The local store is a WAL pool: screens read on their own
+  connections and refresh after a commit instead of inside it, the syncer never holds a frame,
+  a clear replays only the keys it can close, the catalog answers 80 ms after the last
+  keystroke off the main thread, and a screen makes its observations before its first frame.

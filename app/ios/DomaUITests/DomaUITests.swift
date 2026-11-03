@@ -136,7 +136,9 @@ final class DomaUITests: XCTestCase {
         sleep(1)
         XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier == 'entry-melk'")).count, 1)
         row.tap()
-        XCTAssertTrue(row.label.hasPrefix("checked"), row.label)
+        // the row answers from the store's observation, one hop after the tap
+        let struck = expectation(for: NSPredicate(format: "label BEGINSWITH 'checked'"), evaluatedWith: row)
+        wait(for: [struck], timeout: 3)
         // Clear arms, then clears
         app.buttons["clear"].tap()
         XCTAssertTrue(app.buttons["Really clear?"].waitForExistence(timeout: 3))

@@ -37,7 +37,7 @@ final class LiveTests: XCTestCase {
         tables = try store.tables(scope)
         XCTAssertEqual(tables.items.map(\.id), [itemID])
         XCTAssertEqual(tables.entries.count, 1)
-        let seqs = try await store.dbQueue.read { db in try Int64?.fetchAll(db, sql: "SELECT seq FROM events ORDER BY seq") }
+        let seqs = try await store.db.read { db in try Int64?.fetchAll(db, sql: "SELECT seq FROM events ORDER BY seq") }
         XCTAssertFalse(seqs.contains(nil), "every event has the server's seq")
 
         // a second invite from this owner, through the REST API, as Family does

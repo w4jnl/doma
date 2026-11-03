@@ -117,17 +117,16 @@ struct ListView: View {
             UIApplication.shared.isIdleTimerDisabled = false
             #endif
         }
-        .task(id: session.scope) {
-            guard let scope = session.scope else { return }
-            let id = listID
-            summary = Live(session.store, initial: nil) { db in try Queries.list(db, scope, id: id) }
-            rows = Live(session.store, initial: []) { db in try Queries.entries(db, scope, listID: id) }
-            recent = Live(session.store, initial: []) { db in try Queries.recent(db, scope, listID: id) }
-            homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }
-        }
-        .onChange(of: text) { _, t in
-            guard let scope = session.scope else { return }
-            matches = (try? session.store.read(scope) { db, s in try Queries.matches(db, s, prefix: t) }) ?? []
+        .onAppear(perform: observe)
+        .onChange(of: session.scope) { observe() }
+        .task(id: text) {
+            // the catalog answers 80 ms after the last keystroke, from a reader connection
+            let t = text
+            guard !t.isEmpty, let scope = session.scope else { matches = []; return }
+            try? await Task.sleep(for: .milliseconds(80))
+            guard !Task.isCancelled else { return }
+            let found = (try? await session.store.db.read { db in try Queries.matches(db, scope, prefix: t) }) ?? []
+            if !Task.isCancelled { matches = found }
         }
         #if os(iOS)
         .onShake {
@@ -377,6 +376,16 @@ struct ListView: View {
         shop = on
         UserDefaults.standard.set(on, forKey: shopKey)
         applyShop()
+    }
+
+    /// The lives are made on appear, before the first frame, so the screen never shows empty.
+    private func observe() {
+        guard let scope = session.scope else { return }
+        let id = listID
+        summary = Live(session.store, initial: nil) { db in try Queries.list(db, scope, id: id) }
+        rows = Live(session.store, initial: []) { db in try Queries.entries(db, scope, listID: id) }
+        recent = Live(session.store, initial: []) { db in try Queries.recent(db, scope, listID: id) }
+        homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }
     }
 
     private func applyShop() {

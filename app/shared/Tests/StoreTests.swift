@@ -12,6 +12,21 @@ final class StoreTests: XCTestCase {
         (try DomaStore.inMemory(), HLCClock(device: "dev"))
     }
 
+    func testOnDiskStoreIsAWALPool() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("doma-store-" + ULID.make(), isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try DomaStore(path: dir.appendingPathComponent("doma.sqlite").path)
+        XCTAssertTrue(store.db is DatabasePool, "on disk, screens read on their own connections")
+        XCTAssertEqual(try store.db.read { db in try String.fetchOne(db, sql: "PRAGMA journal_mode") }, "wal")
+        let clock = HLCClock(device: "dev")
+        try store.record(Kind.listCreated, ListPayload(listID: "L1", name: "Shopping", isDefault: true), scope: scope, clock: clock)
+        XCTAssertEqual(try store.tables(scope).lists.map(\.name), ["Shopping"])
+        // the second open applies no migration twice and sees the row
+        let again = try DomaStore(path: dir.appendingPathComponent("doma.sqlite").path)
+        XCTAssertEqual(try again.tables(scope).lists.count, 1)
+    }
+
     func testRecordAppendsQueuesAndFolds() throws {
         let (store, clock) = try fresh()
         try store.record(Kind.listCreated, ListPayload(listID: "L1", name: "Shopping", isDefault: true), scope: scope, clock: clock)
@@ -48,7 +63,7 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(t.lists.count, 1)
         // the clock moved past the remote stamps
         XCTAssertGreaterThan(clock.next().wall, 9000)
-        let seqs = try store.dbQueue.read { db in try Int64?.fetchAll(db, sql: "SELECT seq FROM events ORDER BY id") }
+        let seqs = try store.db.read { db in try Int64?.fetchAll(db, sql: "SELECT seq FROM events ORDER BY id") }
         XCTAssertEqual(seqs.compactMap { $0 }.sorted(), [1, 2, 3])
     }
 
@@ -79,7 +94,7 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(try store.tables(scope).canonical, before)
         // and equal to the pure fold of the same log
         let mem = MemStore()
-        let log = try store.dbQueue.read { db in try Row.fetchAll(db, sql: "SELECT * FROM events ORDER BY seq IS NULL, seq, hlc").map(Event.init(row:)) }
+        let log = try store.db.read { db in try Row.fetchAll(db, sql: "SELECT * FROM events ORDER BY seq IS NULL, seq, hlc").map(Event.init(row:)) }
         for e in log { try mem.append(e) }
         XCTAssertEqual(mem.tables.canonical, before)
     }
