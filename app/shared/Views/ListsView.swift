@@ -9,6 +9,7 @@ struct ListsView: View {
     @State private var adding = false
     @State private var newName = ""
     @State private var personal = false
+    @State private var colour = Tokens.listColours[0]
     @State private var renaming: String?
     @State private var renameText = ""
     @State private var arming: String?
@@ -86,9 +87,7 @@ struct ListsView: View {
         } else {
             NavigationLink(value: l.id) {
                 HStack(spacing: Tokens.space3) {
-                    Image(systemName: l.isPersonal ? "person" : "list.bullet")
-                        .foregroundStyle(Tokens.inkMuted)
-                        .accessibilityHidden(true)
+                    ListDot(colour: l.colour)
                     Text(l.name)
                         .foregroundStyle(Tokens.ink)
                     Spacer()
@@ -140,7 +139,7 @@ struct ListsView: View {
                 .focused($renameFocused)
                 .submitLabel(.done)
                 .onSubmit {
-                    try? ListActions.renameList(l.id, to: renameText, in: session)
+                    try? ListActions.renameList(l.id, to: renameText, colour: l.colour, in: session)
                     renaming = nil
                 }
             Button("Cancel") { renaming = nil }
@@ -191,6 +190,10 @@ struct ListsView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            Text("Colour")
+                .font(.footnote)
+                .foregroundStyle(Tokens.inkMuted)
+            ColourDots(colour: $colour)
             HStack {
                 Button("Cancel") {
                     adding = false
@@ -209,7 +212,7 @@ struct ListsView: View {
     }
 
     private func create() {
-        guard (try? ListActions.createList(named: newName, personal: personal, in: session)) != nil else { return }
+        guard (try? ListActions.createList(named: newName, personal: personal, colour: colour, in: session)) != nil else { return }
         newName = ""
         adding = false
     }

@@ -10,6 +10,7 @@ struct ListSummary: Identifiable, Hashable, Sendable {
     var isPersonal: Bool
     var isDefault: Bool
     var openCount: Int
+    var colour: String
 }
 
 struct EntryRow: Identifiable, Hashable, Sendable {
@@ -68,13 +69,13 @@ enum Queries {
     /// get. Archived lists and other people's personal lists are left out.
     static func lists(_ db: Database, _ s: Scope) throws -> [ListSummary] {
         try Row.fetchAll(db, sql: """
-            SELECT l.id, l.name, l.owner_person_id, l.is_default,
+            SELECT l.id, l.name, l.owner_person_id, l.is_default, l.colour,
               (SELECT COUNT(*) FROM entries e WHERE e.server_id = l.server_id AND e.household_id = l.household_id AND e.list_id = l.id AND e.cleared_hlc IS NULL AND e.checked_hlc IS NULL) AS open_count
             FROM lists l
             WHERE l.server_id = ? AND l.household_id = ? AND l.archived_at IS NULL AND (l.owner_person_id IS NULL OR l.owner_person_id = ?)
             ORDER BY l.owner_person_id IS NOT NULL, l.is_default DESC, l.sort, l.name COLLATE NOCASE, l.id
             """, arguments: [s.serverID, s.householdID, s.personID]).map { r in
-            ListSummary(id: r["id"], name: r["name"], isPersonal: (r["owner_person_id"] as String?) != nil, isDefault: (r["is_default"] as Int64) != 0, openCount: r["open_count"])
+            ListSummary(id: r["id"], name: r["name"], isPersonal: (r["owner_person_id"] as String?) != nil, isDefault: (r["is_default"] as Int64) != 0, openCount: r["open_count"], colour: r["colour"])
         }
     }
 

@@ -42,3 +42,6 @@ updates this file first. Dates are the tag dates.
   Guest link are words in the Family toolbar; the flags setting waits for the first home. A
   strike and a clear answer with a haptic, struck rows sink, and an empty list shows the mark
   and one line of help.
+- **Lists have a colour.** Six list colours in the design system, chosen as a row of dots
+  when a list is made; the dot sits before the list's name on the phone and in the Mac sidebar.
+  The default list wears the accent.

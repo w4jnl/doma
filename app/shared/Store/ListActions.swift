@@ -130,18 +130,20 @@ enum ListActions {
 
     /// A new list, shared with the household or just for this person.
     @discardableResult
-    static func createList(named name: String, personal: Bool, in session: Session) throws -> String? {
+    static func createList(named name: String, personal: Bool, colour: String, in session: Session) throws -> String? {
         let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !n.isEmpty, let scope = session.scope else { return nil }
         let id = ULID.make()
-        try session.record(Kind.listCreated, ListPayload(listID: id, name: n, colour: "", ownerPersonID: personal ? scope.personID : nil, isDefault: false))
+        try session.record(Kind.listCreated, ListPayload(listID: id, name: n, colour: colour, ownerPersonID: personal ? scope.personID : nil, isDefault: false))
         return id
     }
 
-    static func renameList(_ listID: String, to name: String, in session: Session) throws {
+    /// A rename carries the list's colour: name and colour are one last-writer-wins value in
+    /// the fold, so a rename without it would blank the colour.
+    static func renameList(_ listID: String, to name: String, colour: String, in session: Session) throws {
         let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !n.isEmpty else { return }
-        try session.record(Kind.listRenamed, ListPayload(listID: listID, name: n, colour: ""))
+        try session.record(Kind.listRenamed, ListPayload(listID: listID, name: n, colour: colour))
     }
 
     static func archiveList(_ listID: String, in session: Session) throws {

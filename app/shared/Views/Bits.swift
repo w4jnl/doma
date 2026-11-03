@@ -146,3 +146,50 @@ enum AppInfo {
         return "\(v) (\(b))"
     }
 }
+
+/// The dot before a list's name, in the list's colour; the default list wears the accent.
+struct ListDot: View {
+    var colour: String
+
+    var body: some View {
+        Circle()
+            .fill(Tokens.listColor(colour))
+            .frame(width: Tokens.space3, height: Tokens.space3)
+            .accessibilityHidden(true)
+    }
+}
+
+/// The six list colours as a row of dots; the chosen one wears a ring in ink.
+struct ColourDots: View {
+    @Binding var colour: String
+
+    var body: some View {
+        HStack(spacing: Tokens.space3) {
+            ForEach(Tokens.listColours, id: \.self) { c in
+                Button {
+                    colour = c
+                } label: {
+                    Circle()
+                        .fill(Tokens.listColor(c))
+                        .frame(width: Tokens.space5, height: Tokens.space5)
+                        .padding(Tokens.space1)
+                        .overlay(Circle().strokeBorder(Tokens.ink, lineWidth: colour == c ? 2 : 0))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Self.name(c))
+                .accessibilityAddTraits(colour == c ? [.isSelected] : [])
+            }
+        }
+    }
+
+    static func name(_ c: String) -> Text {
+        switch c {
+        case "list-1": Text("Teal")
+        case "list-2": Text("Sky")
+        case "list-3": Text("Violet")
+        case "list-4": Text("Plum")
+        case "list-5": Text("Gold")
+        default: Text("Moss")
+        }
+    }
+}

@@ -305,6 +305,22 @@
         }
       }
     },
+    "Colour": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kleur"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Farba"
+          }
+        }
+      }
+    },
     "Could not reach the family's doma. Try again in a moment.": {
       "localizations": {
         "nl": {
@@ -429,6 +445,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pre domov"
+          }
+        }
+      }
+    },
+    "Gold": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Goud"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zlatá"
           }
         }
       }
@@ -753,6 +785,22 @@
         }
       }
     },
+    "Moss": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mos"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Machová"
+          }
+        }
+      }
+    },
     "Name": {
       "localizations": {
         "nl": {
@@ -877,6 +925,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vložiť odkaz"
+          }
+        }
+      }
+    },
+    "Plum": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pruim"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slivková"
           }
         }
       }
@@ -1169,6 +1233,22 @@
         }
       }
     },
+    "Sky": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hemelsblauw"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blankytná"
+          }
+        }
+      }
+    },
     "Something went wrong. Try again.": {
       "localizations": {
         "nl": {
@@ -1197,6 +1277,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ťukni znova pre potvrdenie"
+          }
+        }
+      }
+    },
+    "Teal": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blauwgroen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tyrkysová"
           }
         }
       }
@@ -1309,6 +1405,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Verzia"
+          }
+        }
+      }
+    },
+    "Violet": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Violet"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fialová"
           }
         }
       }

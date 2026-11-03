@@ -35,6 +35,12 @@ enum Tokens {
         "out-soft": (0x3A1A_18, 0xFBE4_E2),
         "on-out": (0x1C0B_09, 0xFFFF_FF),
         "unknown": (0x8A99_9C, 0x5A68_6B),
+        "list-1": (0x3FD0_D4, 0x0B7A_7E),
+        "list-2": (0x5AA9_F0, 0x1F63_B5),
+        "list-3": (0xA48B_F2, 0x5F3F_B8),
+        "list-4": (0xE07B_C5, 0x9A2E_7E),
+        "list-5": (0xE8D1_5A, 0x7A64_00),
+        "list-6": (0x9DC2_6B, 0x4F7A_1A),
     ]
 
     static let ground = color("ground")
@@ -57,6 +63,15 @@ enum Tokens {
     static let outSoft = color("out-soft")
     static let onOut = color("on-out")
     static let unknown = color("unknown")
+
+    /// The six list colours, in the order the picker shows them.
+    static let listColours = ["list-1", "list-2", "list-3", "list-4", "list-5", "list-6"]
+
+    /// A list's colour from the name its events carry; anything else, the default list's empty
+    /// name included, is the accent.
+    static func listColor(_ name: String) -> Color {
+        listColours.contains(name) ? color(name) : accent
+    }
 
     /// The sizes in points, from the px values of tokens.json. The font stacks and the tile
     /// radius are the web pages' only.
