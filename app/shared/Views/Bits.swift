@@ -226,6 +226,16 @@ enum AppInfo {
     }
 }
 
+/// A small dot in accent that says "new here": next to a count, or on an entry's symbol.
+struct UnseenDot: View {
+    var body: some View {
+        Circle()
+            .fill(Tokens.accent)
+            .frame(width: Tokens.space2, height: Tokens.space2)
+            .accessibilityHidden(true)
+    }
+}
+
 /// The dot before a list's name, in the list's colour; the default list wears the accent.
 struct ListDot: View {
     var colour: String

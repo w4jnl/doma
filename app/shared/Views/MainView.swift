@@ -1,7 +1,8 @@
 // The phone's tabs: Lists and Family in phase 0, Homes and Trip between them from phase 1. The
 // Lists tab opens into the last-used list, the default list the first time, with the overview
 // behind a Lists button at the top left and a second tap on the tab; a switcher over households
-// takes the title's place when the person is in more than one. The badge on the icon is the open
+// takes the title's place when the person is in more than one. The badge on the icon is what
+// this device has not seen yet: entries others added since each list was last in front. The badge on the icon is the open
 // count across the shared lists and the person's own.
 import SwiftUI
 #if os(iOS)
@@ -104,18 +105,24 @@ struct ListsHome: View {
     }
 }
 
-/// Keeps the icon's badge at the open count of the current household.
+/// Keeps the icon's badge at what this device has not seen: entries others added to the
+/// household's lists after each list was last in front. It falls as lists are opened.
 struct Badge: ViewModifier {
     @Environment(Session.self) private var session
-    @State private var count: Live<Int>?
+    @State private var marks: Live<[OpenMark]>?
+
+    private var unseen: Int {
+        guard let h = session.currentHouseholdID else { return 0 }
+        return session.unseen(household: h, in: marks?.value ?? []).values.reduce(0, +)
+    }
 
     func body(content: Content) -> some View {
         content
             .task(id: session.scope) {
                 guard let scope = session.scope else { return }
-                count = Live(session.store, initial: 0) { db in try Queries.openCount(db, scope) }
+                marks = Live(session.store, initial: []) { db in try Queries.openMarks(db, scope) }
             }
-            .onChange(of: count?.value ?? 0, initial: true) { _, n in
+            .onChange(of: unseen, initial: true) { _, n in
                 #if os(iOS)
                 UNUserNotificationCenter.current().setBadgeCount(n) { _ in }
                 #endif

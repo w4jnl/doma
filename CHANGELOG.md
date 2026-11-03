@@ -6,6 +6,11 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Unseen, not open.** The icon's badge counts what this device has not seen: entries others
+  added since each list was last in front, falling as lists are opened. The overview and the
+  Mac's sidebar put an accent dot before a list's count while it holds unseen entries, and in
+  the list the rows others added since the last visit wear a dot on their symbol for that
+  visit. Your own adds never count; the marks live on the device.
 - **A word from the family.** A push carries words when someone else added to a list or cleared
   it: "Sam added melk and brood" under the list's name, threaded per list, composed on the
   server from the events since the device was last pushed; your own changes stay silent, and

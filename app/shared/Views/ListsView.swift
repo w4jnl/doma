@@ -9,6 +9,7 @@ struct ListsView: View {
     var pick: ((String) -> Void)?
     @Environment(Session.self) private var session
     @State private var lists: Live<[ListSummary]>?
+    @State private var marks: Live<[OpenMark]>?
     @State private var adding = false
     @State private var newName = ""
     @State private var personal = false
@@ -102,6 +103,13 @@ struct ListsView: View {
     private func observe() {
         guard let scope = session.scope else { return }
         lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
+        marks = Live(session.store, initial: []) { db in try Queries.openMarks(db, scope) }
+    }
+
+    /// Entries others added to a list since it was last in front here.
+    private func unseen(_ l: ListSummary) -> Int {
+        guard let h = session.currentHouseholdID else { return 0 }
+        return session.unseen(household: h, in: marks?.value ?? [])[l.id] ?? 0
     }
 
     // MARK: Rows
@@ -166,7 +174,11 @@ struct ListsView: View {
                 }
                 .buttonStyle(.borderless)
             } else if l.openCount > 0 {
-                // the bare number, as the sidebar says it; VoiceOver keeps the words
+                // the bare number, as the sidebar says it; a dot in accent before it when
+                // someone added something you have not seen; VoiceOver keeps the words
+                if unseen(l) > 0 {
+                    UnseenDot()
+                }
                 Text(verbatim: String(l.openCount))
                     .font(Tokens.mono(.subheadline))
                     .foregroundStyle(Tokens.inkMuted)
@@ -177,7 +189,7 @@ struct ListsView: View {
         .rowHeight()
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(l.name), \(l.openCount) to get"))
+        .accessibilityLabel(unseen(l) > 0 ? Text("\(l.name), \(l.openCount) to get, \(unseen(l)) new") : Text("\(l.name), \(l.openCount) to get"))
     }
 
     private func renameRow(_ l: ListSummary) -> some View {

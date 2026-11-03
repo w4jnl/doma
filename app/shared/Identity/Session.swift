@@ -20,6 +20,9 @@ final class Session {
     /// The family's names by person id, from the members the Family screen and the membership
     /// refresh bring; held in memory, never stored. A struck row names who got it from these.
     private(set) var names: [String: String] = [:]
+    /// Per list, the stamp of the newest entry this device had in front: what others added after
+    /// it is unseen, and counts on the icon and in the overview. Kept on the device only.
+    private(set) var seen: [String: String] = [:]
 
     /// The one used by the app process, for the push and background entry points.
     nonisolated(unsafe) static weak var current: Session?
@@ -94,6 +97,7 @@ final class Session {
     }
 
     func reload() {
+        defer { loadSeen() }
         context = try? store.context()
         key = DeviceKey.load()
         if let c = context {
@@ -163,6 +167,43 @@ final class Session {
         currentHouseholdID = acc.household.id
         await syncer.sync()
         await refreshMemberships()
+    }
+
+    // MARK: Seen
+
+    private var seenKey: String { "seen." + (context?.serverID ?? "") }
+
+    private func loadSeen() {
+        seen = UserDefaults.standard.dictionary(forKey: seenKey) as? [String: String] ?? [:]
+    }
+
+    /// The list was in front with entries up to this stamp.
+    func markSeen(household: String, list: String, upTo stamp: String) {
+        let key = household + "/" + list
+        if let have = seen[key], have >= stamp { return }
+        seen[key] = stamp
+        UserDefaults.standard.set(seen, forKey: seenKey)
+    }
+
+    /// The stamp a list was last seen up to, or nothing.
+    func seenMark(household: String, list: String) -> String? {
+        seen[household + "/" + list]
+    }
+
+    /// Whether an entry is unseen here: someone else added it after the list's seen mark.
+    func isUnseen(household: String, list: String, addedHLC: String, addedBy: String) -> Bool {
+        guard addedBy != context?.personID else { return false }
+        guard let mark = seen[household + "/" + list] else { return true }
+        return addedHLC > mark
+    }
+
+    /// Unseen entries per list over the household's open marks.
+    func unseen(household: String, in marks: [OpenMark]) -> [String: Int] {
+        var out: [String: Int] = [:]
+        for m in marks where isUnseen(household: household, list: m.listID, addedHLC: m.addedHLC, addedBy: m.addedBy) {
+            out[m.listID, default: 0] += 1
+        }
+        return out
     }
 
     /// The name for a person id when it is someone else in a household of more than one;

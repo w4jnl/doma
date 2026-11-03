@@ -10,6 +10,7 @@ struct MacMainView: View {
     @Environment(Session.self) private var session
     @Environment(MacNav.self) private var nav
     @State private var lists: Live<[ListSummary]>?
+    @State private var marks: Live<[OpenMark]>?
     @State private var selection: Selection? = .lists
     @State private var adding = false
     @State private var newName = ""
@@ -77,6 +78,7 @@ struct MacMainView: View {
         .task(id: session.scope) {
             guard let scope = session.scope else { return }
             lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
+            marks = Live(session.store, initial: []) { db in try Queries.openMarks(db, scope) }
             if case .lists = selection, let first = lists?.value.first {
                 selection = .list(first.id)
             }
@@ -117,6 +119,9 @@ struct MacMainView: View {
             HStack {
                 ListDot(colour: l.colour)
                     .frame(width: Tokens.space5)
+                    .overlay(alignment: .topTrailing) {
+                        if unseen(l) > 0 { UnseenDot().offset(x: Tokens.space1, y: -Tokens.space1) }
+                    }
                 Text(l.name)
                 Spacer()
                 if arming == l.id {
@@ -136,7 +141,7 @@ struct MacMainView: View {
                 }
             }
             .badge(arming == l.id || l.openCount == 0 ? Text(verbatim: "") : Text(verbatim: String(l.openCount)).font(Tokens.mono(.footnote)))
-            .help(Text("\(l.openCount) to get"))
+            .help(unseen(l) > 0 ? Text("\(l.openCount) to get, \(unseen(l)) new") : Text("\(l.openCount) to get"))
             .tag(Selection.list(l.id))
             .contextMenu {
                 Button("Rename") { startRename(l) }
@@ -159,6 +164,12 @@ struct MacMainView: View {
                 }
             }
         }
+    }
+
+    /// Entries others added to a list since it was last in front here.
+    private func unseen(_ l: ListSummary) -> Int {
+        guard let h = session.currentHouseholdID else { return 0 }
+        return session.unseen(household: h, in: marks?.value ?? [])[l.id] ?? 0
     }
 
     private func startRename(_ l: ListSummary) {
