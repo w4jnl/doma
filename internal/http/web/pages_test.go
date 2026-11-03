@@ -149,9 +149,9 @@ func TestHouseholdPageAndGuestView(t *testing.T) {
 		return rec
 	}
 	// an htmx add answers with the panel: the list with the new entry and an empty field
-	rec4 := hx("/g/"+g.Token+"/add", url.Values{"text": {"brood"}})
-	if rec4.Code != http.StatusOK || !strings.Contains(rec4.Body.String(), `id="panel"`) || !strings.Contains(rec4.Body.String(), `name="text"`) || strings.Contains(rec4.Body.String(), `value="brood"`) || !strings.Contains(rec4.Body.String(), "brood") {
-		t.Errorf("htmx add: %d %s", rec4.Code, rec4.Body.String())
+	added := hx("/g/"+g.Token+"/add", url.Values{"text": {"brood"}})
+	if added.Code != http.StatusOK || !strings.Contains(added.Body.String(), `id="panel"`) || !strings.Contains(added.Body.String(), `name="text"`) || strings.Contains(added.Body.String(), `value="brood"`) || !strings.Contains(added.Body.String(), "brood") {
+		t.Errorf("htmx add: %d %s", added.Code, added.Body.String())
 	}
 	rec3 := hx("/g/"+g.Token+"/check/"+entry[1], nil)
 	if rec3.Code != http.StatusOK || !strings.Contains(rec3.Body.String(), "dm-done") || strings.Contains(rec3.Body.String(), "<html") {
