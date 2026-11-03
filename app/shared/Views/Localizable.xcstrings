@@ -49,6 +49,22 @@
         }
       }
     },
+    "%lld to get": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld te halen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld na kúpu"
+          }
+        }
+      }
+    },
     "A flag older than this shows as unknown, and the home screen asks whether it is still there.": {
       "localizations": {
         "nl": {
@@ -65,18 +81,18 @@
         }
       }
     },
-    "A list just for you. Tap + and choose Just me.": {
+    "A list only you see. Tap + and choose Only you.": {
       "localizations": {
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Een lijst alleen voor jou. Tik op + en kies Alleen ik."
+            "value": "Een lijst die alleen jij ziet. Tik op + en kies Alleen jij."
           }
         },
         "sk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zoznam len pre teba. Ťukni na + a vyber Len ja."
+            "value": "Zoznam, ktorý vidíš len ty. Ťukni na + a vyber Len ty."
           }
         }
       }
@@ -157,6 +173,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pridá to znova"
+          }
+        }
+      }
+    },
+    "Archive": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archiveren"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivovať"
           }
         }
       }
@@ -289,6 +321,22 @@
         }
       }
     },
+    "Create list": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lijst maken"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vytvoriť zoznam"
+          }
+        }
+      }
+    },
     "Done": {
       "localizations": {
         "nl": {
@@ -301,6 +349,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hotovo"
+          }
+        }
+      }
+    },
+    "Everyone": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iedereen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Všetci"
           }
         }
       }
@@ -561,22 +625,6 @@
         }
       }
     },
-    "Just me": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alleen ik"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Len ja"
-          }
-        }
-      }
-    },
     "Last refreshed": {
       "localizations": {
         "nl": {
@@ -769,6 +817,54 @@
         }
       }
     },
+    "Nothing to get": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niets te halen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nič na kúpu"
+          }
+        }
+      }
+    },
+    "Only you": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alleen jij"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Len ty"
+          }
+        }
+      }
+    },
+    "Only yours": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alleen van jou"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Len tvoje"
+          }
+        }
+      }
+    },
     "Paste a link": {
       "localizations": {
         "nl": {
@@ -797,6 +893,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Množstvo"
+          }
+        }
+      }
+    },
+    "Really archive?": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Echt archiveren?"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naozaj archivovať?"
           }
         }
       }
@@ -1025,18 +1137,18 @@
         }
       }
     },
-    "Shared with the household": {
+    "Shared with everyone": {
       "localizations": {
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gedeeld met het huishouden"
+            "value": "Gedeeld met iedereen"
           }
         },
         "sk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zdieľané s domácnosťou"
+            "value": "Zdieľané so všetkými"
           }
         }
       }
@@ -1149,6 +1261,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Priveľa požiadaviek. Skús to o chvíľu."
+          }
+        }
+      }
+    },
+    "Type what you need. Return adds it.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ wat je nodig hebt. Return voegt het toe."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napíš, čo potrebuješ. Enter to pridá."
           }
         }
       }

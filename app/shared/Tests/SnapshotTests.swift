@@ -241,14 +241,23 @@ final class SnapshotTests: XCTestCase {
         return try XCTUnwrap(image.pngData())
     }
     #else
+    /// A window that always draws as the key window of an active app: whether the test host
+    /// may activate depends on what else is on the screen, and a default button or a selected
+    /// row looks different in an inactive window.
+    final class KeyWindow: NSWindow {
+        override var isKeyWindow: Bool { true }
+        override var isMainWindow: Bool { true }
+        override var canBecomeKey: Bool { true }
+        override var canBecomeMain: Bool { true }
+    }
+
     func render(_ content: AnyView, dark: Bool) async throws -> Data {
-        let window = NSWindow(contentRect: NSRect(origin: .zero, size: Self.size), styleMask: [.titled], backing: .buffered, defer: false)
+        let window = KeyWindow(contentRect: NSRect(origin: .zero, size: Self.size), styleMask: [.titled], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         let hosting = NSHostingView(rootView: content)
         hosting.frame = NSRect(origin: .zero, size: Self.size)
         window.contentView = hosting
-        NSApp.activate()
-        window.makeKeyAndOrderFront(nil)
+        window.orderFront(nil)
         hosting.layoutSubtreeIfNeeded()
         try await Task.sleep(for: .milliseconds(700))
         let rep = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
