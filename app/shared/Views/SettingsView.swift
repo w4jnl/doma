@@ -117,12 +117,21 @@ struct SettingsView: View {
                 .onAppear { _ = m }
             }
             Section {
+                // the one place the wordmark appears in the app
+                HStack(spacing: Tokens.space3) {
+                    Mark(size: 22)
+                    Text(verbatim: "doma")
+                        .font(Tokens.mono(.body, bold: true))
+                        .foregroundStyle(Tokens.ink)
+                    Spacer()
+                    Text(AppInfo.version)
+                        .font(Tokens.mono(.subheadline))
+                        .foregroundStyle(Tokens.inkMuted)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text("doma, version \(AppInfo.version)"))
                 LabeledContent("Family's doma") {
                     Text(session.context?.baseURL.host ?? "")
-                        .font(Tokens.mono(.body))
-                }
-                LabeledContent("Version") {
-                    Text(AppInfo.version)
                         .font(Tokens.mono(.body))
                 }
                 if let at = session.syncer.lastSyncedAt {

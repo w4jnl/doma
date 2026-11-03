@@ -33,7 +33,10 @@ struct DomaApp: App {
             case .active:
                 if session.hasHousehold {
                     PushDelegate.enable()
-                    Task { await session.syncer.sync() }
+                    Task {
+                        await session.syncer.sync()
+                        await session.refreshMemberships()
+                    }
                 }
                 away = false
             case .background:

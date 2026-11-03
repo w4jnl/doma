@@ -20,6 +20,11 @@ struct OfflineBadge: View {
                 HStack(spacing: Tokens.space1) {
                     Symbol.unknown.image
                     Text("offline")
+                    // after a minute, how long: "offline, 3m ago" reads as since when
+                    if let at = session.syncer.lastSyncedAt, now.timeIntervalSince(at) > 60 {
+                        Text(verbatim: ",")
+                        RelativeText(millis: millis(at))
+                    }
                 }
                 .help(Text("Changes are kept here until the family's doma is reachable"))
                 .accessibilityLabel(Text("offline"))
@@ -45,6 +50,13 @@ struct OfflineBadge: View {
             now = Date()
             try? await Task.sleep(for: .seconds(1.5))
             now = Date()
+        }
+        .task(id: session.syncer.offline) {
+            // while offline, the badge's clock ticks once a minute
+            while session.syncer.offline, !Task.isCancelled {
+                now = Date()
+                try? await Task.sleep(for: .seconds(60))
+            }
         }
     }
 }

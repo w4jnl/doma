@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Presence, small.** A struck row names who got it when it was someone else; the offline badge
+  says since when after a minute; About carries the lockup. The family's names come with the
+  members the Family screen and the foreground refresh already fetch, held in memory only.
 - **The Mac's mechanics.** A click selects a row, the symbol strikes it, a double click or
   return edits it, escape leaves a field for the list and typing starts an entry; the add row
   sits under the last open item with its matches beneath; rows are 32pt with hairlines from the

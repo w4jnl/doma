@@ -17,6 +17,9 @@ final class Session {
     private(set) var syncer: Syncer!
     /// The household the screens show; the first one until the person switches.
     var currentHouseholdID: String?
+    /// The family's names by person id, from the members the Family screen and the membership
+    /// refresh bring; held in memory, never stored. A struck row names who got it from these.
+    private(set) var names: [String: String] = [:]
 
     /// The one used by the app process, for the push and background entry points.
     nonisolated(unsafe) static weak var current: Session?
@@ -159,12 +162,31 @@ final class Session {
         reload()
         currentHouseholdID = acc.household.id
         await syncer.sync()
+        await refreshMemberships()
     }
 
-    /// Refreshes the households and roles from the server.
+    /// The name for a person id when it is someone else in a household of more than one;
+    /// nil for yourself, for an unknown id and for a household of one.
+    func name(of personID: String?) -> String? {
+        guard let personID, personID != context?.personID, names.count > 1 else { return nil }
+        return names[personID]
+    }
+
+    /// Takes the names a members answer carried.
+    func learn(names new: [String: String]) {
+        for (id, name) in new where !name.isEmpty { names[id] = name }
+    }
+
+    /// Refreshes the households and roles from the server, and the family's names with them.
     func refreshMemberships() async {
         guard let client, let c = context else { return }
         guard let me: MeDocument = try? await client.get("/api/v1/me") else { return }
+        struct Members: Decodable { var members: [Member]? }
+        for m in me.memberships {
+            if let doc: Members = try? await client.get("/api/v1/h/\(m.householdID)/members") {
+                learn(names: Dictionary((doc.members ?? []).map { ($0.personID, $0.displayName) }, uniquingKeysWith: { a, _ in a }))
+            }
+        }
         let known = Set(me.memberships.map(\.householdID))
         for h in households where !known.contains(h.id) {
             try? store.removeHousehold(Scope(serverID: c.serverID, householdID: h.id, personID: c.personID))

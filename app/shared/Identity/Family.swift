@@ -101,6 +101,7 @@ final class FamilyModel {
         do {
             let m: Wrapped<Member> = try await client.get(base + "/members")
             members = m.members ?? []
+            session.learn(names: Dictionary(members.map { ($0.personID, $0.displayName) }, uniquingKeysWith: { a, _ in a }))
             if session.current?.isOwner == true {
                 let i: Wrapped<Invite> = try await client.get(base + "/invites")
                 invites = i.invites ?? []

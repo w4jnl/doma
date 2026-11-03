@@ -188,9 +188,12 @@ row, not a new screen.
   success on a clear; nothing on scroll, drag or navigation, and nothing for what another
   device did. The Mac has no haptics; the symbol, the rolling count and the flash carry it. A
   row that arrives, yours or another phone's, shows on `accent-soft` for a breath; yours also
-  scrolls into view. The family's doma out of reach is one small `◌ offline` badge in the
-  toolbar after the second failed exchange, never an alert; when the spell ends and something
-  went up, the badge says `✓ caught up` once, for 1.5 s. Nothing moves on a timer. Destructive
+  scrolls into view. A struck row names who got it, in caption `ink-faint` after the item, when
+  it was someone else and the household has more than one member; never who is shopping now.
+  The family's doma out of reach is one small `◌ offline` badge in the toolbar after the second
+  failed exchange, never an alert; after a minute it says since when; when the spell ends and
+  something went up, the badge says `✓ caught up` once, for 1.5 s. Settings' About row is the
+  one place the wordmark appears: the mark, `doma` in mono bold, the version in mono muted. Nothing moves on a timer. Destructive
   actions arm in place (*Remove → Really remove?*), the pill springing in and fading back after
   4 s; no modals except the camera and the system share sheet.
 - **Motion.** Three durations and nothing else: `motion-quick` (150 ms) for a crossfade, a
