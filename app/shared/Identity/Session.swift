@@ -5,6 +5,7 @@ import Foundation
 import Observation
 #if os(iOS)
 import UIKit
+import UserNotifications
 #endif
 
 @MainActor @Observable
@@ -216,6 +217,20 @@ final class Session {
         guard addedBy != context?.personID else { return false }
         guard let mark = seen[household + "/" + list] else { return true }
         return addedHLC > mark
+    }
+
+    /// What this device has not seen in the current household, counted from the store; and
+    /// on the phone the icon's badge, set here so a sync in the background sets it as well,
+    /// where no screen updates.
+    @discardableResult
+    func refreshBadge() -> Int {
+        guard let scope, let h = currentHouseholdID else { return 0 }
+        let marks = (try? store.db.read { db in try Queries.openMarks(db, scope) }) ?? []
+        let n = unseen(household: h, in: marks).values.reduce(0, +)
+        #if os(iOS)
+        UNUserNotificationCenter.current().setBadgeCount(n) { _ in }
+        #endif
+        return n
     }
 
     /// Unseen entries per list over the household's open marks.

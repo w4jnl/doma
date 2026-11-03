@@ -29,6 +29,16 @@ func (f *fakeReg) Changes(_ context.Context, _ string, _, _ int64) ([]Change, er
 	return f.changes, nil
 }
 
+func (f *fakeReg) Unseen(_ context.Context, _, person string, _ int64) (int, error) {
+	n := 0
+	for _, c := range f.changes {
+		if c.PersonID != person && !c.Cleared {
+			n++
+		}
+	}
+	return n, nil
+}
+
 func (f *fakeReg) PushTargets(_ context.Context, _ string, notBefore int64) ([]Target, error) {
 	var out []Target
 	for _, t := range f.targets {
@@ -168,6 +178,9 @@ func TestAlertsSayWhatOthersDid(t *testing.T) {
 	}
 	if !strings.Contains(snd.sent[1], `"body":"Sam added melk and brood"`) || !strings.Contains(snd.sent[1], `"title":"Shopping"`) || !strings.Contains(snd.sent[1], `"thread-id":"L1"`) || !strings.Contains(snd.sent[1], `"seq":7`) {
 		t.Errorf("jaro's alert: %s", snd.sent[1])
+	}
+	if !strings.Contains(snd.sent[1], `"badge":2`) || !strings.Contains(snd.sent[1], `"sound":"chime.caf"`) {
+		t.Errorf("jaro's alert badge and sound: %s", snd.sent[1])
 	}
 }
 

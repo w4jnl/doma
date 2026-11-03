@@ -36,7 +36,12 @@ type Registry interface {
 	ClearPushToken(ctx context.Context, credentialID string) error
 	// Changes says what happened after a seq, for the words of an alert.
 	Changes(ctx context.Context, householdID string, after, upTo int64) ([]Change, error)
+	// Unseen counts what others added after a moment, for the badge.
+	Unseen(ctx context.Context, householdID, personID string, sinceMs int64) (int, error)
 }
+
+// Sound is the file in the app's bundle a spoken push plays: a soft two-note chime.
+const Sound = "chime.caf"
 
 // Target is a device with a token, whose it is, and the seq it last heard.
 type Target struct {
@@ -44,6 +49,7 @@ type Target struct {
 	Token        string
 	PersonID     string
 	LastSeq      int64
+	LastUsedAt   int64
 }
 
 // Change is one add or clear with its names; the service fills it.
@@ -146,13 +152,19 @@ func (p *Pusher) Handle(ctx context.Context, c bus.HouseholdChanged) {
 			changes[t.LastSeq] = ch
 		}
 		if title, body, thread := Compose(changes[t.LastSeq], t.PersonID); body != "" {
+			aps := map[string]any{
+				"alert":             map[string]string{"title": title, "body": body},
+				"sound":             Sound,
+				"thread-id":         thread,
+				"content-available": 1,
+			}
+			// the number on the icon while the app is away: what others added since the
+			// device last spoke to us; the app counts for itself once it is open
+			if n, err := p.reg.Unseen(ctx, c.HouseholdID, t.PersonID, t.LastUsedAt); err == nil && n > 0 {
+				aps["badge"] = n
+			}
 			payload, _ = json.Marshal(map[string]any{
-				"aps": map[string]any{
-					"alert":             map[string]string{"title": title, "body": body},
-					"sound":             "default",
-					"thread-id":         thread,
-					"content-available": 1,
-				},
+				"aps":       aps,
 				"server":    p.baseURL,
 				"household": c.HouseholdID,
 				"seq":       c.Seq,

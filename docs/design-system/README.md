@@ -199,7 +199,11 @@ row, not a new screen.
   one place the wordmark appears: the mark, `doma` in mono bold, the version in mono muted. A
   notification, when the person allows them, says who added what to which list or who cleared
   it, in the same words as the row, under the list's name; never for the person's own changes,
-  never a check, and nothing of the app's own while it is in front. Nothing moves on a timer. Destructive
+  never a check, and nothing of the app's own while it is in front. Its sound is the app's own
+  soft two-note chime (`chime.caf`, E5 then B5, under a second), the only sound in doma; the
+  app itself stays silent. Seen marks move only while the app is active and the list on screen,
+  so what arrives while the phone is locked is still new when it is opened, and the badge is
+  counted from the store after every sync, not from a screen. Nothing moves on a timer. Destructive
   actions arm in place (*Remove → Really remove?*), the pill springing in and fading back after
   4 s; no modals except the camera and the system share sheet.
 - **Motion.** Three durations and nothing else: `motion-quick` (150 ms) for a crossfade, a

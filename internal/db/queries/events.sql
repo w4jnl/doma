@@ -58,3 +58,9 @@ WHERE household_id = @household_id
   AND kind IN ('entry.added', 'entry.edited', 'entry.checked', 'entry.unchecked', 'entry.moved')
   AND json_extract(payload, '$.item_id') IN (SELECT value FROM json_each(CAST(@item_ids AS TEXT)))
 ORDER BY 1;
+
+-- name: CountAddedByOthersSince :one
+-- what a device missed while it was away: entries others added after it last spoke to us,
+-- the number on the icon until the app is open and counts for itself
+SELECT COUNT(*) FROM events
+WHERE household_id = ? AND kind = 'entry.added' AND person_id != ? AND received_at > ?;

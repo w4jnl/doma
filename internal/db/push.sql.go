@@ -19,7 +19,7 @@ func (q *Queries) ClearAPNSToken(ctx context.Context, id string) error {
 }
 
 const pushTargets = `-- name: PushTargets :many
-SELECT c.id AS credential_id, c.apns_token, c.person_id, p.seq AS last_seq FROM credentials c
+SELECT c.id AS credential_id, c.apns_token, c.person_id, c.last_used_at, p.seq AS last_seq FROM credentials c
 JOIN memberships m ON m.person_id = c.person_id
 LEFT JOIN push_log p ON p.household_id = m.household_id AND p.credential_id = c.id
 WHERE m.household_id = ? AND c.apns_token IS NOT NULL AND c.revoked_at IS NULL
@@ -36,6 +36,7 @@ type PushTargetsRow struct {
 	CredentialID string
 	ApnsToken    *string
 	PersonID     string
+	LastUsedAt   *int64
 	LastSeq      *int64
 }
 
@@ -54,6 +55,7 @@ func (q *Queries) PushTargets(ctx context.Context, arg PushTargetsParams) ([]Pus
 			&i.CredentialID,
 			&i.ApnsToken,
 			&i.PersonID,
+			&i.LastUsedAt,
 			&i.LastSeq,
 		); err != nil {
 			return nil, err

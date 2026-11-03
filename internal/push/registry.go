@@ -18,7 +18,7 @@ func (r ServiceRegistry) PushTargets(ctx context.Context, householdID string, no
 	}
 	out := make([]Target, 0, len(rows))
 	for _, t := range rows {
-		out = append(out, Target{CredentialID: t.CredentialID, Token: t.Token, PersonID: t.PersonID, LastSeq: t.LastSeq})
+		out = append(out, Target{CredentialID: t.CredentialID, Token: t.Token, PersonID: t.PersonID, LastSeq: t.LastSeq, LastUsedAt: t.LastUsedAt})
 	}
 	return out, nil
 }
@@ -41,6 +41,10 @@ func (r ServiceRegistry) Changes(ctx context.Context, householdID string, after,
 		out = append(out, Change{PersonID: c.PersonID, Person: c.Person, ListID: c.ListID, List: c.List, Item: c.Item, Cleared: c.Cleared})
 	}
 	return out, nil
+}
+
+func (r ServiceRegistry) Unseen(ctx context.Context, householdID, personID string, sinceMs int64) (int, error) {
+	return r.Svc.AddedByOthersSince(ctx, householdID, personID, sinceMs)
 }
 
 var _ Registry = ServiceRegistry{}
