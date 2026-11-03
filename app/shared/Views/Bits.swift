@@ -21,6 +21,7 @@ struct OfflineBadge: View {
                     Symbol.unknown.image
                     Text("offline")
                 }
+                .help(Text("Changes are kept here until the family's doma is reachable"))
                 .accessibilityLabel(Text("offline"))
                 .accessibilityIdentifier("offline")
                 .transition(.opacity)

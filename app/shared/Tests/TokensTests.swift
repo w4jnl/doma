@@ -109,6 +109,8 @@ final class TokensTests: XCTestCase {
         XCTAssertEqual(Tokens.space7, Tokens.sizes["space-7"])
         XCTAssertEqual(Tokens.radiusMD, Tokens.sizes["radius-md"])
         XCTAssertEqual(Tokens.rowH, Tokens.sizes["row-h"])
+        XCTAssertEqual(Tokens.rowHList, Tokens.sizes["row-h-list"])
+        XCTAssertEqual(Tokens.rowHCompact, Tokens.sizes["row-h-compact"])
         XCTAssertEqual(Tokens.thumb, Tokens.sizes["thumb"])
         XCTAssertEqual(Tokens.Glyph.out, Tokens.glyphs["out"])
         XCTAssertEqual(Tokens.Glyph.done, Tokens.glyphs["done"])

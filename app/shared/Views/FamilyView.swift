@@ -153,26 +153,46 @@ struct FamilyView: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 if isOwner {
                     // Invite is the one prominent button on the screen; Guest link and
-                    // Settings are plain
+                    // Settings are plain. On the Mac both open popovers from their buttons.
                     Menu {
                         Button("Invite a member") { Task { invite = await model?.invite(role: "member") } }
                         Button("Invite an owner") { Task { invite = await model?.invite(role: "owner") } }
                     } label: {
+                        #if os(macOS)
+                        Label("Invite", systemImage: "person.badge.plus")
+                            .labelStyle(.titleAndIcon)
+                        #else
                         Label("Invite", systemImage: "qrcode")
                             .labelStyle(.titleOnly)
+                        #endif
                     }
                     .buttonStyle(.borderedProminent)
+                    #if os(macOS)
+                    .popover(item: $invite, arrowEdge: .bottom) { inv in
+                        InviteSheet(invite: inv)
+                            .frame(width: 360, height: 480)
+                    }
+                    #endif
                     Button {
                         makingGuest = true
                     } label: {
                         Label("Guest link", image: Symbol.guest.name)
                     }
+                    .help(Text("Guest link"))
+                    #if os(macOS)
+                    .popover(isPresented: $makingGuest, arrowEdge: .bottom) {
+                        GuestLinkSheet(model: model)
+                            .frame(width: 400, height: 460)
+                    }
+                    #endif
                 }
+                #if os(iOS)
                 Button {
                     settings = true
                 } label: {
                     Label("Settings", systemImage: "gearshape")
                 }
+                #endif
             }
         }
         .task(id: session.scope) {
@@ -185,16 +205,6 @@ struct FamilyView: View {
         .navigationDestination(item: $invite) { inv in InviteSheet(invite: inv) }
         .navigationDestination(isPresented: $settings) { SettingsView(model: model) }
         .navigationDestination(isPresented: $makingGuest) { GuestLinkSheet(model: model) }
-        #else
-        .sheet(item: $invite) { inv in
-            NavigationStack { InviteSheet(invite: inv) }
-        }
-        .sheet(isPresented: $makingGuest) {
-            NavigationStack { GuestLinkSheet(model: model) }
-        }
-        .sheet(isPresented: $settings) {
-            NavigationStack { SettingsView(model: model) }
-        }
         #endif
         .sheet(isPresented: $scanning) {
             NavigationStack { ScanView(asSheet: true) }
@@ -310,11 +320,7 @@ struct InviteSheet: View {
         .background(Tokens.ground)
         .navigationTitle(invite.device == true ? "Add a device" : "Invite")
         #if os(macOS)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { dismiss() }
-            }
-        }
+        .onExitCommand { dismiss() }
         #endif
     }
 }
@@ -368,12 +374,24 @@ struct GuestLinkSheet: View {
         }
         .background(Tokens.ground)
         .navigationTitle("Guest link")
-        .toolbar {
-            #if os(macOS)
-            ToolbarItem(placement: .cancellationAction) {
-                Button(made == nil ? "Cancel" : "Done") { dismiss() }
+        #if os(macOS)
+        .onExitCommand { dismiss() }
+        .safeAreaInset(edge: .bottom) {
+            if made == nil {
+                HStack {
+                    Spacer()
+                    Button("Make the link") {
+                        Task { made = await model?.guestLink(homeID: homeID, listID: listID, label: label, days: 7) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(homeID.isEmpty || listID.isEmpty)
+                }
+                .padding(Tokens.space4)
             }
-            #endif
+        }
+        #else
+        .toolbar {
             if made == nil {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Make the link") {
@@ -383,6 +401,7 @@ struct GuestLinkSheet: View {
                 }
             }
         }
+        #endif
         .task(id: session.scope) {
             guard let scope = session.scope else { return }
             homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }

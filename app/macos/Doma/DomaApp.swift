@@ -7,6 +7,7 @@ import SwiftUI
 struct DomaApp: App {
     @Environment(\.scenePhase) private var phase
     @State private var session: Session
+    @State private var nav = MacNav()
 
     init() {
         let testing = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
@@ -21,14 +22,43 @@ struct DomaApp: App {
                     Color.clear
                 } else {
                     RootView()
-                        .frame(minWidth: 480, minHeight: 360)
+                        .frame(minWidth: 720, minHeight: 440)
                 }
             }
             .environment(session)
+            .environment(nav)
         }
+        .defaultSize(width: 960, height: 640)
         .onChange(of: phase) {
             if phase == .active, session.hasHousehold {
                 Task { await session.syncer.sync() }
+            }
+        }
+        .commands {
+            // every shortcut is in the menu bar, where a Mac user learns it
+            CommandGroup(replacing: .newItem) {
+                Button("New List") { nav.newList += 1 }
+                    .keyboardShortcut("n", modifiers: .command)
+                    .disabled(!session.hasHousehold)
+            }
+            CommandGroup(after: .pasteboard) {
+                Divider()
+                Button("Got It") { nav.toggleSelected += 1 }
+                    .disabled(!nav.hasSelectedEntry)
+                Button("Edit Item") { nav.editSelected += 1 }
+                    .keyboardShortcut("e", modifiers: .command)
+                    .disabled(!nav.hasSelectedEntry)
+                Button("Clear Got Items") { nav.clear += 1 }
+                    .keyboardShortcut(.delete, modifiers: .command)
+                    .disabled(!nav.hasStruck)
+            }
+        }
+        // ⌘, : the person's devices, the flags setting and About, as a window, never a sheet
+        Settings {
+            if session.hasHousehold {
+                SettingsView(model: FamilyModel(session: session))
+                    .environment(session)
+                    .environment(nav)
             }
         }
     }

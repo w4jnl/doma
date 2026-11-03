@@ -159,8 +159,13 @@ final class SnapshotTests: XCTestCase {
         for dark in [false, true] {
             for (sizeName, size) in [("L", DynamicTypeSize.large), ("XXXL", DynamicTypeSize.xxxLarge)] {
                 let full = "\(name)-\(dark ? "dark" : "light")-\(sizeName)"
-                let content = AnyView(view()
-                    .environment(session)
+                let shown = view().environment(session)
+                #if os(macOS)
+                let withNav = AnyView(shown.environment(MacNav()))
+                #else
+                let withNav = AnyView(shown)
+                #endif
+                let content = AnyView(withNav
                     .environment(\.dynamicTypeSize, size)
                     .environment(\.locale, Locale(identifier: "en"))
                     .tint(Tokens.accent))

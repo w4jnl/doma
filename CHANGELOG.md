@@ -6,6 +6,13 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The Mac's mechanics.** A click selects a row, the symbol strikes it, a double click or
+  return edits it, escape leaves a field for the list and typing starts an entry; the add row
+  sits under the last open item with its matches beneath; rows are 32pt with hairlines from the
+  text, a hovered row on surface, the selected row on accent-soft, the pane left-aligned under
+  a title-weight header; mono at the Mac's own sizes. The sidebar shows counts as badges and New
+  list as a menu with Just me; every shortcut is in the menu bar; Settings is a window on ⌘,;
+  an invite or guest link is a popover; the window opens at 960 by 640. Tooltips throughout.
 - **The phone's material.** The add bar is a glass capsule floating over the tab bar, matches
   and chips in the same glass; the tab bar shrinks on scroll. The Lists overview, Family and
   Settings are grouped inset lists with help as footers; the new-list form is two rows with
