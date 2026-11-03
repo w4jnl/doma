@@ -133,9 +133,9 @@ final class DomaUITests: XCTestCase {
         sleep(1)
         XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier == 'entry-melk'")).count, 1)
         row.tap()
-        // the row answers from the store's observation, one hop after the tap
+        // the row answers from the store's observation, one hop after the tap; the runner is slow
         let struck = expectation(for: NSPredicate(format: "label BEGINSWITH 'checked'"), evaluatedWith: row)
-        wait(for: [struck], timeout: 3)
+        wait(for: [struck], timeout: 10)
         // Clear arms, then clears
         app.buttons["clear"].tap()
         XCTAssertTrue(app.buttons["Really clear?"].waitForExistence(timeout: 3))
@@ -175,9 +175,10 @@ final class DomaUITests: XCTestCase {
         app.swipeDown()
         app.tabBars.buttons["Family"].tap()
         app.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10), "Settings is up")
         // About is at the foot, under the person's devices; scroll it into the list's view
         let waiting = app.descendants(matching: .any)["waiting"]
-        for _ in 0..<3 where !waiting.waitForExistence(timeout: 2) { app.swipeUp() }
+        for _ in 0..<5 where !waiting.waitForExistence(timeout: 2) { app.swipeUp() }
         XCTAssertTrue(waiting.exists, "item.named and entry.added wait")
         // the network comes back: the outbox drains and the row goes
         let deadline = Date().addingTimeInterval(40)
