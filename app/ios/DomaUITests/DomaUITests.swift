@@ -143,6 +143,16 @@ final class DomaUITests: XCTestCase {
         XCTAssertFalse(row.waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["entry-brood"].exists)
         XCTAssertTrue(app.buttons["Recent"].exists, "the cleared item is in Recent")
+        // Lists at the top left opens the overview; picking the list comes back
+        app.buttons["all-lists"].tap()
+        XCTAssertTrue(app.buttons["New list"].waitForExistence(timeout: 5), "the overview is up")
+        app.buttons["Shopping"].firstMatch.tap()
+        XCTAssertTrue(app.textFields["add-field"].waitForExistence(timeout: 5), "back in the list")
+        // the Lists tab's second tap steps to the overview and back
+        app.tabBars.buttons["Lists"].tap()
+        XCTAssertTrue(app.buttons["New list"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Lists"].tap()
+        XCTAssertTrue(app.textFields["add-field"].waitForExistence(timeout: 5))
     }
 
     func testOfflineAddThenSync() throws {

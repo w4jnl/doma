@@ -1,7 +1,7 @@
 // The phone's tabs: Lists and Family in phase 0, Homes and Trip between them from phase 1. The
-// Lists tab opens into the last-used list, the default list the first time, with the other
-// lists in the title's menu and the overview behind All lists; a switcher over households takes
-// the title's place when the person is in more than one. The badge on the icon is the open
+// Lists tab opens into the last-used list, the default list the first time, with the overview
+// behind a Lists button at the top left and a second tap on the tab; a switcher over households
+// takes the title's place when the person is in more than one. The badge on the icon is the open
 // count across the shared lists and the person's own.
 import SwiftUI
 #if os(iOS)
@@ -11,13 +11,22 @@ import UserNotifications
 struct MainView: View {
     @Environment(Session.self) private var session
     @State private var tab = Tab.lists
+    @State private var listsAgain = 0
 
     enum Tab: Hashable { case lists, family }
 
+    /// The tab on screen; tapping Lists while it is already up steps between the list and the
+    /// overview, the way a tab's second tap goes to its root.
+    private var selection: Binding<Tab> {
+        Binding(get: { tab }, set: { new in
+            if new == tab, new == .lists { listsAgain += 1 }
+            tab = new
+        })
+    }
+
     var body: some View {
-        @Bindable var session = session
-        TabView(selection: $tab) {
-            ListsHome()
+        TabView(selection: selection) {
+            ListsHome(again: listsAgain)
                 .tabItem { Label("Lists", systemImage: "list.bullet") }
             .tag(Tab.lists)
             NavigationStack {
@@ -33,6 +42,8 @@ struct MainView: View {
 /// The Lists tab: the last-used list, remembered per household on this device, the default
 /// list the first time, with the overview one level down.
 struct ListsHome: View {
+    /// Bumped when the Lists tab is tapped while already selected.
+    var again = 0
     @Environment(Session.self) private var session
     @State private var lists: Live<[ListSummary]>?
     @State private var currentID: String?
@@ -46,7 +57,7 @@ struct ListsHome: View {
         NavigationStack(path: $path) {
             Group {
                 if let id = currentID {
-                    ListView(listID: id, switcher: ListSwitcher(lists: lists?.value ?? [], pick: open, all: { path = [.all] }))
+                    ListView(listID: id, overview: { path = [.all] })
                         .id(id)
                 } else {
                     Tokens.ground
@@ -62,6 +73,7 @@ struct ListsHome: View {
         .onAppear(perform: observe)
         .onChange(of: session.scope) { observe() }
         .onChange(of: lists?.value) { _, now in settle(now ?? []) }
+        .onChange(of: again) { path = path.isEmpty ? [.all] : [] }
     }
 
     private var key: String { "list.current." + (session.current?.id ?? "") }

@@ -118,7 +118,7 @@ final class SnapshotTests: XCTestCase {
 
     func testList() async throws {
         let id = shopping
-        try await check("list") { NavigationStack { ListView(listID: id) } }
+        try await check("list") { NavigationStack { ListView(listID: id, overview: {}) } }
     }
 
     func testFamily() async throws {

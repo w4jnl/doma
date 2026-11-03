@@ -177,22 +177,6 @@
         }
       }
     },
-    "All lists…": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle lijsten…"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Všetky zoznamy…"
-          }
-        }
-      }
-    },
     "Archive": {
       "localizations": {
         "nl": {

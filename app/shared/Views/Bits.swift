@@ -81,46 +81,6 @@ struct SectionHeader: View {
     }
 }
 
-/// What a list's title menu offers when the list is the Lists tab's root: the household's other
-/// lists and the overview behind All lists.
-struct ListSwitcher {
-    var lists: [ListSummary]
-    var pick: (String) -> Void
-    var all: () -> Void
-}
-
-extension View {
-    /// The list's title as a menu, when the list has a switcher; a pushed list has none.
-    @ViewBuilder
-    func listTitleMenu(_ s: ListSwitcher?, current: String) -> some View {
-        if let s {
-            toolbarTitleMenu {
-                ForEach(s.lists) { l in
-                    Button {
-                        s.pick(l.id)
-                    } label: {
-                        if l.id == current {
-                            Label(l.name, systemImage: "checkmark")
-                        } else if l.openCount > 0 {
-                            Text(verbatim: "\(l.name)  \(l.openCount)")
-                        } else {
-                            Text(l.name)
-                        }
-                    }
-                }
-                Divider()
-                Button {
-                    s.all()
-                } label: {
-                    Label("All lists…", systemImage: "list.bullet")
-                }
-            }
-        } else {
-            self
-        }
-    }
-}
-
 /// "3 wk ago", "yesterday", "in 2 days", with the absolute time for VoiceOver and on hover.
 struct RelativeText: View {
     var millis: Int64

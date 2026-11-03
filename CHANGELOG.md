@@ -52,7 +52,7 @@ updates this file first. Dates are the tag dates.
   haptic, and it keeps its place for a breath so a second tap takes it back; then it sinks under
   a divider that counts the got and holds Clear. Swipe left to edit the line; long-press drags.
   Shake-to-clear and the long-press menu are gone from the phone.
-- **Open into the list.** The Lists tab opens the last-used list; its title is a menu over the
-  household's lists with All lists behind it. Sections read Household and Just me, a new list
+- **Open into the list.** The Lists tab opens the last-used list; a Lists button at the top left
+  and a second tap on the tab open the overview. Sections read Household and Just me, a new list
   takes the next free colour, Family has its own title with the household under it, Settings is
   plain rows like every other screen, and Remove, Revoke and Leave stay quiet until armed.

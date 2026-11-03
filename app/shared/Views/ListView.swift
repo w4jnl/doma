@@ -13,7 +13,8 @@ import UIKit
 struct ListView: View {
     let listID: String
     /// Set when the list is the Lists tab's root: the title becomes a menu over the lists.
-    var switcher: ListSwitcher?
+    /// Opens the lists overview, when the list is the Lists tab's root; a pushed list has none.
+    var overview: (() -> Void)?
     @Environment(Session.self) private var session
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var summary: Live<ListSummary?>?
@@ -70,11 +71,27 @@ struct ListView: View {
             .sensoryFeedback(.success, trigger: clears)
             .navigationTitle(summary?.value?.name ?? "")
             .navigationSubtitle(subtitle(open: openCount))
-            .listTitleMenu(switcher, current: listID)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
             #endif
             .toolbar {
+                #if os(iOS)
+                if let overview {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            // the keyboard stays with this screen; drop it before leaving
+                            fieldFocused = false
+                            overview()
+                        } label: {
+                            HStack(spacing: Tokens.space1) {
+                                Image(systemName: "list.bullet")
+                                Text("Lists")
+                            }
+                        }
+                        .accessibilityIdentifier("all-lists")
+                    }
+                }
+                #endif
                 ToolbarItem(placement: .automatic) { OfflineBadge() }
             }
             .onAppear {

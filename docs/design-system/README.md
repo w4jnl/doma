@@ -133,8 +133,9 @@ than one text field apart from Scan. Anything that does not fit is a long-press 
 row, not a new screen.
 
 - **Tabs.** Lists, Homes, Trip, Family, in that order, with SF Symbols (see Pictograms). On the
-  Mac the same four are sidebar sections. The Lists tab opens into the last-used list, whose
-  title is a menu over the household's lists with *All lists* at its foot; the household name is
+  Mac the same four are sidebar sections. The Lists tab opens into the last-used list, with a
+  *Lists* button at its top left for the overview; a second tap on the tab does the same. The
+  household name is
   the Family screen's subtitle and a switcher over households takes the title's place only when
   the person is in more than one. Section words are subheadline in `ink-muted`, never capitals.
   The accent belongs to what makes something: Add, New list, Invite, Guest link, the selected
