@@ -186,7 +186,11 @@ struct ListView: View {
             }
             #if os(macOS)
             .onKeyPress(.space) { toggleSelected() ? .handled : .ignored }
-            .onKeyPress(.return) { selected == nil ? .ignored : { editSelected(); return .handled }() }
+            .onKeyPress(.return) {
+                guard selected != nil else { return .ignored }
+                editSelected()
+                return .handled
+            }
             .onDeleteCommand { _ = toggleSelected() }
             // typing with the list in front starts an entry, as Finder finds and Things adds
             .onKeyPress(characters: .alphanumerics, phases: .down) { press in
