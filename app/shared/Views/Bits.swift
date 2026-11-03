@@ -2,21 +2,48 @@
 // destructive, relative times, the hairline, the glyph with its word.
 import SwiftUI
 
-/// One small badge in the toolbar when the last sync did not reach the server; never an alert.
+/// One small badge in the toolbar when the family's doma is out of reach; never an alert. It
+/// arrives and leaves like weather, and after an offline spell it says "caught up" once, for
+/// a breath, when everything went up.
 struct OfflineBadge: View {
     @Environment(Session.self) private var session
+    @State private var now = Date()
+
+    private var caughtUp: Bool {
+        guard let at = session.syncer.caughtUpAt else { return false }
+        return now.timeIntervalSince(at) < 1.5
+    }
 
     var body: some View {
-        if session.syncer.offline {
-            HStack(spacing: Tokens.space1) {
-                Text(verbatim: Tokens.Glyph.unknown)
-                Text("offline")
+        Group {
+            if session.syncer.offline {
+                HStack(spacing: Tokens.space1) {
+                    Symbol.unknown.image
+                    Text("offline")
+                }
+                .accessibilityLabel(Text("offline"))
+                .accessibilityIdentifier("offline")
+                .transition(.opacity)
+            } else if caughtUp {
+                HStack(spacing: Tokens.space1) {
+                    Symbol.done.image
+                    Text("caught up")
+                }
+                .accessibilityLabel(Text("caught up"))
+                .transition(.opacity)
             }
-            .font(.footnote)
-            .foregroundStyle(Tokens.inkMuted)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(Text("offline"))
-            .accessibilityIdentifier("offline")
+        }
+        .font(.footnote)
+        .imageScale(.small)
+        .foregroundStyle(Tokens.inkMuted)
+        .accessibilityElement(children: .combine)
+        .animation(.easeInOut(duration: Tokens.motionBase), value: session.syncer.offline)
+        .animation(.easeInOut(duration: Tokens.motionBase), value: caughtUp)
+        .task(id: session.syncer.caughtUpAt) {
+            guard session.syncer.caughtUpAt != nil else { return }
+            now = Date()
+            try? await Task.sleep(for: .seconds(1.5))
+            now = Date()
         }
     }
 }
@@ -31,13 +58,16 @@ struct ArmedButton: View {
     /// which finishes a shop, passes the accent.
     var tint: Color = Tokens.inkMuted
     var action: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var armed = false
+    @State private var fired = 0
     @State private var disarm: Task<Void, Never>?
 
     var body: some View {
         Button(role: armed ? role : nil) {
             if armed {
                 armed = false
+                fired += 1
                 disarm?.cancel()
                 action()
             } else {
@@ -55,12 +85,19 @@ struct ArmedButton: View {
                     .padding(.horizontal, Tokens.space2)
                     .padding(.vertical, Tokens.space1)
                     .background(Tokens.out, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
+                    .scaleEffect(reduceMotion ? 1 : 1)
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.96).combined(with: .opacity))
             } else {
                 Text(title)
+                    .transition(.opacity)
             }
         }
         .buttonStyle(.plain)
         .foregroundStyle(armed ? Tokens.onOut : tint)
+        // arming warns in the hand, the second tap has weight; the 4 s disarm fades back
+        .animation(Motion.of(reduceMotion, .spring(duration: Tokens.motionBase, bounce: 0.2)), value: armed)
+        .sensoryFeedback(.warning, trigger: armed) { _, now in now }
+        .sensoryFeedback(.impact(weight: .medium), trigger: fired)
         .accessibilityHint(armed ? Text("Tap again to confirm") : Text(""))
     }
 }
@@ -77,6 +114,8 @@ struct SectionHeader: View {
         Text(text)
             .font(.subheadline)
             .foregroundStyle(Tokens.inkMuted)
+            .padding(.top, Tokens.space4)
+            .padding(.bottom, Tokens.space1)
             .textCase(nil)
     }
 }

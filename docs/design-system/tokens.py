@@ -9,11 +9,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 t = json.load(open(os.path.join(HERE, 'tokens.json')))
 col = t['color']['tokens']
 size = t['size']['tokens']
+motion = t.get('motion', {}).get('tokens', [])
 
 def theme(th, indent='  '):
     return '\n'.join(f'{indent}--{c["name"]}: {c["value"][th]};' for c in col)
 
-sizes = '\n'.join(f'  --{s["name"]}: {s["value"]};' for s in size)
+sizes = '\n'.join(f'  --{s["name"]}: {s["value"]};' for s in size + motion)
 css = f'''/* doma tokens, generated from tokens.json by tokens.py. Serve fonts/ next to this file (the server embeds both with embed.FS).
    Theme: follows the OS by default. data-theme="light" or "dark" forces one, on <html> or on any element.
    The apps mirror these values in app/shared/Design/Tokens.swift; a test keeps the two equal. */

@@ -1521,6 +1521,22 @@
         }
       }
     },
+    "caught up": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "weer bij"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dobehnuté"
+          }
+        }
+      }
+    },
     "checked, %@ %@": {
       "localizations": {
         "nl": {

@@ -24,7 +24,12 @@ struct ListView: View {
     @State private var usual: [Match] = []
     @State private var matches: [Match] = []
     @State private var text = ""
-    @State private var flash: String?
+    /// Rows to show on `accentSoft` for a moment: one just added, one already on the list, or
+    /// ones that arrived from another device. Entry ids.
+    @State private var flashed: Set<String> = []
+    /// The item just added here, so its row flashes and scrolls into view when it arrives, and
+    /// is not taken for a remote one.
+    @State private var justAdded: String?
     @State private var showRecent = false
     @State private var editing: String?
     @State private var editText = ""
@@ -33,6 +38,9 @@ struct ListView: View {
     @State private var shown: [String: Bool] = [:]
     @State private var release: Task<Void, Never>?
     @State private var strikes = 0
+    @State private var restores = 0
+    @State private var adds = 0
+    @State private var repeats = 0
     @State private var clears = 0
     @FocusState private var fieldFocused: Bool
     @FocusState private var editFocused: Bool
@@ -65,21 +73,34 @@ struct ListView: View {
         let struck = all.filter { !(held[$0.id]?.open ?? !$0.isChecked) }
             .sorted { (held[$0.id]?.sort ?? Self.struckSort($0)) < (held[$1.id]?.sort ?? Self.struckSort($1)) }
         let openCount = all.filter { !$0.isChecked }.count
-        list(all: all, open: open, struck: struck)
+        let ids = open.map(\.id) + ["|"] + struck.map(\.id)
+        ScrollViewReader { proxy in
+            list(all: all, open: open, struck: struck, openCount: openCount)
+                .onChange(of: ids) { before, now in arrived(before: before, now: now, rows: all, proxy: proxy) }
+        }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .environment(\.defaultMinListRowHeight, Self.rowHeight)
+            // the rows come from the store's observation, not from the tap: the list animates
+            // on their identity, so an add, a sink and a clear move instead of redraw
+            .animation(Motion.of(reduceMotion, Motion.base), value: ids)
+            .animation(Motion.of(reduceMotion, .easeInOut(duration: Tokens.motionQuick)), value: editing)
             #if os(iOS)
             .scrollDismissesKeyboard(.immediately)
             #endif
             .background(Tokens.ground)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if editing == nil { addBar }
+                if editing == nil {
+                    addBar
+                        .transition(Motion.arrive(reduceMotion, from: .bottom))
+                }
             }
             .sensoryFeedback(.impact(weight: .light), trigger: strikes)
+            .sensoryFeedback(.selection, trigger: restores)
+            .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: adds)
+            .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.5), trigger: repeats)
             .sensoryFeedback(.success, trigger: clears)
             .navigationTitle(summary?.value?.name ?? "")
-            .navigationSubtitle(subtitle(open: openCount))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
             #else
@@ -153,16 +174,14 @@ struct ListView: View {
     private func paneTitle(open: Int) -> some View {
         VStack(alignment: .leading, spacing: Tokens.space1) {
             Text(summary?.value?.name ?? "")
-                .font(.largeTitle.bold())
+                .font(.title.weight(.semibold))
                 .foregroundStyle(Tokens.ink)
-            subtitle(open: open)
-                .font(.subheadline)
-                .foregroundStyle(Tokens.inkMuted)
+            countRow(open: open)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Tokens.space4)
-        .padding(.top, Tokens.space4)
-        .padding(.bottom, Tokens.space2)
+        .padding(.top, Tokens.space5)
+        .padding(.bottom, Tokens.space3)
         .background(Tokens.ground)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
@@ -176,29 +195,52 @@ struct ListView: View {
     }
     #endif
 
-    /// The list's dot and how many are to get, under the title.
-    private func subtitle(open: Int) -> Text {
-        let dot = Text(verbatim: "● ").foregroundStyle(Tokens.listColor(summary?.value?.colour ?? ""))
-        return dot + (open == 0 ? Text("Nothing to get") : Text("\(open) to get"))
+    /// The list's dot and how many are to get, under the title: the number rolls when it
+    /// changes, which is also how a change from another phone shows itself.
+    private func countRow(open: Int) -> some View {
+        HStack(spacing: Tokens.space2) {
+            ListDot(colour: summary?.value?.colour ?? "")
+            Group {
+                if open == 0 {
+                    Text("Nothing to get")
+                } else {
+                    Text("\(open) to get")
+                }
+            }
+            .font(.subheadline)
+            .foregroundStyle(Tokens.inkMuted)
+            .contentTransition(.numericText(countsDown: true))
+            .animation(Motion.of(reduceMotion, Motion.base), value: open)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
-    private func list(all: [EntryRow], open: [EntryRow], struck: [EntryRow]) -> some View {
+    private func list(all: [EntryRow], open: [EntryRow], struck: [EntryRow], openCount: Int) -> some View {
         #if os(macOS)
-        List(selection: $selected) { sections(all: all, open: open, struck: struck) }
+        List(selection: $selected) { sections(all: all, open: open, struck: struck, openCount: openCount) }
         #else
-        List { sections(all: all, open: open, struck: struck) }
+        List { sections(all: all, open: open, struck: struck, openCount: openCount) }
         #endif
     }
 
     @ViewBuilder
-    private func sections(all: [EntryRow], open: [EntryRow], struck: [EntryRow]) -> some View {
+    private func sections(all: [EntryRow], open: [EntryRow], struck: [EntryRow], openCount: Int) -> some View {
+        #if os(iOS)
+        countRow(open: openCount)
+            .listRowBackground(Tokens.ground)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+            .frame(minHeight: Tokens.space5)
+        #endif
         if all.isEmpty, text.isEmpty {
             emptyState
+                .transition(.opacity.animation(.easeOut(duration: Tokens.motionBase).delay(Tokens.motionQuick)))
         }
         Section {
             ForEach(open) { row in
                 entryRow(row)
+                    .transition(Motion.arrive(reduceMotion, from: .bottom))
                     #if os(macOS)
                     .tag(row.id)
                     #endif
@@ -211,17 +253,50 @@ struct ListView: View {
             Section {
                 ForEach(struck) { row in
                     entryRow(row)
+                        .transition(.opacity)
                         #if os(macOS)
                         .tag(row.id)
                         #endif
                 }
             } header: {
                 dividerRow(count: struck.count)
+                    .transition(.opacity)
             }
             .textCase(nil)
         }
         if let recent = recent?.value, !recent.isEmpty {
             recentSection(recent)
+                .transition(.opacity.animation(.easeOut(duration: Tokens.motionBase).delay(Tokens.motionQuick)))
+        }
+    }
+
+    /// Rows that arrived: the one added here scrolls into view; the others came from another
+    /// device and flash the same way, without a scroll or a haptic.
+    private func arrived(before: [String], now: [String], rows: [EntryRow], proxy: ScrollViewProxy) {
+        let fresh = Set(now).subtracting(before).subtracting(["|"])
+        guard !fresh.isEmpty else { return }
+        var remote = fresh
+        if let item = justAdded, let mine = rows.first(where: { $0.itemID == item && fresh.contains($0.id) }) {
+            remote.remove(mine.id)
+            justAdded = nil
+            if reduceMotion {
+                proxy.scrollTo(mine.id, anchor: .bottom)
+            } else {
+                withAnimation(.snappy(duration: Tokens.motionSettle)) { proxy.scrollTo(mine.id, anchor: .bottom) }
+            }
+            flash([mine.id], for: Tokens.motionBase + Tokens.motionSettle)
+        }
+        if !remote.isEmpty, before.count > 1 {
+            // not on the first load, which arrives whole
+            flash(remote, for: Tokens.motionBase + Tokens.motionSettle)
+        }
+    }
+
+    private func flash(_ ids: Set<String>, for seconds: Double) {
+        flashed.formUnion(ids)
+        Task {
+            try? await Task.sleep(for: .seconds(seconds))
+            flashed.subtract(ids)
         }
     }
 
@@ -245,15 +320,18 @@ struct ListView: View {
             Text("\(count) got")
                 .font(Tokens.mono(.footnote))
                 .foregroundStyle(Tokens.inkMuted)
+                .contentTransition(.numericText())
+                .animation(Motion.of(reduceMotion, Motion.base), value: count)
             Spacer()
-            ArmedButton(title: "Clear", armedTitle: "Really clear?") {
+            ArmedButton(title: "Clear", armedTitle: "Really clear?", tint: Tokens.accent) {
                 clear()
             }
-            .font(.subheadline)
+            .font(.subheadline.weight(.semibold))
             .accessibilityIdentifier("clear")
             .keyboardShortcut(.delete, modifiers: .command)
         }
-        .padding(.vertical, Tokens.space2)
+        .padding(.top, Tokens.space4)
+        .padding(.bottom, Tokens.space2)
     }
 
     // MARK: The add bar, its matches and the usual items
@@ -262,8 +340,10 @@ struct ListView: View {
         VStack(spacing: 0) {
             if !text.isEmpty {
                 suggestionRows
+                    .transition(Motion.arrive(reduceMotion, from: .bottom))
             } else if fieldFocused, !usual.isEmpty {
                 usualChips
+                    .transition(Motion.arrive(reduceMotion, from: .bottom))
             }
             Rectangle()
                 .fill(Tokens.line)
@@ -295,6 +375,9 @@ struct ListView: View {
             .frame(minHeight: ListView.rowHeight)
         }
         .background(Tokens.ground)
+        .animation(Motion.of(reduceMotion, Motion.quick), value: matches.map(\.id))
+        .animation(Motion.of(reduceMotion, Motion.quick), value: text.isEmpty)
+        .animation(Motion.of(reduceMotion, Motion.quick), value: fieldFocused && !usual.isEmpty)
     }
 
     /// The catalog's answers above the bar, the best nearest the thumb; the row nearest the bar
@@ -327,6 +410,7 @@ struct ListView: View {
                 }
                 .buttonStyle(.plain)
                 .background(nearest ? Tokens.accentSoft : Tokens.surface)
+                .transition(.opacity)
                 Rectangle().fill(Tokens.line).frame(height: 1)
             }
             if !exact {
@@ -367,6 +451,7 @@ struct ListView: View {
                             .frame(height: Tokens.chipH)
                             .background(Tokens.surface, in: Capsule())
                             .overlay(Capsule().strokeBorder(Tokens.line))
+                            .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
                 }
@@ -392,12 +477,23 @@ struct ListView: View {
         text = ""
         matches = []
         fieldFocused = true
-        if case .alreadyOpen(let entryID) = outcome {
-            flash = entryID
-            Task {
-                try? await Task.sleep(for: .milliseconds(900))
-                if flash == entryID { flash = nil }
+        switch outcome {
+        case .added(let itemID):
+            // the row arrives through the store's observation; `arrived` scrolls to it and
+            // flashes it, a soft tap says it took
+            justAdded = itemID
+            adds += 1
+            if let row = (rows?.value ?? []).first(where: { $0.itemID == itemID }) {
+                // a struck row restored by the add is there already
+                justAdded = nil
+                flash([row.id], for: Tokens.motionBase + Tokens.motionSettle)
             }
+        case .alreadyOpen(let entryID):
+            // it was there: a harder tap than an add, and the row shows itself longer
+            repeats += 1
+            flash([entryID], for: 0.9)
+        case .nothingTyped:
+            break
         }
     }
 
@@ -414,12 +510,12 @@ struct ListView: View {
             shown[row.id] = nil
             return
         }
-        strikes += 1
+        if wasOpen { strikes += 1 } else { restores += 1 }
         release?.cancel()
         release = Task {
             try? await Task.sleep(for: .seconds(Self.holdSeconds))
             guard !Task.isCancelled else { return }
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) { held = [:] }
+            withAnimation(Motion.of(reduceMotion, Motion.settle)) { held = [:] }
         }
     }
 
@@ -431,7 +527,7 @@ struct ListView: View {
         guard (try? ListActions.clear(listID, in: session)) != nil else { return }
         clears += 1
         release?.cancel()
-        held = [:]
+        withAnimation(Motion.of(reduceMotion, .easeOut(duration: Tokens.motionBase))) { held = [:] }
     }
 
     // MARK: Rows
@@ -449,9 +545,11 @@ struct ListView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("entry-" + row.name)
-            .listRowBackground(flash == row.id ? Tokens.accentSoft : Tokens.ground)
+            .listRowBackground(flashed.contains(row.id) ? Tokens.accentSoft : Tokens.ground)
             .listRowSeparatorTint(Tokens.line)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: flash == row.id)
+            .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+            .alignmentGuide(.listRowSeparatorLeading) { d in d[.leading] + Tokens.space5 + Tokens.space3 }
+            .animation(.easeOut(duration: Tokens.motionBase), value: flashed.contains(row.id))
             #if os(iOS)
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 Button("Edit") { startEdit(row) }
@@ -538,31 +636,35 @@ struct ListView: View {
                     } label: {
                         HStack {
                             Text(r.name)
-                                .foregroundStyle(Tokens.inkMuted)
+                                .foregroundStyle(Tokens.ink)
                             Spacer()
                             RelativeText(millis: r.clearedAt)
                         }
                         .frame(minHeight: Tokens.rowH)
                     }
                     .buttonStyle(.plain)
+                    .transition(.opacity)
                     .listRowBackground(Tokens.ground)
                     .listRowSeparatorTint(Tokens.line)
+                    .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+                    .alignmentGuide(.listRowSeparatorLeading) { d in d[.leading] + Tokens.space5 + Tokens.space3 }
                     .accessibilityHint(Text("Adds it again"))
                 }
             }
         } header: {
             Button {
-                showRecent.toggle()
+                withAnimation(Motion.of(reduceMotion, .easeInOut(duration: Tokens.motionQuick + 0.05))) { showRecent.toggle() }
             } label: {
                 HStack(spacing: Tokens.space1) {
                     Text("Recent")
                         .font(.subheadline)
-                    Image(systemName: showRecent ? "chevron.down" : "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(Tokens.inkFaint)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(showRecent ? 90 : 0))
                 }
                 .foregroundStyle(Tokens.inkMuted)
-                .padding(.vertical, Tokens.space2)
+                .padding(.top, Tokens.space4)
+                .padding(.bottom, Tokens.space2)
             }
             .buttonStyle(.plain)
             .accessibilityValue(showRecent ? Text("open") : Text("collapsed"))
@@ -593,10 +695,10 @@ struct ListView: View {
     }
 }
 
-/// One entry: the glyph in its column, the item in ink, the note in mono ink-muted after it, the
-/// home chip and the quantity in a mono column at the right; struck, the text goes ink-faint
-/// under a line that draws across it and the glyph pops once in accent. VoiceOver reads glyph
-/// and word.
+/// One entry: the open or done symbol in its column, the item in ink, the note after it in the
+/// system face, the home chip and the quantity in a mono column at the right; struck, the text
+/// goes ink-faint under a line that draws across it and the symbol pops once in accent.
+/// VoiceOver reads glyph and word.
 struct EntryRowView: View {
     var row: EntryRow
     var checked: Bool
@@ -605,12 +707,16 @@ struct EntryRowView: View {
 
     var body: some View {
         HStack(spacing: Tokens.space3) {
-            Text(verbatim: checked ? Tokens.Glyph.done : Tokens.Glyph.open)
+            (checked ? Symbol.done : Symbol.open).image
+                .font(.title3)
+                .imageScale(.large)
                 .foregroundStyle(pop ? Tokens.accent : (checked ? Tokens.inkFaint : Tokens.inkMuted))
                 .scaleEffect(pop ? 1.2 : 1)
+                .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
                 .frame(width: Tokens.space5)
                 .accessibilityHidden(true)
             Text(row.name)
+                .font(.body)
                 .foregroundStyle(checked ? Tokens.inkFaint : Tokens.ink)
                 .overlay(alignment: .leading) {
                     Rectangle()
@@ -621,24 +727,26 @@ struct EntryRowView: View {
                 }
             if !row.note.isEmpty {
                 Text(row.note)
-                    .font(Tokens.mono(.subheadline))
+                    .font(.subheadline)
                     .foregroundStyle(checked ? Tokens.inkFaint : Tokens.inkMuted)
                     .lineLimit(1)
+                    .truncationMode(.tail)
             }
             Spacer(minLength: Tokens.space2)
             if let home = row.homeName {
                 Text(home)
-                    .font(.footnote)
+                    .font(.caption)
                     .foregroundStyle(Tokens.inkMuted)
                     .padding(.horizontal, Tokens.space2)
-                    .frame(height: Tokens.chipH)
-                    .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.radiusXS))
-                    .overlay(RoundedRectangle(cornerRadius: Tokens.radiusXS).strokeBorder(Tokens.line))
+                    .frame(height: Tokens.space5)
+                    .background(Tokens.surface, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Tokens.line))
             }
             if !row.quantity.isEmpty {
                 Text(row.quantity)
                     .font(Tokens.mono(.subheadline))
                     .foregroundStyle(checked ? Tokens.inkFaint : Tokens.inkMuted)
+                    .frame(minWidth: Tokens.space7, alignment: .trailing)
             }
         }
         .frame(minHeight: ListView.rowHeight)
@@ -646,7 +754,7 @@ struct EntryRowView: View {
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: checked)
         .onChange(of: checked) { _, now in
             guard now, !reduceMotion else { return }
-            withAnimation(.spring(duration: 0.15)) { pop = true }
+            withAnimation(.spring(duration: Tokens.motionQuick)) { pop = true }
             Task {
                 try? await Task.sleep(for: .milliseconds(200))
                 withAnimation(.easeOut(duration: 0.2)) { pop = false }

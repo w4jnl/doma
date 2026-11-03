@@ -14,9 +14,9 @@ enum Tokens {
     /// web pages' only; the apps use the system's sheets.
     nonisolated static let colors: [String: (dark: UInt32, light: UInt32)] = [
         "ground": (0x1418_1A, 0xF6F8_F8),
-        "surface": (0x1A20_23, 0xFFFF_FF),
+        "surface": (0x1F27_2A, 0xFFFF_FF),
         "surface-sunk": (0x0F12_14, 0xEEF2_F2),
-        "line": (0x2630_34, 0xDCE3_E4),
+        "line": (0x2E39_3D, 0xDCE3_E4),
         "line-strong": (0x6B7A_7D, 0x7E8D_90),
         "ink": (0xF2F5_F5, 0x1418_1A),
         "ink-muted": (0x8A99_9C, 0x5A68_6B),
@@ -99,6 +99,15 @@ enum Tokens {
     static let thumb: CGFloat = 72
     static let contentMax: CGFloat = 720
     static let markMin: CGFloat = 16
+
+    /// The three durations, in milliseconds as tokens.json has them; the apps animate with
+    /// nothing else. Under Reduce Motion only `quick` remains, and only as a crossfade.
+    nonisolated static let motions: [String: Double] = [
+        "motion-quick": 150, "motion-base": 250, "motion-settle": 350,
+    ]
+    static let motionQuick: Double = 0.15
+    static let motionBase: Double = 0.25
+    static let motionSettle: Double = 0.35
 
     /// The glyphs, as tokens.json has them: every flag and list state is a glyph and a word,
     /// never colour alone.

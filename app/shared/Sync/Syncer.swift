@@ -13,6 +13,11 @@ final class Syncer {
     private(set) var syncing = false
     private(set) var lastSyncedAt: Date?
     private(set) var lastError: String?
+    /// When an offline spell ended with something going up: the badge says "caught up" once.
+    private(set) var caughtUpAt: Date?
+    /// Failed exchanges in a row; the badge waits for the second, so one dropped request in a
+    /// shop does not flicker it.
+    private var failures = 0
     /// Events the server refused, kept for Settings and the log.
     private(set) var rejected: [(id: String, reason: String)] = []
 
@@ -92,6 +97,7 @@ final class Syncer {
         guard !scopes.isEmpty else { return }
         syncing = true
         defer { syncing = false }
+        var sentAny = false
         do {
             for _ in 0..<50 {
                 var request = SyncRequest(households: [])
@@ -137,19 +143,24 @@ final class Syncer {
                     if moved { progressed = true }
                 }
                 if !progressed { break }
+                sentAny = sentAny || sent.values.contains { !$0.isEmpty }
             }
+            if offline, sentAny { caughtUpAt = Date() }
             offline = false
+            failures = 0
             lastError = nil
             lastSyncedAt = Date()
         } catch ClientError.unauthorized {
             // this device is revoked: the store for the server goes, the app returns to Scan
             offline = false
+            failures = 0
             lastError = nil
             revoked()
         } catch ClientError.rateLimited(let wait) {
             lastError = "Too many requests; waiting \(Int(wait)) s"
         } catch let e as ClientError {
-            offline = e.isOffline
+            if e.isOffline { failures += 1 }
+            offline = failures >= 2
             if case .problem(let p) = e { lastError = p.message }
             if case .badResponse(let code) = e { lastError = "Unexpected answer (\(code))" }
             let limit = Self.eventsPerRequest
@@ -159,7 +170,8 @@ final class Syncer {
                 }
             }
         } catch {
-            offline = true
+            failures += 1
+            offline = failures >= 2
             lastError = error.localizedDescription
         }
     }
