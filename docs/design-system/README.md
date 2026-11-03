@@ -135,6 +135,9 @@ row, not a new screen.
 - **Tabs.** Lists, Homes, Trip, Family, in that order, with SF Symbols (see Pictograms). On the
   Mac the same four are sidebar sections. The Lists tab opens into the last-used list, with a
   *Lists* button at its top left for the overview; a second tap on the tab does the same. The
+  icon's badge counts what this device has not seen (entries others added since each list was
+  last in front); the overview and the sidebar put an 8pt `accent` dot before a list's count
+  while it holds unseen entries, and a list dots the symbol of each new row for that visit. The
   household name is
   the Family screen's subtitle and a switcher over households takes the title's place only when
   the person is in more than one. Section words are subheadline in `ink-muted`, never capitals.

@@ -41,6 +41,9 @@ struct ListView: View {
     @State private var held: [String: Hold] = [:]
     @State private var shown: [String: Bool] = [:]
     @State private var release: Task<Void, Never>?
+    /// The list's seen mark when this visit began: rows others added after it wear a dot for
+    /// the whole visit, while the mark itself moves on so the icon and the overview settle.
+    @State private var visitMark: String?
     @State private var strikes = 0
     @State private var restores = 0
     @State private var adds = 0
@@ -141,6 +144,8 @@ struct ListView: View {
             }
             .onAppear {
                 observe()
+                visitMark = session.seenMark(household: session.currentHouseholdID ?? "", list: listID) ?? ""
+                markSeen()
                 session.syncer.setPolling(seconds: 5)
                 #if os(iOS)
                 UIApplication.shared.isIdleTimerDisabled = true
@@ -150,6 +155,7 @@ struct ListView: View {
                 #endif
             }
             .onChange(of: session.scope) { observe() }
+            .onChange(of: rows?.value) { markSeen() }
             .onDisappear {
                 // the keyboard belongs to this screen: it goes when the screen goes
                 fieldFocused = false
@@ -396,6 +402,20 @@ struct ListView: View {
             // not on the first load, which arrives whole
             flash(remote, for: Tokens.motionBase + Tokens.motionSettle)
         }
+    }
+
+    /// Everything on the list has been in front: the seen mark moves to the newest entry.
+    private func markSeen() {
+        guard let h = session.currentHouseholdID else { return }
+        let newest = (rows?.value ?? []).map(\.addedHLC).max()
+        guard let newest else { return }
+        session.markSeen(household: h, list: listID, upTo: newest.description)
+    }
+
+    /// Someone else added it after this visit began from the last seen mark.
+    private func isNew(_ row: EntryRow) -> Bool {
+        guard let mark = visitMark, row.addedBy != session.context?.personID else { return false }
+        return row.addedHLC.description > mark
     }
 
     private func flash(_ ids: Set<String>, for seconds: Double) {
@@ -682,11 +702,12 @@ struct ListView: View {
         } else {
             let checked = shown[row.id] ?? row.isChecked
             let gotBy = checked ? session.name(of: row.checkedBy) : nil
+            let fresh = !checked && isNew(row)
             #if os(iOS)
             Button {
                 toggle(row)
             } label: {
-                EntryRowView(row: row, checked: checked, gotBy: gotBy)
+                EntryRowView(row: row, checked: checked, gotBy: gotBy, isNew: fresh)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("entry-" + row.name)
@@ -701,7 +722,7 @@ struct ListView: View {
             }
             #else
             // a click selects, the symbol strikes, a double click or return edits
-            EntryRowView(row: row, checked: checked, gotBy: gotBy, hovered: hovered == row.id) { toggle(row) }
+            EntryRowView(row: row, checked: checked, gotBy: gotBy, isNew: fresh, hovered: hovered == row.id) { toggle(row) }
                 .accessibilityIdentifier("entry-" + row.name)
                 .onTapGesture(count: 2) { startEdit(row) }
                 .onHover { hovered = $0 ? row.id : (hovered == row.id ? nil : hovered) }
@@ -868,6 +889,8 @@ struct EntryRowView: View {
     var checked: Bool
     /// Who struck it, when it was someone else and the household has more than one member.
     var gotBy: String?
+    /// Someone else added it since the list was last in front: a dot on the symbol this visit.
+    var isNew: Bool = false
     /// Under a pointer the row is hovered and the symbol is the strike control.
     var hovered: Bool = false
     var strike: (() -> Void)?
@@ -895,6 +918,9 @@ struct EntryRowView: View {
                 }
             }
             .frame(width: Tokens.space5)
+            .overlay(alignment: .topTrailing) {
+                if isNew { UnseenDot().transition(.opacity) }
+            }
             Text(row.name)
                 .font(.body)
                 .foregroundStyle(checked ? Tokens.inkFaint : Tokens.ink)
@@ -950,7 +976,7 @@ struct EntryRowView: View {
             }
         }
         .accessibilityElement(children: strike == nil ? .ignore : .contain)
-        .accessibilityLabel(Text(checked ? "checked, \(row.name) \(row.detail)\(gotBy.map { ", got by \($0)" } ?? "")" : "\(row.name) \(row.detail)"))
+        .accessibilityLabel(Text(checked ? "checked, \(row.name) \(row.detail)\(gotBy.map { ", got by \($0)" } ?? "")" : "\(isNew ? "new, " : "")\(row.name) \(row.detail)"))
     }
 
     private var symbol: some View {

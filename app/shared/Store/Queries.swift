@@ -13,6 +13,14 @@ struct ListSummary: Identifiable, Hashable, Sendable {
     var colour: String
 }
 
+/// An open entry, light, for counting what is unseen: the stamp is the column's string, which
+/// sorts as the clock does.
+struct OpenMark: Hashable, Sendable {
+    var listID: String
+    var addedHLC: String
+    var addedBy: String
+}
+
 struct EntryRow: Identifiable, Hashable, Sendable {
     var id: String
     var itemID: String
@@ -186,6 +194,19 @@ enum Queries {
     /// Open entries across the shared lists and the person's own: the app icon's badge.
     static func openCount(_ db: Database, _ s: Scope) throws -> Int {
         try lists(db, s).reduce(0) { $0 + $1.openCount }
+    }
+
+    /// Every open entry of the household, light: which list, when it was added and by whom.
+    /// What is unseen on this device is counted over these against the seen marks.
+    static func openMarks(_ db: Database, _ s: Scope) throws -> [OpenMark] {
+        try Row.fetchAll(db, sql: """
+            SELECT e.list_id, e.added_hlc, e.added_by FROM entries e
+            JOIN lists l ON l.server_id = e.server_id AND l.household_id = e.household_id AND l.id = e.list_id
+            WHERE e.server_id = ? AND e.household_id = ? AND e.checked_hlc IS NULL AND e.cleared_hlc IS NULL AND l.archived_hlc IS NULL
+              AND (l.owner_person_id IS NULL OR l.owner_person_id = ?)
+            """, arguments: [s.serverID, s.householdID, s.personID]).map { r in
+            OpenMark(listID: r["list_id"], addedHLC: r["added_hlc"], addedBy: r["added_by"] ?? "")
+        }
     }
 
     /// Items on a list other than one, for Merge with: the ones a person sees side by side.
