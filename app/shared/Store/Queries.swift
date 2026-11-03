@@ -25,6 +25,9 @@ struct EntryRow: Identifiable, Hashable, Sendable {
     var sort: Double
     var addedHLC: HLC
     var checkedHLC: HLC?
+    /// Who added it and who struck it: person ids from the events, named by the screen.
+    var addedBy: String = ""
+    var checkedBy: String?
 
     var isChecked: Bool { checkedHLC != nil }
 
@@ -96,7 +99,8 @@ enum Queries {
             WHERE e.server_id = ? AND e.household_id = ? AND e.list_id = ? AND e.cleared_hlc IS NULL
             """, arguments: [s.serverID, s.householdID, listID]).map { r in
             EntryRow(id: r["id"], itemID: r["item_id"], name: r["item_name"], note: r["note"], qty: r["qty"], unit: r["unit"], forHomeID: r["for_home_id"], homeName: r["home_name"],
-                     sort: r["sort"], addedHLC: HLC(column: r["added_hlc"]) ?? HLC(wall: 0, device: "-"), checkedHLC: HLC(column: r["checked_hlc"]))
+                     sort: r["sort"], addedHLC: HLC(column: r["added_hlc"]) ?? HLC(wall: 0, device: "-"), checkedHLC: HLC(column: r["checked_hlc"]),
+                     addedBy: r["added_by"] ?? "", checkedBy: r["checked_by"])
         }
         let open = rows.filter { !$0.isChecked }.sorted { ($0.sort, $0.addedHLC) < ($1.sort, $1.addedHLC) }
         let struck = rows.filter(\.isChecked).sorted { $0.checkedHLC! > $1.checkedHLC! }

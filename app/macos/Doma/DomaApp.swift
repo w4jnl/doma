@@ -31,7 +31,10 @@ struct DomaApp: App {
         .defaultSize(width: 960, height: 640)
         .onChange(of: phase) {
             if phase == .active, session.hasHousehold {
-                Task { await session.syncer.sync() }
+                Task {
+                    await session.syncer.sync()
+                    await session.refreshMemberships()
+                }
             }
         }
         .commands {

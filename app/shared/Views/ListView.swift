@@ -681,11 +681,12 @@ struct ListView: View {
             editRow(row)
         } else {
             let checked = shown[row.id] ?? row.isChecked
+            let gotBy = checked ? session.name(of: row.checkedBy) : nil
             #if os(iOS)
             Button {
                 toggle(row)
             } label: {
-                EntryRowView(row: row, checked: checked)
+                EntryRowView(row: row, checked: checked, gotBy: gotBy)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("entry-" + row.name)
@@ -700,7 +701,7 @@ struct ListView: View {
             }
             #else
             // a click selects, the symbol strikes, a double click or return edits
-            EntryRowView(row: row, checked: checked, hovered: hovered == row.id) { toggle(row) }
+            EntryRowView(row: row, checked: checked, gotBy: gotBy, hovered: hovered == row.id) { toggle(row) }
                 .accessibilityIdentifier("entry-" + row.name)
                 .onTapGesture(count: 2) { startEdit(row) }
                 .onHover { hovered = $0 ? row.id : (hovered == row.id ? nil : hovered) }
@@ -865,6 +866,8 @@ struct ListView: View {
 struct EntryRowView: View {
     var row: EntryRow
     var checked: Bool
+    /// Who struck it, when it was someone else and the household has more than one member.
+    var gotBy: String?
     /// Under a pointer the row is hovered and the symbol is the strike control.
     var hovered: Bool = false
     var strike: (() -> Void)?
@@ -909,6 +912,13 @@ struct EntryRowView: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
+            if let gotBy {
+                Text(gotBy)
+                    .font(.caption)
+                    .foregroundStyle(Tokens.inkFaint)
+                    .lineLimit(1)
+                    .transition(.opacity)
+            }
             Spacer(minLength: Tokens.space2)
             if let home = row.homeName {
                 Text(home)
@@ -940,7 +950,7 @@ struct EntryRowView: View {
             }
         }
         .accessibilityElement(children: strike == nil ? .ignore : .contain)
-        .accessibilityLabel(Text(checked ? "checked, \(row.name) \(row.detail)" : "\(row.name) \(row.detail)"))
+        .accessibilityLabel(Text(checked ? "checked, \(row.name) \(row.detail)\(gotBy.map { ", got by \($0)" } ?? "")" : "\(row.name) \(row.detail)"))
     }
 
     private var symbol: some View {
