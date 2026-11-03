@@ -20,7 +20,6 @@ struct SettingsView: View {
             Section {
                 LabeledContent("Name") {
                     Text(model?.devices.first { $0.id == session.context?.credentialID }?.label ?? Session.deviceLabel)
-                        .font(Tokens.mono(.body))
                 }
                 if let c = session.context {
                     LabeledContent("You") { Text(c.displayName) }
@@ -28,7 +27,7 @@ struct SettingsView: View {
             } header: {
                 SectionHeader("This device")
             }
-            .listRowBackground(Tokens.ground)
+            .listRowBackground(FamilyView.rowGround)
             .listRowSeparatorTint(Tokens.line)
             if isOwner, !(homes?.value ?? []).isEmpty {
                 Section {
@@ -41,13 +40,14 @@ struct SettingsView: View {
                     .onChange(of: staleness) { _, v in
                         Task { await model?.setStaleness(days: Int64(v)) }
                     }
+                } header: {
+                    SectionHeader("Flags")
+                } footer: {
                     Text("A flag older than this shows as unknown, and the home screen asks whether it is still there.")
                         .font(.footnote)
                         .foregroundStyle(Tokens.inkMuted)
-                } header: {
-                    SectionHeader("Flags")
                 }
-                .listRowBackground(Tokens.ground)
+                .listRowBackground(FamilyView.rowGround)
                 .listRowSeparatorTint(Tokens.line)
             }
             if let m = model {
@@ -71,9 +71,10 @@ struct SettingsView: View {
                                     Task { await m.revoke(device: d.id) }
                                 }
                             } else {
-                                Text("this one")
-                                    .font(.footnote)
-                                    .foregroundStyle(Tokens.inkMuted)
+                                Image(systemName: "checkmark")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Tokens.accent)
+                                    .accessibilityLabel(Text("this device"))
                             }
                         }
                     }
@@ -91,13 +92,14 @@ struct SettingsView: View {
                     .buttonStyle(.plain)
                     .disabled(makingDevice)
                     .accessibilityIdentifier("add-device")
+                } header: {
+                    SectionHeader("Your devices")
+                } footer: {
                     Text("Show the code to your Mac or your new phone; it joins as you.")
                         .font(.footnote)
                         .foregroundStyle(Tokens.inkMuted)
-                } header: {
-                    SectionHeader("Your devices")
                 }
-                .listRowBackground(Tokens.ground)
+                .listRowBackground(FamilyView.rowGround)
                 .listRowSeparatorTint(Tokens.line)
             }
             if let m = model, !session.syncer.rejected.isEmpty {
@@ -110,7 +112,7 @@ struct SettingsView: View {
                 } header: {
                     SectionHeader("Not accepted")
                 }
-                .listRowBackground(Tokens.ground)
+                .listRowBackground(FamilyView.rowGround)
                 .listRowSeparatorTint(Tokens.line)
                 .onAppear { _ = m }
             }
@@ -139,10 +141,14 @@ struct SettingsView: View {
             } header: {
                 SectionHeader("About")
             }
-            .listRowBackground(Tokens.ground)
+            .listRowBackground(FamilyView.rowGround)
             .listRowSeparatorTint(Tokens.line)
         }
+        #if os(iOS)
+        .listStyle(.insetGrouped)
+        #else
         .listStyle(.plain)
+        #endif
         .textCase(nil)
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
@@ -150,11 +156,13 @@ struct SettingsView: View {
         .navigationDestination(item: $deviceInvite) { inv in
             InviteSheet(invite: inv)
         }
+        #if os(macOS)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
             }
         }
+        #endif
         .onAppear {
             staleness = Double(session.current?.stalenessDays ?? 14)
         }

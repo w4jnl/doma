@@ -33,6 +33,7 @@ struct ScanView: View {
                     }
                     .frame(maxWidth: 480, maxHeight: 480)
                     .clipShape(RoundedRectangle(cornerRadius: Tokens.radiusMD))
+                    .overlay(RoundedRectangle(cornerRadius: Tokens.radiusMD).strokeBorder(Tokens.line))
                     .padding(.horizontal, Tokens.space4)
                     .accessibilityLabel(Text("Camera"))
                 }
@@ -71,6 +72,8 @@ struct ScanView: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
                         .accessibilityIdentifier("join")
                         .disabled(busy || link.trimmingCharacters(in: .whitespaces).isEmpty || (needsName && name.trimmingCharacters(in: .whitespaces).isEmpty))
                     }

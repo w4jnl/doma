@@ -6,6 +6,13 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The phone's material.** The add bar is a glass capsule floating over the tab bar, matches
+  and chips in the same glass; the tab bar shrinks on scroll. The Lists overview, Family and
+  Settings are grouped inset lists with help as footers; the new-list form is two rows with
+  Cancel and Create in the toolbar. Invite is the one prominent button; Guest link and Settings
+  are plain; Remove and Revoke sit behind a swipe and a long press and arm in the row. Settings,
+  an invite and a guest link open one level down instead of as sheets. The divider is a row,
+  the first frame is the brand's ground.
 - **Rows and motion.** The entry row carries the brand's own open and done symbols, hairlines
   from the name, a quantity column and the note in the system face; the title has a real dot and
   a count that rolls. The list animates: an add scrolls into view with a flash and a soft tap, a

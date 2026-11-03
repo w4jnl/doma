@@ -26,15 +26,18 @@ struct MainView: View {
 
     var body: some View {
         TabView(selection: selection) {
-            ListsHome(again: listsAgain)
-                .tabItem { Label("Lists", systemImage: "list.bullet") }
-            .tag(Tab.lists)
-            NavigationStack {
-                FamilyView()
+            SwiftUI.Tab("Lists", systemImage: "list.bullet", value: Tab.lists) {
+                ListsHome(again: listsAgain)
             }
-            .tabItem { Label("Family", systemImage: "person.2") }
-            .tag(Tab.family)
+            SwiftUI.Tab("Family", systemImage: "person.2", value: Tab.family) {
+                NavigationStack {
+                    FamilyView()
+                }
+            }
         }
+        #if os(iOS)
+        .tabBarMinimizeBehavior(.onScrollDown)
+        #endif
         .modifier(Badge())
     }
 }

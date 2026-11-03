@@ -12,6 +12,7 @@ struct ListsView: View {
     @State private var adding = false
     @State private var newName = ""
     @State private var personal = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var renaming: String?
     @State private var renameText = ""
     @State private var renameColour = ""
@@ -27,9 +28,8 @@ struct ListsView: View {
         let open = all.reduce(0) { $0 + $1.openCount }
         List {
             if adding {
-                Section {
-                    newListRow
-                }
+                newListSection
+                    .transition(Motion.arrive(reduceMotion, from: .top))
             }
             Section {
                 ForEach(shared) { l in
@@ -42,17 +42,22 @@ struct ListsView: View {
                 ForEach(mine) { l in
                     row(l)
                 }
+            } header: {
+                SectionHeader("Just me")
+            } footer: {
                 if mine.isEmpty {
                     Text("A list only you see. Tap + and choose Just me.")
                         .font(.footnote)
                         .foregroundStyle(Tokens.inkMuted)
-                        .listRowBackground(Tokens.ground)
                 }
-            } header: {
-                SectionHeader("Just me")
             }
         }
+        #if os(iOS)
+        .listStyle(.insetGrouped)
+        #else
         .listStyle(.plain)
+        #endif
+        .animation(Motion.of(reduceMotion, Motion.base), value: adding)
         .textCase(nil)
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
@@ -66,15 +71,28 @@ struct ListsView: View {
             ToolbarItem(placement: .automatic) {
                 OfflineBadge()
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    adding.toggle()
-                    if adding { nameFocused = true }
-                } label: {
-                    Label("New list", systemImage: "plus")
+            if adding {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        adding = false
+                        newName = ""
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut("n", modifiers: .command)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Create list", action: create)
+                        .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            } else {
+                ToolbarItem(placement: .primaryAction) {
+                    // the system's glass circle carries the shape; the accent tint says it makes something
+                    Button {
+                        adding = true
+                        nameFocused = true
+                    } label: {
+                        Label("New list", systemImage: "plus")
+                    }
+                    .keyboardShortcut("n", modifiers: .command)
+                }
             }
         }
         .onAppear(perform: observe)
@@ -107,7 +125,7 @@ struct ListsView: View {
                     }
                 }
             }
-            .listRowBackground(Tokens.ground)
+            .listRowBackground(Self.rowGround)
             .listRowSeparatorTint(Tokens.line)
             .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
             .alignmentGuide(.listRowSeparatorLeading) { d in d[.leading] + Tokens.space5 + Tokens.space3 }
@@ -181,7 +199,7 @@ struct ListsView: View {
             }
         }
         .padding(.vertical, Tokens.space1)
-        .listRowBackground(Tokens.surface)
+        .listRowBackground(Self.rowGround)
     }
 
     private func startRename(_ l: ListSummary) {
@@ -208,44 +226,34 @@ struct ListsView: View {
 
     // MARK: New list
 
-    private var newListRow: some View {
-        VStack(alignment: .leading, spacing: Tokens.space2) {
-            Text("New list")
-                .font(.headline)
-                .foregroundStyle(Tokens.ink)
+    /// Two rows while a list is being made: the name and who sees it; Cancel and Create live
+    /// in the toolbar, as the system does it.
+    private var newListSection: some View {
+        Section {
             TextField("List name", text: $newName)
                 .focused($nameFocused)
-                .textFieldStyle(.plain)
                 .submitLabel(.done)
-                .padding(Tokens.space2)
-                .background(Tokens.surfaceSunk, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
-                .overlay(RoundedRectangle(cornerRadius: Tokens.radiusSM).strokeBorder(Tokens.line))
                 .onSubmit(create)
                 .accessibilityLabel(Text("List name"))
-            Text("Who sees it")
-                .font(.footnote)
-                .foregroundStyle(Tokens.inkMuted)
+                .listRowBackground(Self.rowGround)
             Picker("Who sees it", selection: $personal) {
                 Text("Household").tag(false)
                 Text("Just me").tag(true)
             }
             .pickerStyle(.segmented)
-            .labelsHidden()
-            HStack {
-                Button("Cancel") {
-                    adding = false
-                    newName = ""
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Tokens.inkMuted)
-                Spacer()
-                Button("Create list", action: create)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
+            .listRowBackground(Self.rowGround)
+        } header: {
+            SectionHeader("New list")
         }
-        .padding(.vertical, Tokens.space2)
-        .listRowBackground(Tokens.surface)
+    }
+
+    /// Rows sit on `surface` in the phone's grouped list and on `ground` in the Mac's plain one.
+    static var rowGround: Color {
+        #if os(iOS)
+        Tokens.surface
+        #else
+        Tokens.ground
+        #endif
     }
 
     private func create() {
