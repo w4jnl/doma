@@ -6,6 +6,12 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Where you left off.** The apps open on the household and the screen last in front: the tab
+  on the phone, the list or Family in the Mac's sidebar, the list within a household as before.
+  A device that has lost its key says so in Settings and wears the offline badge instead of
+  looking fine and never syncing; a device that joins again follows its new key. A Mac debug
+  build can sign with a named identity (`DOMA_MAC_IDENTITY` in Local.xcconfig) so the Keychain
+  keeps its key across rebuilds.
 - **Unseen, not open.** The icon's badge counts what this device has not seen: entries others
   added since each list was last in front, falling as lists are opened. The overview and the
   Mac's sidebar put an accent dot before a list's count while it holds unseen entries, and in

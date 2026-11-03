@@ -1,3 +1,8 @@
 // Copy to Local.xcconfig (gitignored; make mac-project writes an empty one). Your Apple team id;
 // it can stay empty for a build that runs on this Mac only.
 DOMA_TEAM_ID =
+
+// The identity a debug build signs with. Leave it out for an ad hoc build that runs on this Mac
+// only; set it to keep the device key across rebuilds, since each ad hoc build is a new app to
+// the Keychain and loses the key the last one stored.
+// DOMA_MAC_IDENTITY = Apple Development

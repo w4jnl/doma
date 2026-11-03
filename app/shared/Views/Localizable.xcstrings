@@ -1393,6 +1393,22 @@
         }
       }
     },
+    "This device lost its key to the family's doma. Add it again from Settings on your phone.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dit apparaat is zijn sleutel tot de doma van de familie kwijt. Voeg het opnieuw toe via Instellingen op je telefoon."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toto zariadenie stratilo svoj kľúč k rodinnej dome. Pridaj ho znova cez Nastavenia v telefóne."
+          }
+        }
+      }
+    },
     "Too many requests. Try again in a moment.": {
       "localizations": {
         "nl": {

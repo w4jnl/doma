@@ -11,10 +11,11 @@ import UserNotifications
 
 struct MainView: View {
     @Environment(Session.self) private var session
-    @State private var tab = Tab.lists
+    // the tab last in front comes back at the next launch; a UI test always starts on Lists
+    @State private var tab = UITestHooks.testing ? Tab.lists : (Tab(rawValue: UserDefaults.standard.string(forKey: "tab.current") ?? "") ?? .lists)
     @State private var listsAgain = 0
 
-    enum Tab: Hashable { case lists, family }
+    enum Tab: String, Hashable { case lists, family }
 
     /// The tab on screen; tapping Lists while it is already up steps between the list and the
     /// overview, the way a tab's second tap goes to its root.
@@ -22,6 +23,8 @@ struct MainView: View {
         Binding(get: { tab }, set: { new in
             if new == tab, new == .lists { listsAgain += 1 }
             tab = new
+            // the screen last in front comes back at the next launch
+            UserDefaults.standard.set(new.rawValue, forKey: "tab.current")
         })
     }
 

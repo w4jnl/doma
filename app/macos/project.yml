@@ -52,7 +52,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_ENTITLEMENTS: Doma/Doma.entitlements
-        CODE_SIGN_IDENTITY: "-"
+        # ad hoc unless Local.xcconfig names an identity: an ad hoc build gets a new identity
+        # every time, and the Keychain then denies it the key the last build stored
+        CODE_SIGN_IDENTITY: "$(DOMA_MAC_IDENTITY:default=-)"
     info:
       path: Doma/Info.plist
       properties:
@@ -78,7 +80,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: nl.w4j.doma.mac.tests
-        CODE_SIGN_IDENTITY: "-"
+        # ad hoc unless Local.xcconfig names an identity: an ad hoc build gets a new identity
+        # every time, and the Keychain then denies it the key the last build stored
+        CODE_SIGN_IDENTITY: "$(DOMA_MAC_IDENTITY:default=-)"
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/doma.app/Contents/MacOS/doma
         BUNDLE_LOADER: $(TEST_HOST)
         GENERATE_INFOPLIST_FILE: true
