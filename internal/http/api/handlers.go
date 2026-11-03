@@ -55,6 +55,8 @@ type inviteDTO struct {
 	CreatedBy *string `json:"created_by,omitempty"`
 	// URL and QR are present on the one response that creates the invite.
 	URL string `json:"url,omitempty"`
+	// Device: the invite adds a device to its maker instead of a member.
+	Device bool `json:"device,omitempty"`
 }
 
 func (a *API) householdDTO(h *domain.Household) householdDTO {
@@ -81,7 +83,7 @@ func (a *API) acceptInvite(w http.ResponseWriter, r *http.Request, c *Caller) er
 		return err
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{
-		"server": acc.Server, "person_id": acc.PersonID, "credential_id": acc.CredentialID,
+		"server": acc.Server, "person_id": acc.PersonID, "credential_id": acc.CredentialID, "display_name": acc.DisplayName,
 		"household": a.householdDTO(&acc.Household), "role": acc.Role,
 	})
 	return nil
@@ -202,19 +204,28 @@ func (a *API) invites(w http.ResponseWriter, r *http.Request, c *Caller) error {
 	return nil
 }
 
-// createInvite: POST /api/v1/h/{household}/invites.
+// createInvite: POST /api/v1/h/{household}/invites. {"device": true} makes a
+// device invite for the caller, any member; {"role": ...} a household invite,
+// owners only.
 func (a *API) createInvite(w http.ResponseWriter, r *http.Request, c *Caller) error {
 	var req struct {
-		Role string `json:"role"`
+		Role   string `json:"role"`
+		Device bool   `json:"device"`
 	}
 	if err := decodeJSON(c.Body, &req); err != nil {
 		return err
 	}
-	inv, err := a.svc.CreateInvite(r.Context(), c.Scope, domain.Role(req.Role))
+	var inv *service.NewInvite
+	var err error
+	if req.Device {
+		inv, err = a.svc.CreateDeviceInvite(r.Context(), c.Scope)
+	} else {
+		inv, err = a.svc.CreateInvite(r.Context(), c.Scope, domain.Role(req.Role))
+	}
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusCreated, inviteDTO{ID: inv.Invite.ID, Role: string(inv.Invite.Role), ExpiresAt: inv.Invite.ExpiresAt, CreatedBy: inv.Invite.CreatedBy, URL: inv.URL})
+	writeJSON(w, http.StatusCreated, inviteDTO{ID: inv.Invite.ID, Role: string(inv.Invite.Role), ExpiresAt: inv.Invite.ExpiresAt, CreatedBy: inv.Invite.CreatedBy, URL: inv.URL, Device: inv.Invite.IsDevice()})
 	return nil
 }
 

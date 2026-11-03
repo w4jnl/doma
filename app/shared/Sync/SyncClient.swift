@@ -35,11 +35,14 @@ struct Accepted: Decodable, Sendable {
     var server: String
     var personID: String
     var credentialID: String
+    /// The name the family knows the person by; a device invite's answer carries the
+    /// person's, not what the new device typed.
+    var displayName: String?
     var household: AcceptedHousehold
     var role: String
     enum CodingKeys: String, CodingKey {
         case server, household, role
-        case personID = "person_id", credentialID = "credential_id"
+        case personID = "person_id", credentialID = "credential_id", displayName = "display_name"
     }
 }
 

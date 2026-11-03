@@ -176,6 +176,9 @@ func TestMembersRolesAndBoundaries(t *testing.T) {
 		t.Errorf("unknown household: %d", rec.Code)
 	}
 	// a member may not invite, change roles or rename
+	if rec, out := member.do(http.MethodPost, base+"/invites", map[string]any{"device": true}); rec.Code != http.StatusCreated || out["device"] != true || out["url"] == nil {
+		t.Errorf("a member's device invite: %d %v", rec.Code, out)
+	}
 	if rec, _ := member.do(http.MethodPost, base+"/invites", map[string]string{"role": "member"}); rec.Code != http.StatusForbidden {
 		t.Errorf("member inviting: %d", rec.Code)
 	}

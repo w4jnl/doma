@@ -175,8 +175,10 @@ final class DomaUITests: XCTestCase {
         app.swipeDown()
         app.tabBars.buttons["Family"].tap()
         app.buttons["Settings"].tap()
+        // About is at the foot, under the person's devices; scroll it into the list's view
         let waiting = app.descendants(matching: .any)["waiting"]
-        XCTAssertTrue(waiting.waitForExistence(timeout: 5), "item.named and entry.added wait")
+        for _ in 0..<3 where !waiting.waitForExistence(timeout: 2) { app.swipeUp() }
+        XCTAssertTrue(waiting.exists, "item.named and entry.added wait")
         // the network comes back: the outbox drains and the row goes
         let deadline = Date().addingTimeInterval(40)
         while app.descendants(matching: .any)["waiting"].exists, Date() < deadline {

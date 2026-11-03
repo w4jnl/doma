@@ -95,6 +95,7 @@ type Invite struct {
 	UsedBy      *string
 	UsedAt      *int64
 	RevokedAt   *int64
+	ForPersonID *string
 }
 
 type Item struct {

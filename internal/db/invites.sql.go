@@ -10,7 +10,7 @@ import (
 )
 
 const getInviteByHash = `-- name: GetInviteByHash :one
-SELECT id, household_id, role, token_hash, created_by, expires_at, used_by, used_at, revoked_at FROM invites WHERE token_hash = ?
+SELECT id, household_id, role, token_hash, created_by, expires_at, used_by, used_at, revoked_at, for_person_id FROM invites WHERE token_hash = ?
 `
 
 // tenancy: root -- the token is the only thing an invite link carries
@@ -27,13 +27,14 @@ func (q *Queries) GetInviteByHash(ctx context.Context, tokenHash []byte) (Invite
 		&i.UsedBy,
 		&i.UsedAt,
 		&i.RevokedAt,
+		&i.ForPersonID,
 	)
 	return i, err
 }
 
 const insertInvite = `-- name: InsertInvite :exec
-INSERT INTO invites (id, household_id, role, token_hash, created_by, expires_at)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO invites (id, household_id, role, token_hash, created_by, expires_at, for_person_id)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertInviteParams struct {
@@ -43,6 +44,7 @@ type InsertInviteParams struct {
 	TokenHash   []byte
 	CreatedBy   *string
 	ExpiresAt   int64
+	ForPersonID *string
 }
 
 func (q *Queries) InsertInvite(ctx context.Context, arg InsertInviteParams) error {
@@ -53,13 +55,14 @@ func (q *Queries) InsertInvite(ctx context.Context, arg InsertInviteParams) erro
 		arg.TokenHash,
 		arg.CreatedBy,
 		arg.ExpiresAt,
+		arg.ForPersonID,
 	)
 	return err
 }
 
 const invitesForHousehold = `-- name: InvitesForHousehold :many
-SELECT id, household_id, role, token_hash, created_by, expires_at, used_by, used_at, revoked_at FROM invites
-WHERE household_id = ? AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?
+SELECT id, household_id, role, token_hash, created_by, expires_at, used_by, used_at, revoked_at, for_person_id FROM invites
+WHERE household_id = ? AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ? AND for_person_id IS NULL
 ORDER BY expires_at
 `
 
@@ -68,6 +71,7 @@ type InvitesForHouseholdParams struct {
 	ExpiresAt   int64
 }
 
+// the household's pending invites; a device invite is its person's and is not among them
 func (q *Queries) InvitesForHousehold(ctx context.Context, arg InvitesForHouseholdParams) ([]Invite, error) {
 	rows, err := q.db.QueryContext(ctx, invitesForHousehold, arg.HouseholdID, arg.ExpiresAt)
 	if err != nil {
@@ -87,6 +91,7 @@ func (q *Queries) InvitesForHousehold(ctx context.Context, arg InvitesForHouseho
 			&i.UsedBy,
 			&i.UsedAt,
 			&i.RevokedAt,
+			&i.ForPersonID,
 		); err != nil {
 			return nil, err
 		}

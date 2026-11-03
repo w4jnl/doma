@@ -65,6 +65,8 @@ A guest link is the same flow without an app: the owner picks a home and a list,
 
 An owner who belongs to a second household accepts a second invite the same way; the app adds the household to its switcher. If the second household lives on a different server, the app stores a second server context; v1 ships with a single context and refuses a second with a clear message (see open decisions).
 
+A second device of the same person, a Mac or a new phone, joins through *Add a device* in Settings: a one-use invite bound to the person, valid a day, shown as a QR. The new device scans it like any invite and gets its own key under the same name and every household the person is in; it never becomes a second member. A device invite is not among the household's pending invites.
+
 **Roles**
 
 | Action | guest | member | owner | admin (server) |
@@ -165,7 +167,7 @@ Eighteen tables. Four are instance-level (persons, credentials, households, admi
 | `credentials` | `id`, `person_id`, `kind` (`device_key` / `passkey` / `guest_link`), `public_key` or `hash`, `label` ("J's iPhone"), `platform`, `apns_token` (nullable), `created_at`, `last_used_at`, `revoked_at` | a device is a credential; passkeys are a later kind, same table; guest links are credentials of a throwaway person with `kind = guest_link` |
 | `households` | `id`, `slug`, `name`, `timezone`, `quota_devices`, `quota_photo_bytes`, `created_at` | quotas null = unlimited; `slug` is used in export paths only, never in URLs a family sees |
 | `memberships` | `person_id`, `household_id`, `role` (`owner` / `member` / `guest`), `home_id` (guests only), `list_id` (guests only), `expires_at` (guests only), `created_at` | primary key (`person_id`, `household_id`); a guest membership is what a guest link resolves to |
-| `invites` | `id`, `household_id`, `role`, `token_hash`, `created_by`, `expires_at`, `used_by`, `used_at`, `revoked_at` | one use; the QR encodes `https://<base_url>/i/<token>` |
+| `invites` | `id`, `household_id`, `role`, `token_hash`, `created_by`, `expires_at`, `used_by`, `used_at`, `revoked_at`, `for_person_id` (nullable) | one use; the QR encodes `https://<base_url>/i/<token>`; with `for_person_id` set it is a device invite: accepting adds a key to that person instead of a person to the household |
 | `admin` | `id`, `login`, `password_hash`, `totp_secret` (nullable), `created_at` | one row; the server pages' login; argon2id |
 
 **Household data**
@@ -350,7 +352,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | Home | staples grouped by spot with flag buttons; other flagged items; *Take photos*; manage staples and spots behind Edit | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
 | Trip | from/to pickers, date; Bring, Buy, Check on arrival groups; *Arrived* | `entry.added`, `trip.arrived` |
 | Family | household name, members with role and last seen, pending invites, guest links, Invite, Guest link, Leave; household switcher at the top when the person is in more than one | invites and guests through the REST API, not events |
-| Settings | this device's name, staleness (owners), notifications later, About with server name and version | REST |
+| Settings | this device's name, staleness (owners), the person's devices with Revoke and *Add a device* (a QR the new device scans to join as the same person), notifications later, About with server name and version | REST |
 
 **Interaction rules**
 
@@ -426,9 +428,9 @@ Three surfaces on one router: the sync endpoint for the apps, a REST API for eve
 | `GET /sync/v1/snapshot/{household}/{seq}` | gzip JSON snapshot download |
 | `POST /photos/v1/{household}/{photo_id}` | JPEG upload for an accepted `photo.added`; 413 over quota |
 | `GET /photos/v1/{household}/{photo_id}[/thumb]` | signed, cacheable 1 h |
-| `POST /i/{token}` | accept an invite: body `{public_key, platform, label, display_name}`; returns `{server, person_id, credential_id, household}`; `GET /i/{token}` renders the App Store page with the deep link |
+| `POST /i/{token}` | accept an invite: body `{public_key, platform, label, display_name}`; returns `{server, person_id, credential_id, display_name, household, role}`; for a device invite the person's name wins over the typed one; `GET /i/{token}` renders the App Store page with the deep link |
 | `GET /api/v1/me` | person, credentials, memberships with roles |
-| `GET` and `POST /api/v1/h/{household}/invites` · `DELETE /api/v1/h/{household}/invites/{id}` | owners |
+| `GET` and `POST /api/v1/h/{household}/invites` · `DELETE /api/v1/h/{household}/invites/{id}` | owners; `POST` with `{device: true}` is any member's, for a device of their own, valid a day, not listed among the household's |
 | `GET` and `POST /api/v1/h/{household}/guests` · `DELETE …/guests/{id}` | owners; body `{home_id, list_id, label, days}` |
 | `GET /api/v1/h/{household}/members` · `DELETE …/members/{person}` · `PUT …/members/{person}/role` | owners; the last owner cannot be removed or demoted |
 | `DELETE /api/v1/credentials/{id}` | a person revokes their own device; owners revoke any device in their household |

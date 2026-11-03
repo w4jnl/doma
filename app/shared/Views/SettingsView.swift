@@ -10,6 +10,8 @@ struct SettingsView: View {
     @State private var staleness: Double = 14
     @State private var waiting: Live<Int>?
     @State private var homes: Live<[HomeRow]>?
+    @State private var deviceInvite: Invite?
+    @State private var makingDevice = false
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
 
@@ -48,7 +50,7 @@ struct SettingsView: View {
                 .listRowBackground(Tokens.ground)
                 .listRowSeparatorTint(Tokens.line)
             }
-            if let m = model, m.devices.count > 1 {
+            if let m = model {
                 Section {
                     ForEach(m.devices) { d in
                         HStack {
@@ -75,6 +77,23 @@ struct SettingsView: View {
                             }
                         }
                     }
+                    Button {
+                        guard !makingDevice else { return }
+                        makingDevice = true
+                        Task {
+                            deviceInvite = await m.deviceInvite()
+                            makingDevice = false
+                        }
+                    } label: {
+                        Label("Add a device", systemImage: "plus")
+                            .foregroundStyle(Tokens.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(makingDevice)
+                    .accessibilityIdentifier("add-device")
+                    Text("Show the code to your Mac or your new phone; it joins as you.")
+                        .font(.footnote)
+                        .foregroundStyle(Tokens.inkMuted)
                 } header: {
                     SectionHeader("Your devices")
                 }
@@ -128,6 +147,9 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
         .navigationTitle("Settings")
+        .navigationDestination(item: $deviceInvite) { inv in
+            InviteSheet(invite: inv)
+        }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }

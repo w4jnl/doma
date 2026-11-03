@@ -78,4 +78,10 @@ type Invite struct {
 	UsedBy      *string
 	UsedAt      *int64
 	RevokedAt   *int64
+	// ForPersonID makes it a device invite: accepting it adds a device to
+	// that person instead of making a new one.
+	ForPersonID *string
 }
+
+// IsDevice says whether accepting the invite adds a device to a person.
+func (i Invite) IsDevice() bool { return i.ForPersonID != nil }

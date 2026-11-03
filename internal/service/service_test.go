@@ -84,6 +84,68 @@ func TestCreateHouseholdMakesListAndHome(t *testing.T) {
 	}
 }
 
+func TestDeviceInvite(t *testing.T) {
+	s := newService(t)
+	ctx := context.Background()
+	h, err := s.CreateHousehold(ctx, "Family", "Europe/Amsterdam", "Gouda")
+	if err != nil {
+		t.Fatal(err)
+	}
+	adminScope := domain.Scope{HouseholdID: h.ID, Role: domain.RoleOwner}
+	first, _ := s.CreateInvite(ctx, adminScope, domain.RoleOwner)
+	owner, ownerKey := accept(t, s, first.Token, "Jaro")
+	ownerScope := domain.Scope{HouseholdID: h.ID, PersonID: owner.PersonID, Role: domain.RoleOwner}
+	second, _ := s.CreateInvite(ctx, ownerScope, domain.RoleMember)
+	member, memberKey := accept(t, s, second.Token, "Sam")
+	memberScope := domain.Scope{HouseholdID: h.ID, PersonID: member.PersonID, Role: domain.RoleMember}
+
+	// any member makes one for themselves; it is not a household invite
+	dev, err := s.CreateDeviceInvite(ctx, memberScope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !dev.Invite.IsDevice() || *dev.Invite.ForPersonID != member.PersonID || dev.Invite.Role != domain.RoleMember {
+		t.Errorf("device invite: %+v", dev.Invite)
+	}
+	if pending, _ := s.Invites(ctx, ownerScope); len(pending) != 0 {
+		t.Errorf("a device invite is listed among the household's: %+v", pending)
+	}
+	if pv, err := s.InviteByToken(ctx, dev.Token); err != nil || pv.ForPerson != "Sam" {
+		t.Errorf("preview: %+v %v", pv, err)
+	}
+	if _, err := s.CreateDeviceInvite(ctx, adminScope); !errors.Is(err, domain.ErrForbidden) {
+		t.Errorf("the admin has no person to add a device to: %v", err)
+	}
+
+	// a key of someone else is refused, the invite stays
+	if _, err := s.AcceptInvite(ctx, dev.Token, service.AcceptInvite{PublicKey: ownerKey.Public(), Platform: "macos", DisplayName: "Jaro"}); !errors.Is(err, domain.ErrConflict) {
+		t.Errorf("another person's key: %v", err)
+	}
+
+	// a new key becomes Sam's second device, whatever name it typed
+	mac, err := auth.NewEd25519Signer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	acc, err := s.AcceptInvite(ctx, dev.Token, service.AcceptInvite{PublicKey: mac.Public(), Platform: "macos", Label: "Sam's Mac", DisplayName: "Samuel"})
+	if err != nil {
+		t.Fatalf("device accept: %v", err)
+	}
+	if acc.PersonID != member.PersonID || acc.CredentialID == member.CredentialID || acc.DisplayName != "Sam" || acc.Role != domain.RoleMember || !acc.Device {
+		t.Errorf("device accepted: %+v", acc)
+	}
+	if _, err := s.AcceptInvite(ctx, dev.Token, service.AcceptInvite{PublicKey: memberKey.Public(), DisplayName: "Sam"}); !errors.Is(err, domain.ErrConflict) {
+		t.Errorf("a device invite works once: %v", err)
+	}
+	me, err := s.Me(ctx, member.PersonID)
+	if err != nil || len(me.Credentials) != 2 || me.Person.DisplayName != "Sam" {
+		t.Errorf("me after a second device: %+v %v", me, err)
+	}
+	if members, _ := s.Members(ctx, ownerScope); len(members) != 2 {
+		t.Errorf("a device is not a member: %d members", len(members))
+	}
+}
+
 func accept(t *testing.T, s *service.Service, token, name string) (*service.Accepted, auth.Signer) {
 	t.Helper()
 	signer, err := auth.NewEd25519Signer()
