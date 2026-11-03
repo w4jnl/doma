@@ -112,16 +112,8 @@ struct ListView: View {
             #else
             .toolbar(removing: .title)
             .safeAreaInset(edge: .top, spacing: 0) { paneTitle(open: openCount) }
-            .frame(maxWidth: Tokens.contentMax, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, Tokens.space4)
-            .background(Tokens.ground)
-            // the menu bar's commands land on the list in front
-            .onChange(of: nav.toggleSelected) { _ = toggleSelected() }
-            .onChange(of: nav.editSelected) { editSelected() }
-            .onChange(of: nav.clear) { if !struck.isEmpty { clear() } }
-            .onChange(of: selected, initial: true) { nav.hasSelectedEntry = selected != nil }
-            .onChange(of: struck.isEmpty, initial: true) { nav.hasStruck = !struck.isEmpty }
+            .modifier(MacPane())
+            .modifier(MacMenu(struck: !struck.isEmpty, selected: selected != nil, onToggle: { _ = toggleSelected() }, onEdit: { _ = editSelected() }, onClear: clear))
             #endif
             .toolbar {
                 #if os(iOS)
@@ -185,20 +177,7 @@ struct ListView: View {
                 if !Task.isCancelled { matches = found }
             }
             #if os(macOS)
-            .onKeyPress(.space) { toggleSelected() ? .handled : .ignored }
-            .onKeyPress(.return) {
-                guard selected != nil else { return .ignored }
-                editSelected()
-                return .handled
-            }
-            .onDeleteCommand { _ = toggleSelected() }
-            // typing with the list in front starts an entry, as Finder finds and Things adds
-            .onKeyPress(characters: .alphanumerics, phases: .down) { press in
-                guard !fieldFocused, editing == nil else { return .ignored }
-                text = press.characters
-                fieldFocused = true
-                return .handled
-            }
+            .modifier(MacKeys(onToggle: toggleSelected, onEdit: editSelected, onType: startTyping))
             #endif
     }
 
@@ -229,9 +208,19 @@ struct ListView: View {
     }
 
     /// Return, a double click or Edit Item opens the selected row in place.
-    private func editSelected() {
-        guard let id = selected, let row = (rows?.value ?? []).first(where: { $0.id == id }) else { return }
+    @discardableResult
+    private func editSelected() -> Bool {
+        guard let id = selected, let row = (rows?.value ?? []).first(where: { $0.id == id }) else { return false }
         startEdit(row)
+        return true
+    }
+
+    /// Typing with the list in front starts an entry, as Finder finds and Things adds.
+    private func startTyping(_ characters: String) -> Bool {
+        guard !fieldFocused, editing == nil else { return false }
+        text = characters
+        fieldFocused = true
+        return true
     }
 
     /// The add row under the last open item: the plus in the glyph column, the field after it,
@@ -973,3 +962,53 @@ struct EntryRowView: View {
             .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
     }
 }
+
+#if os(macOS)
+/// The Mac's keys over the list: space or delete strikes the selected row, return edits it,
+/// letters start an entry. Kept apart so the compiler types the list's body in one breath.
+private struct MacKeys: ViewModifier {
+    var onToggle: () -> Bool
+    var onEdit: () -> Bool
+    var onType: (String) -> Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onKeyPress(.space) { onToggle() ? .handled : .ignored }
+            .onKeyPress(.return) { onEdit() ? .handled : .ignored }
+            .onDeleteCommand { _ = onToggle() }
+            .onKeyPress(characters: .alphanumerics, phases: .down) { (press: KeyPress) -> KeyPress.Result in
+                onType(press.characters) ? .handled : .ignored
+            }
+    }
+}
+
+/// The pane hangs off the left at content-max.
+private struct MacPane: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: Tokens.contentMax, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, Tokens.space4)
+            .background(Tokens.ground)
+    }
+}
+
+/// The menu bar's commands land on the list in front, and the list says what the menu may offer.
+private struct MacMenu: ViewModifier {
+    @Environment(MacNav.self) private var nav
+    var struck: Bool
+    var selected: Bool
+    var onToggle: () -> Void
+    var onEdit: () -> Void
+    var onClear: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: nav.toggleSelected) { onToggle() }
+            .onChange(of: nav.editSelected) { onEdit() }
+            .onChange(of: nav.clear) { if struck { onClear() } }
+            .onChange(of: selected, initial: true) { nav.hasSelectedEntry = selected }
+            .onChange(of: struck, initial: true) { nav.hasStruck = struck }
+    }
+}
+#endif
