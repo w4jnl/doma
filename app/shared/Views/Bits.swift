@@ -27,6 +27,9 @@ struct ArmedButton: View {
     var title: LocalizedStringKey
     var armedTitle: LocalizedStringKey
     var role: ButtonRole? = .destructive
+    /// The unarmed word's colour: muted, as a destructive verb is until it is armed; Clear,
+    /// which finishes a shop, passes the accent.
+    var tint: Color = Tokens.inkMuted
     var action: () -> Void
     @State private var armed = false
     @State private var disarm: Task<Void, Never>?
@@ -57,8 +60,24 @@ struct ArmedButton: View {
             }
         }
         .buttonStyle(.plain)
-        .foregroundStyle(armed ? Tokens.onOut : Tokens.accent)
+        .foregroundStyle(armed ? Tokens.onOut : tint)
         .accessibilityHint(armed ? Text("Tap again to confirm") : Text(""))
+    }
+}
+
+/// A section's word over its rows: subheadline, muted, never shouting.
+struct SectionHeader: View {
+    var text: LocalizedStringKey
+
+    init(_ text: LocalizedStringKey) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.subheadline)
+            .foregroundStyle(Tokens.inkMuted)
+            .textCase(nil)
     }
 }
 

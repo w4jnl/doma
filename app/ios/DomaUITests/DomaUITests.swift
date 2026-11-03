@@ -112,16 +112,13 @@ final class DomaUITests: XCTestCase {
         name.typeText("Jaro")
         XCTAssertTrue(app.buttons["join"].isEnabled, "Join is enabled once the name is in")
         app.buttons["join"].tap()
-        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15), "the default list came down")
-        XCTAssertTrue(app.staticTexts["De Vries"].exists)
+        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15), "the default list came down and is the first screen")
     }
 
     func testAddStrikeAndClear() throws {
         let live = try live()
         let app = launch(join: try mintInvite(live))
-        let shopping = app.staticTexts["Shopping"]
-        XCTAssertTrue(shopping.waitForExistence(timeout: 15))
-        shopping.tap()
+        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15))
         let field = app.textFields["add-field"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
@@ -146,23 +143,36 @@ final class DomaUITests: XCTestCase {
         XCTAssertFalse(row.waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["entry-brood"].exists)
         XCTAssertTrue(app.buttons["Recent"].exists, "the cleared item is in Recent")
+        // Lists at the top left opens the overview; picking the list comes back
+        app.buttons["all-lists"].tap()
+        XCTAssertTrue(app.buttons["New list"].waitForExistence(timeout: 10), "the overview is up")
+        let shopping = app.buttons["Shopping"].firstMatch
+        XCTAssertTrue(shopping.waitForExistence(timeout: 5), "the list is in the overview")
+        shopping.tap()
+        XCTAssertTrue(app.textFields["add-field"].waitForExistence(timeout: 10), "back in the list")
+        // the Lists tab's second tap steps to the overview and back
+        let lists = app.tabBars.buttons["Lists"]
+        XCTAssertTrue(lists.waitForExistence(timeout: 5), "the tab bar is back once the keyboard is down")
+        lists.tap()
+        XCTAssertTrue(app.buttons["New list"].waitForExistence(timeout: 10), "the tab's second tap opens the overview")
+        lists.tap()
+        XCTAssertTrue(app.textFields["add-field"].waitForExistence(timeout: 10), "and its third tap comes back")
     }
 
     func testOfflineAddThenSync() throws {
         let live = try live()
         // joined online; then the network is away for a while and comes back by itself
         let app = launch(join: try mintInvite(live), extra: ["DOMA_UITEST_OFFLINE_SECONDS": "20"])
-        let shopping = app.staticTexts["Shopping"]
-        XCTAssertTrue(shopping.waitForExistence(timeout: 15), "joined and synced")
-        shopping.tap()
+        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15), "joined and synced")
         let field = app.textFields["add-field"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "the list is open")
         field.tap()
         field.typeText("kaas\n")
         XCTAssertTrue(app.buttons["entry-kaas"].waitForExistence(timeout: 5), "the row appears before any network")
         XCTAssertTrue(app.descendants(matching: .any)["offline"].waitForExistence(timeout: 10), "one small badge, never an alert")
-        // the outbox holds the two events until the network is back
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        // the outbox holds the two events until the network is back; the keyboard goes with a
+        // swipe on the list, as in the hand, before the tab bar is reachable
+        app.swipeDown()
         app.tabBars.buttons["Family"].tap()
         app.buttons["Settings"].tap()
         let waiting = app.descendants(matching: .any)["waiting"]

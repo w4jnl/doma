@@ -14,8 +14,8 @@ struct SettingsView: View {
     private var isOwner: Bool { session.current?.isOwner ?? false }
 
     var body: some View {
-        Form {
-            Section("This device") {
+        List {
+            Section {
                 LabeledContent("Name") {
                     Text(model?.devices.first { $0.id == session.context?.credentialID }?.label ?? Session.deviceLabel)
                         .font(Tokens.mono(.body))
@@ -23,7 +23,11 @@ struct SettingsView: View {
                 if let c = session.context {
                     LabeledContent("You") { Text(c.displayName) }
                 }
+            } header: {
+                SectionHeader("This device")
             }
+            .listRowBackground(Tokens.ground)
+            .listRowSeparatorTint(Tokens.line)
             if isOwner, !(homes?.value ?? []).isEmpty {
                 Section {
                     Stepper(value: $staleness, in: 1...365, step: 1) {
@@ -39,11 +43,13 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundStyle(Tokens.inkMuted)
                 } header: {
-                    Text("Flags")
+                    SectionHeader("Flags")
                 }
+                .listRowBackground(Tokens.ground)
+                .listRowSeparatorTint(Tokens.line)
             }
             if let m = model, m.devices.count > 1 {
-                Section("Your devices") {
+                Section {
                     ForEach(m.devices) { d in
                         HStack {
                             VStack(alignment: .leading) {
@@ -69,19 +75,27 @@ struct SettingsView: View {
                             }
                         }
                     }
+                } header: {
+                    SectionHeader("Your devices")
                 }
+                .listRowBackground(Tokens.ground)
+                .listRowSeparatorTint(Tokens.line)
             }
             if let m = model, !session.syncer.rejected.isEmpty {
-                Section("Not accepted") {
+                Section {
                     ForEach(Array(session.syncer.rejected.enumerated()), id: \.offset) { _, r in
                         Text(r.reason)
                             .font(.footnote)
                             .foregroundStyle(Tokens.inkMuted)
                     }
+                } header: {
+                    SectionHeader("Not accepted")
                 }
+                .listRowBackground(Tokens.ground)
+                .listRowSeparatorTint(Tokens.line)
                 .onAppear { _ = m }
             }
-            Section("About") {
+            Section {
                 LabeledContent("Family's doma") {
                     Text(session.context?.baseURL.host ?? "")
                         .font(Tokens.mono(.body))
@@ -103,9 +117,14 @@ struct SettingsView: View {
                     .accessibilityIdentifier("waiting")
                 }
                 ProblemLine(text: session.syncer.lastError)
+            } header: {
+                SectionHeader("About")
             }
+            .listRowBackground(Tokens.ground)
+            .listRowSeparatorTint(Tokens.line)
         }
-        .formStyle(.grouped)
+        .listStyle(.plain)
+        .textCase(nil)
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
         .navigationTitle("Settings")

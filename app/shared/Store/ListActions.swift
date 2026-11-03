@@ -149,6 +149,11 @@ enum ListActions {
         try session.record(Kind.itemMerged, ItemPayload(keepID: keepID, dropID: row.itemID))
     }
 
+    /// The first list colour no list wears yet, or, with all six taken, the next in turn.
+    static func nextColour(_ lists: [ListSummary]) -> String {
+        Tokens.listColours.first { c in !lists.contains { $0.colour == c } } ?? Tokens.listColours[lists.count % Tokens.listColours.count]
+    }
+
     /// A new list, shared with the household or just for this person.
     @discardableResult
     static func createList(named name: String, personal: Bool, colour: String, in session: Session) throws -> String? {
