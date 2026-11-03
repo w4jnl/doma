@@ -148,6 +148,11 @@ func TestHouseholdPageAndGuestView(t *testing.T) {
 		mux.ServeHTTP(rec, r)
 		return rec
 	}
+	// an htmx add answers with the panel: the list with the new entry and an empty field
+	rec4 := hx("/g/"+g.Token+"/add", url.Values{"text": {"brood"}})
+	if rec4.Code != http.StatusOK || !strings.Contains(rec4.Body.String(), `id="panel"`) || !strings.Contains(rec4.Body.String(), `name="text"`) || strings.Contains(rec4.Body.String(), `value="brood"`) || !strings.Contains(rec4.Body.String(), "brood") {
+		t.Errorf("htmx add: %d %s", rec4.Code, rec4.Body.String())
+	}
 	rec3 := hx("/g/"+g.Token+"/check/"+entry[1], nil)
 	if rec3.Code != http.StatusOK || !strings.Contains(rec3.Body.String(), "dm-done") || strings.Contains(rec3.Body.String(), "<html") {
 		t.Errorf("htmx check: %d %s", rec3.Code, rec3.Body.String())

@@ -67,13 +67,19 @@ func (h *Web) guestList(w http.ResponseWriter, r *http.Request, sc domain.Scope,
 }
 
 func (h *Web) renderList(w http.ResponseWriter, r *http.Request, sc domain.Scope, token string, status int) {
+	h.renderFragment(w, r, sc, token, status, "_guest_fragment")
+}
+
+// renderFragment answers with the list, or with the panel (the form and the list) after an
+// add, so the field is empty again.
+func (h *Web) renderFragment(w http.ResponseWriter, r *http.Request, sc domain.Scope, token string, status int, name string) {
 	view, err := h.svc.GuestView(r.Context(), sc)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
 	data := guestData{Link: token, View: view, AnyChecked: anyChecked(view)}
-	body, err := h.renderBytes("_guest_fragment", page{Guest: true, Data: data})
+	body, err := h.renderBytes(name, page{Guest: true, Data: data})
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -102,8 +108,12 @@ func anyChecked(v *service.GuestView) bool {
 
 // after a change: htmx gets the fragment, a plain form the whole page again
 func (h *Web) afterChange(w http.ResponseWriter, r *http.Request, sc domain.Scope, token string) {
+	h.after(w, r, sc, token, "_guest_fragment")
+}
+
+func (h *Web) after(w http.ResponseWriter, r *http.Request, sc domain.Scope, token, name string) {
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderList(w, r, sc, token, http.StatusOK)
+		h.renderFragment(w, r, sc, token, http.StatusOK, name)
 		return
 	}
 	http.Redirect(w, r, "/g/"+token, http.StatusSeeOther) //nolint:gosec // G710: the token we just resolved
@@ -118,7 +128,8 @@ func (h *Web) guestAdd(w http.ResponseWriter, r *http.Request, sc domain.Scope, 
 			return
 		}
 	}
-	h.afterChange(w, r, sc, token)
+	// the panel: the form comes back empty with the list
+	h.after(w, r, sc, token, "_guest_panel")
 }
 
 func (h *Web) guestCheck(w http.ResponseWriter, r *http.Request, sc domain.Scope, credentialID, token string) {

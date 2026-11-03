@@ -15,11 +15,7 @@
   </section>
   <section>
     <h2>{{.Data.View.ListName}}</h2>
-    <form class="dm-add" method="post" action="/g/{{.Data.Link}}/add" hx-post="/g/{{.Data.Link}}/add" hx-target="#list" hx-swap="outerHTML">
-      <input class="dm-input" name="text" placeholder="Add" autocomplete="off" required>
-      <button class="dm-button" type="submit">Add</button>
-    </form>
-    {{template "list" .}}
+    {{template "panel" .}}
   </section>
 </div>
 {{end}}
