@@ -162,7 +162,7 @@ final class DomaUITests: XCTestCase {
     func testOfflineAddThenSync() throws {
         let live = try live()
         // joined online; then the network is away for a while and comes back by itself
-        let app = launch(join: try mintInvite(live), extra: ["DOMA_UITEST_OFFLINE_SECONDS": "20"])
+        let app = launch(join: try mintInvite(live), extra: ["DOMA_UITEST_OFFLINE_SECONDS": "45"])
         XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15), "joined and synced")
         let field = app.textFields["add-field"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "the list is open")
@@ -181,7 +181,7 @@ final class DomaUITests: XCTestCase {
         for _ in 0..<5 where !waiting.waitForExistence(timeout: 2) { app.swipeUp() }
         XCTAssertTrue(waiting.exists, "item.named and entry.added wait")
         // the network comes back: the outbox drains and the row goes
-        let deadline = Date().addingTimeInterval(40)
+        let deadline = Date().addingTimeInterval(70)
         while app.descendants(matching: .any)["waiting"].exists, Date() < deadline {
             sleep(1)
         }
