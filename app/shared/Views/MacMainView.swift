@@ -118,6 +118,7 @@ struct MacMainView: View {
         } else {
             HStack {
                 ListDot(colour: l.colour)
+                    .frame(width: Tokens.space5)
                 Text(l.name)
                 Spacer()
                 if arming == l.id {
@@ -138,6 +139,8 @@ struct MacMainView: View {
                     Text(verbatim: String(l.openCount))
                         .font(Tokens.mono(.footnote))
                         .foregroundStyle(Tokens.inkMuted)
+                        .contentTransition(.numericText())
+                        .animation(Motion.base, value: l.openCount)
                 }
             }
             .tag(Selection.list(l.id))
@@ -229,6 +232,7 @@ struct MacMainView: View {
         }
         .padding(.horizontal, Tokens.space3)
         .padding(.vertical, Tokens.space2)
+        .animation(Motion.base, value: adding)
     }
 
     private func startAdding() {

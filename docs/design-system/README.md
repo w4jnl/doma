@@ -144,12 +144,17 @@ row, not a new screen.
   add bar is pinned at the bottom under a hairline: an `accent` disc with a `+` in `on-accent`,
   the field with no box. Match rows stack above the bar on `surface`, at most five, the best
   nearest the bar on `accent-soft`; with the field empty, one row of chips with the usual items.
-  An entry row is the glyph in a 24pt column in `ink-muted`, the item name in `ink`, the note in
-  mono `ink-muted` after it, a home chip (`surface` with a `line` ring) and the quantity in a
-  mono `ink-muted` column at the right. A strike pops the glyph once in `accent`, draws a line
-  in `ink-muted` across the name and turns the text `ink-faint`; the row stays put for 1.5 s and
-  then sinks under the divider, which reads the got count in mono at the left and *Clear* in
-  `accent` at the right, present only while something is struck. *Recent* is a collapsed group
+  An entry row is the custom `open` or `done` symbol in a 24pt column in `ink-muted` (never the
+  glyph as a text character), the item name in `ink`, the note after it in the system face in
+  `ink-muted` (a note is words, not data), a home chip (`surface` capsule with a `line` ring,
+  24pt tall, caption text) and the quantity in a mono `ink-muted` column of at least 48pt at the
+  right. Hairlines start under the name, not under the symbol: every screen keeps one left axis,
+  a 24pt column, a 12pt gap, text at 52pt. Under the title sits the list's dot and "N to get" in
+  subheadline, on both platforms; the number rolls when it changes. A strike pops the symbol
+  once in `accent`, draws a line in `ink-muted` across the name and turns the text `ink-faint`;
+  the row stays put for 1.5 s and then sinks under the divider, which reads the got count in
+  mono at the left and *Clear* in `accent` semibold at the right, present only while something
+  is struck. *Recent* is a collapsed group
   at the foot in `ink-muted`. A list with nothing on it shows the mark small and one line of
   help under the title; the title's subtitle says how many are still to get. There is no shop
   mode: one layout, the screen awake while a list is in front.
@@ -167,9 +172,26 @@ row, not a new screen.
 - **Scan.** The first screen before any household: the camera full-bleed, the mark above it, one
   line of help, *Paste a link* as a text button. It is also Family → Add.
 - **States and feedback.** Glyph and word, as everywhere. Optimistic everywhere: the row appears,
-  strikes or moves on the tap, with a light haptic on a strike and a success haptic on a clear. A sync failure is one small `◌ offline` badge in the toolbar,
-  never an alert. Destructive actions arm in place (*Remove → Really remove?*); no modals except
-  the camera and the system share sheet.
+  strikes or moves on the tap. The haptics say how much changed: a soft tap for an add, a firmer
+  one when the item was on the list already, a light impact for a strike, a selection tick for
+  a put back, a warning when a destructive button arms and a medium impact when it fires, a
+  success on a clear; nothing on scroll, drag or navigation, and nothing for what another
+  device did. The Mac has no haptics; the symbol, the rolling count and the flash carry it. A
+  row that arrives, yours or another phone's, shows on `accent-soft` for a breath; yours also
+  scrolls into view. The family's doma out of reach is one small `◌ offline` badge in the
+  toolbar after the second failed exchange, never an alert; when the spell ends and something
+  went up, the badge says `✓ caught up` once, for 1.5 s. Nothing moves on a timer. Destructive
+  actions arm in place (*Remove → Really remove?*), the pill springing in and fading back after
+  4 s; no modals except the camera and the system share sheet.
+- **Motion.** Three durations and nothing else: `motion-quick` (150 ms) for a crossfade, a
+  chip or match row, a label; `motion-base` (250 ms) for a row arriving or leaving, a count
+  rolling, a badge, an armed button; `motion-settle` (350 ms) for rows closing a gap. A row
+  arrives from below and leaves by fading; a struck row fades out where it is and in under the
+  divider, never flying; Clear fades the struck group, then Recent or the empty state follows
+  after a quick delay; the match stack grows and shrinks from the bar; the Recent chevron turns.
+  Not animated: tab switches and pushes beyond the system's, the Mac pane on a sidebar click, the
+  1.5 s hold (no countdown), scrolling, polling, the glyphs' shapes, reorder beyond the system's
+  lift, and never a cascade: the list arrives whole.
 - **The Mac.** The sidebar lists the household's lists, then *Just me* when there are any, then
   Family, selection in `accent` (the app's accent colour is the token, in the asset catalogue, so
   the system draws it); *New list* is a plain accent button at the sidebar's foot that opens a
@@ -181,8 +203,9 @@ row, not a new screen.
 - **Keyboard on the Mac.** `⌘N` new list, return adds, space or `⌫` strikes the selected row,
   `⌘⌫` clears, `⌘1`–`⌘4` the sections. Nothing else.
 - **Accessibility.** Dynamic Type on every row, VoiceOver labels that say glyph and word
-  ("out, olive oil, since Tuesday"), 44pt targets, and a Reduce Motion check before the one
-  animation (a struck row sinking).
+  ("out, olive oil, since Tuesday"), 44pt targets. Reduce Motion removes displacement and scale
+  and keeps opacity and haptics: nothing slides, sinks, grows or pops; what remains is a
+  `motion-quick` crossfade or an instant swap, and every haptic still fires.
 
 ## Web pages
 

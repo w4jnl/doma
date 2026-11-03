@@ -6,6 +6,14 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Rows and motion.** The entry row carries the brand's own open and done symbols, hairlines
+  from the name, a quantity column and the note in the system face; the title has a real dot and
+  a count that rolls. The list animates: an add scrolls into view with a flash and a soft tap, a
+  row from another phone flashes the same way, matches rise from the bar, a put back feels
+  lighter than a strike, the sink settles instead of flying, Clear fades the group, armed
+  buttons warn and spring, the Recent chevron turns. The offline badge waits for a second
+  failure, fades, and says caught up once when the spell ends. Reduce Motion keeps opacity and
+  haptics only. Three motion tokens; the dark hairline and surface a step lighter.
 - **Open source.** The repository is public under the MIT licence, as vink.
 - **The apps, phase 0, step 1.** The iPhone and Mac projects under `app/` from XcodeGen, with
   GRDB pinned, the design tokens in Swift with a test against `tokens.json`, the brand's custom

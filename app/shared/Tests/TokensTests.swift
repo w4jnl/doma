@@ -46,6 +46,23 @@ final class TokensTests: XCTestCase {
         XCTAssertEqual(Set(Tokens.sizes.keys), seen)
     }
 
+    func testMotionMatches() throws {
+        let motion = try XCTUnwrap(tokens()["motion"] as? [String: Any])
+        let list = try XCTUnwrap(motion["tokens"] as? [[String: Any]])
+        var seen = Set<String>()
+        for t in list {
+            let name = try XCTUnwrap(t["name"] as? String)
+            let value = try XCTUnwrap(t["value"] as? String)
+            guard value.hasSuffix("ms"), let ms = Double(value.dropLast(2)) else { continue }
+            seen.insert(name)
+            XCTAssertEqual(Tokens.motions[name], ms, name)
+        }
+        XCTAssertEqual(Set(Tokens.motions.keys), seen)
+        XCTAssertEqual(Tokens.motionQuick * 1000, Tokens.motions["motion-quick"])
+        XCTAssertEqual(Tokens.motionBase * 1000, Tokens.motions["motion-base"])
+        XCTAssertEqual(Tokens.motionSettle * 1000, Tokens.motions["motion-settle"])
+    }
+
     func testGlyphsMatch() throws {
         let glyph = try XCTUnwrap(tokens()["glyph"] as? [String: Any])
         let list = try XCTUnwrap(glyph["tokens"] as? [[String: Any]])

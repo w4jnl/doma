@@ -109,6 +109,8 @@ struct ListsView: View {
             }
             .listRowBackground(Tokens.ground)
             .listRowSeparatorTint(Tokens.line)
+            .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+            .alignmentGuide(.listRowSeparatorLeading) { d in d[.leading] + Tokens.space5 + Tokens.space3 }
             .contextMenu {
                 Button("Rename") { startRename(l) }
                 if !l.isDefault {
@@ -128,6 +130,7 @@ struct ListsView: View {
     private func rowContent(_ l: ListSummary) -> some View {
         HStack(spacing: Tokens.space3) {
             ListDot(colour: l.colour)
+                .frame(width: Tokens.space5)
             Text(l.name)
                 .foregroundStyle(Tokens.ink)
             Spacer()
@@ -145,9 +148,12 @@ struct ListsView: View {
                 }
                 .buttonStyle(.borderless)
             } else if l.openCount > 0 {
-                Text("\(l.openCount) to get")
+                // the bare number, as the sidebar says it; VoiceOver keeps the words
+                Text(verbatim: String(l.openCount))
                     .font(Tokens.mono(.subheadline))
                     .foregroundStyle(Tokens.inkMuted)
+                    .contentTransition(.numericText())
+                    .animation(Motion.base, value: l.openCount)
             }
         }
         .rowHeight()

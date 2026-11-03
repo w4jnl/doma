@@ -26,6 +26,9 @@
   --mark-min: 16px;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --motion-quick: 150ms;
+  --motion-base: 250ms;
+  --motion-settle: 350ms;
 }
 :root, [data-theme="light"] {
   color-scheme: light;
@@ -63,9 +66,9 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --ground: #14181A;
-    --surface: #1A2023;
+    --surface: #1F272A;
     --surface-sunk: #0F1214;
-    --line: #263034;
+    --line: #2E393D;
     --line-strong: #6B7A7D;
     --ink: #F2F5F5;
     --ink-muted: #8A999C;
@@ -96,9 +99,9 @@
 [data-theme="dark"] {
   color-scheme: dark;
   --ground: #14181A;
-  --surface: #1A2023;
+  --surface: #1F272A;
   --surface-sunk: #0F1214;
-  --line: #263034;
+  --line: #2E393D;
   --line-strong: #6B7A7D;
   --ink: #F2F5F5;
   --ink-muted: #8A999C;

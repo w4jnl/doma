@@ -194,6 +194,9 @@ final class SnapshotTests: XCTestCase {
         }
         let ratio = Double(diff) / Double(max(1, a.width * a.height))
         if ratio > Self.tolerance {
+            // the picture as rendered, next to where a recording would land, for a look
+            try? FileManager.default.createDirectory(at: Self.recordDir, withIntermediateDirectories: true)
+            try? png.write(to: Self.recordDir.appendingPathComponent(name + ".actual.png"))
             let attachment = XCTAttachment(data: png, uniformTypeIdentifier: "public.png")
             attachment.name = name + ".actual.png"
             attachment.lifetime = .keepAlways
