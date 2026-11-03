@@ -142,6 +142,9 @@ type Accepted struct {
 	CredentialID string
 	Household    domain.Household
 	Role         domain.Role
+	// Rejoined is set when the key already belonged to the household and no
+	// invite was used; it is logged, not returned.
+	Rejoined bool
 }
 
 // AcceptInvite registers the device, creates the person when the key is
@@ -189,8 +192,12 @@ func (s *Service) AcceptInvite(ctx context.Context, token string, req AcceptInvi
 				return err
 			}
 		}
-		if _, err := q.GetMembership(ctx, db.GetMembershipParams{HouseholdID: inv.HouseholdID, PersonID: personID}); err == nil {
-			return fmt.Errorf("%w: you are already in this household", domain.ErrConflict)
+		if m, err := q.GetMembership(ctx, db.GetMembershipParams{HouseholdID: inv.HouseholdID, PersonID: personID}); err == nil {
+			// a device that already belongs here (the app was reinstalled and
+			// the key outlived the store) gets its membership back and the
+			// invite stays unused; its role is the one it has, not the invite's
+			out = &Accepted{Server: s.cfg.BaseURL, PersonID: personID, CredentialID: credentialID, Household: household(h), Role: domain.Role(m.Role), Rejoined: true}
+			return nil
 		}
 		if err := q.InsertMembership(ctx, db.InsertMembershipParams{PersonID: personID, HouseholdID: inv.HouseholdID, Role: inv.Role, CreatedAt: now}); err != nil {
 			return err
@@ -208,7 +215,7 @@ func (s *Service) AcceptInvite(ctx context.Context, token string, req AcceptInvi
 	if err != nil {
 		return nil, err
 	}
-	s.log.Info("invite accepted", "household", out.Household.ID, "person", out.PersonID, "role", out.Role)
+	s.log.Info("invite accepted", "household", out.Household.ID, "person", out.PersonID, "role", out.Role, "rejoined", out.Rejoined)
 	return out, nil
 }
 
