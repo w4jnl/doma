@@ -54,3 +54,35 @@ jobs:
 
       - name: ui-test
         run: make ui-test
+
+      # The quiet build hides the assertion text; say which line failed and keep the bundle.
+      - name: failures
+        if: failure()
+        run: |
+          for r in app/ios/build/DerivedData/Logs/Test/*.xcresult app/macos/build/DerivedData/Logs/Test/*.xcresult; do
+            [ -d "$r" ] || continue
+            echo "== $r"
+            xcrun xcresulttool get test-results tests --path "$r" 2>/dev/null | python3 -c '
+          import json, sys
+          def walk(n):
+              if isinstance(n, dict):
+                  if n.get("result") == "Failed" and n.get("nodeType") == "Test Case":
+                      print(n.get("name"))
+                  if n.get("nodeType") == "Failure Message":
+                      at = n.get("sourceLocation", {})
+                      print("   ", at.get("filePath", "").split("/")[-1], at.get("lineNumber", ""), n.get("name"))
+                  for v in n.values(): walk(v)
+              elif isinstance(n, list):
+                  for v in n: walk(v)
+          walk(json.load(sys.stdin))'
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: xcresults
+          path: |
+            app/ios/build/DerivedData/Logs/Test/*.xcresult
+            app/macos/build/DerivedData/Logs/Test/*.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
