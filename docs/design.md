@@ -370,7 +370,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 
 **Mac**
 
-The Mac target reuses every screen in a `NavigationSplitView`: sidebar with Lists, Homes, Trip, Family; the list detail in the main pane. Keyboard: `⌘N` new list, return adds, space strikes the selected row, `⌘⌫` clears. The Mac can accept an invite by pasting the link or by scanning the QR with Continuity Camera.
+The Mac target reuses every screen in a `NavigationSplitView`: sidebar with Lists, Homes, Trip, Family; the list detail in the main pane, its title in the pane and its rows at `content-max`. *New list* sits at the foot of the sidebar and opens a small form there; a right-click on a list offers *Rename*, *Colour* and *Archive*, armed in place. Keyboard: `⌘N` new list, return adds, space or `⌫` strikes the selected row, `⌘⌫` clears. The Mac can accept an invite by pasting the link or by scanning the QR with Continuity Camera.
 
 **Simplicity budget**
 

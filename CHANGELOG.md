@@ -55,6 +55,11 @@ updates this file first. Dates are the tag dates.
   haptic, and it keeps its place for a breath so a second tap takes it back; then it sinks under
   a divider that counts the got and holds Clear. Swipe left to edit the line; long-press drags.
   Shake-to-clear and the long-press menu are gone from the phone.
+- **The Mac, usable.** New list sits at the foot of the sidebar and opens a small form there,
+  so it no longer hides in the toolbar's overflow; a right-click on a list offers Rename, Colour
+  and Archive; the sidebar selects in the accent; the list pane carries its own title, rows no
+  wider than a readable column, the field live from the start, Got it and Put back in the
+  row's menu, and the delete key strikes the selected row.
 - **Open into the list.** The Lists tab opens the last-used list; a Lists button at the top left
   and a second tap on the tab open the overview. Sections read Household and Just me, a new list
   takes the next free colour, Family has its own title with the household under it, Settings is
