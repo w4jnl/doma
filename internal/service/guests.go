@@ -321,7 +321,8 @@ func (s *Service) GuestAdd(ctx context.Context, sc domain.Scope, credentialID, t
 		return domain.Invalid("text", "type what to get")
 	}
 	norm := domain.NormName(parsed.Name)
-	return s.db.Tx(ctx, func(q *db.Queries) error {
+	var last int64
+	err := s.db.Tx(ctx, func(q *db.Queries) error {
 		items, err := q.ListItems(ctx, sc.HouseholdID)
 		if err != nil {
 			return err
@@ -356,8 +357,15 @@ func (s *Service) GuestAdd(ctx context.Context, sc domain.Scope, credentialID, t
 			payload["unit"] = parsed.Unit
 		}
 		evs = append(evs, s.guestEvent(sc, "entry.added", payload))
-		return s.appendEvents(ctx, q, sc.HouseholdID, credentialID, evs)
+		seq, err := s.appendEvents(ctx, q, sc.HouseholdID, credentialID, evs)
+		last = seq
+		return err
 	})
+	if err != nil {
+		return err
+	}
+	s.changed(sc.HouseholdID, last)
+	return nil
 }
 
 // GuestToggle strikes an open entry of the guest's list or restores it.
@@ -365,7 +373,8 @@ func (s *Service) GuestToggle(ctx context.Context, sc domain.Scope, credentialID
 	if !sc.IsGuest() {
 		return domain.ErrForbidden
 	}
-	return s.db.Tx(ctx, func(q *db.Queries) error {
+	var last int64
+	err := s.db.Tx(ctx, func(q *db.Queries) error {
 		st := foldsql.New(ctx, q, sc.HouseholdID)
 		rows, err := st.Entries(sc.ListID, nil)
 		if err != nil {
@@ -380,10 +389,17 @@ func (s *Service) GuestToggle(ctx context.Context, sc domain.Scope, credentialID
 				kind = "entry.unchecked"
 			}
 			ev := s.guestEvent(sc, kind, map[string]any{"list_id": sc.ListID, "item_id": e.ItemID})
-			return s.appendEvents(ctx, q, sc.HouseholdID, credentialID, []fold.Event{ev})
+			seq, err := s.appendEvents(ctx, q, sc.HouseholdID, credentialID, []fold.Event{ev})
+			last = seq
+			return err
 		}
 		return domain.ErrNotFound
 	})
+	if err != nil {
+		return err
+	}
+	s.changed(sc.HouseholdID, last)
+	return nil
 }
 
 // GuestClear removes the struck entries of the guest's list.
@@ -391,10 +407,18 @@ func (s *Service) GuestClear(ctx context.Context, sc domain.Scope, credentialID 
 	if !sc.IsGuest() {
 		return domain.ErrForbidden
 	}
-	return s.db.Tx(ctx, func(q *db.Queries) error {
+	var last int64
+	err := s.db.Tx(ctx, func(q *db.Queries) error {
 		ev := s.guestEvent(sc, "entry.cleared", map[string]any{"list_id": sc.ListID, "before_hlc": s.clock.Next().String()})
-		return s.appendEvents(ctx, q, sc.HouseholdID, credentialID, []fold.Event{ev})
+		seq, err := s.appendEvents(ctx, q, sc.HouseholdID, credentialID, []fold.Event{ev})
+		last = seq
+		return err
 	})
+	if err != nil {
+		return err
+	}
+	s.changed(sc.HouseholdID, last)
+	return nil
 }
 
 var _ = fmt.Sprint

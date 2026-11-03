@@ -95,7 +95,8 @@ func (s *Service) CreateHousehold(ctx context.Context, name, timezone, firstHome
 			s.systemEvent("list.created", map[string]any{"list_id": domain.NewID(), "name": DefaultListName, "colour": "", "owner_person_id": nil, "default": true}),
 			s.systemEvent("home.created", map[string]any{"home_id": domain.NewID(), "name": firstHome}),
 		}
-		return s.appendEvents(ctx, q, h.ID, domain.SystemPerson, evs)
+		_, err := s.appendEvents(ctx, q, h.ID, domain.SystemPerson, evs)
+		return err
 	})
 	if err != nil {
 		return nil, err

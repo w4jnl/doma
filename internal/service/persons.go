@@ -175,7 +175,8 @@ func (s *Service) RemoveMember(ctx context.Context, sc domain.Scope, personID st
 	if err := requireOwner(sc); err != nil {
 		return err
 	}
-	return s.db.Tx(ctx, func(q *db.Queries) error {
+	var last int64
+	err := s.db.Tx(ctx, func(q *db.Queries) error {
 		m, err := q.GetMembership(ctx, db.GetMembershipParams{HouseholdID: sc.HouseholdID, PersonID: personID})
 		if err != nil {
 			return notFound(err)
@@ -189,15 +190,23 @@ func (s *Service) RemoveMember(ctx context.Context, sc domain.Scope, personID st
 			return err
 		}
 		ev := s.systemEvent("member.removed", map[string]any{"person_id": personID})
-		return s.appendEvents(ctx, q, sc.HouseholdID, domain.SystemPerson, []fold.Event{ev})
+		seq, err := s.appendEvents(ctx, q, sc.HouseholdID, domain.SystemPerson, []fold.Event{ev})
+		last = seq
+		return err
 	})
+	if err != nil {
+		return err
+	}
+	s.changed(sc.HouseholdID, last)
+	return nil
 }
 
 // RevokeCredential removes a device: a person's own, or any device of a
 // person who shares a household the caller owns. The server appends
 // device.revoked to every shared household. Anything else is ErrNotFound.
 func (s *Service) RevokeCredential(ctx context.Context, callerPersonID, credentialID string) error {
-	return s.db.Tx(ctx, func(q *db.Queries) error {
+	grown := map[string]int64{}
+	err := s.db.Tx(ctx, func(q *db.Queries) error {
 		c, err := q.GetCredential(ctx, credentialID)
 		if err != nil {
 			return notFound(err)
@@ -240,12 +249,21 @@ func (s *Service) RevokeCredential(ctx context.Context, callerPersonID, credenti
 		}
 		for _, h := range households {
 			ev := s.systemEvent("device.revoked", map[string]any{"credential_id": credentialID})
-			if err := s.appendEvents(ctx, q, h, domain.SystemPerson, []fold.Event{ev}); err != nil {
+			seq, err := s.appendEvents(ctx, q, h, domain.SystemPerson, []fold.Event{ev})
+			if err != nil {
 				return err
 			}
+			grown[h] = seq
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	for h, seq := range grown {
+		s.changed(h, seq)
+	}
+	return nil
 }
 
 // SetAPNSToken registers or refreshes a device's push token; the device's

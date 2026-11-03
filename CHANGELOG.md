@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Every change pushes.** The guest page's adds, strikes and clears and the server's own events
+  (a member removed, a device revoked) now tell the push side the household changed, as the
+  apps' sync always did; before, a guest's add reached the phones only on their next poll.
 - **Where you left off.** The apps open on the household and the screen last in front: the tab
   on the phone, the list or Family in the Mac's sidebar, the list within a household as before.
   A device that has lost its key says so in Settings and wears the offline badge instead of

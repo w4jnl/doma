@@ -102,15 +102,31 @@ func (s *Service) systemEvent(kind string, payload any) fold.Event {
 }
 
 // appendEvents appends and folds events for a household inside q's
-// transaction.
-func (s *Service) appendEvents(ctx context.Context, q *db.Queries, householdID, credentialID string, evs []fold.Event) error {
+// transaction and returns the last seq, for changed() once the transaction
+// has committed.
+func (s *Service) appendEvents(ctx context.Context, q *db.Queries, householdID, credentialID string, evs []fold.Event) (int64, error) {
 	st := foldsql.New(ctx, q, householdID)
+	var last int64
 	for _, e := range evs {
-		if _, _, err := st.Append(e, credentialID, s.nowMs()); err != nil {
-			return fmt.Errorf("append %s: %w", e.Kind, err)
+		seq, _, err := st.Append(e, credentialID, s.nowMs())
+		if err != nil {
+			return 0, fmt.Errorf("append %s: %w", e.Kind, err)
+		}
+		if seq > last {
+			last = seq
 		}
 	}
-	return nil
+	return last, nil
+}
+
+// changed tells the push side that a household's log grew, up to seq. It is
+// called after the transaction that grew it, never inside, so a push never
+// reads ahead of a commit. Every writer calls it: the sync exchange, the
+// guest page and the server's own events.
+func (s *Service) changed(householdID string, seq int64) {
+	if seq > 0 && s.bus != nil {
+		s.bus.Publish(bus.HouseholdChanged{HouseholdID: householdID, Seq: seq})
+	}
 }
 
 // notFound turns a missing row into ErrNotFound and keeps other errors.
