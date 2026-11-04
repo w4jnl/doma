@@ -19,7 +19,7 @@ GOLANGCI   := $(call tool,golangci-lint)
 GORELEASER := $(call tool,goreleaser)
 
 .PHONY: build run test vet lint fmt generate generate-check migrate e2e check-tenancy check-egress release-check tools brand clean \
-	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight ui-test snapshots voice
+	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight ui-test snapshots voice sim-boot
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN)/doma ./cmd/doma
@@ -103,7 +103,8 @@ mac-run: mac-build
 	open $(MAC)/build/DerivedData/Build/Products/Debug/doma.app
 
 IOS := app/ios
-IOS_SIM ?= platform=iOS Simulator,name=iPhone 17
+IOS_SIM_NAME ?= iPhone 17
+IOS_SIM ?= platform=iOS Simulator,name=$(IOS_SIM_NAME)
 IOS_XCODEBUILD = cd $(IOS) && xcodebuild -project Doma.xcodeproj -scheme Doma -configuration Debug -derivedDataPath build/DerivedData
 # The App Store Connect API key in app/ios/Local.xcconfig (DOMA_ASC_KEY_ID, DOMA_ASC_ISSUER_ID)
 # signs in for signing and uploads in place of Xcode's account; without one, Xcode's account is used.
@@ -116,20 +117,25 @@ ios-project:
 	@[ -f $(IOS)/Local.xcconfig ] || printf 'DOMA_TEAM_ID =\n' > $(IOS)/Local.xcconfig
 	cd $(IOS) && xcodegen generate --quiet
 
-ios-build: ios-project
+# The simulator booted without its window: xcodebuild opens Simulator.app only to boot a device
+# that is not running, and a run of tests is then not a window over the person's work.
+sim-boot:
+	@xcrun simctl bootstatus "$(IOS_SIM_NAME)" -b >/dev/null 2>&1 || true
+
+ios-build: ios-project sim-boot
 	$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' build CODE_SIGN_IDENTITY=- -quiet
 
-ios-test: ios-project
+ios-test: ios-project sim-boot
 	$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' test CODE_SIGN_IDENTITY=- -collect-test-diagnostics never -quiet
 
 # The UI tests and the live test against a throwaway doma that scripts/ui-test.sh starts, sets up
 # and stops; it writes tmp/live.json for them.
-ui-test: ios-project
+ui-test: ios-project sim-boot
 	scripts/ui-test.sh sh -c "$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' test -only-testing:DomaUITests -only-testing:DomaTests/LiveTests CODE_SIGN_IDENTITY=- -quiet"
 
 # Record the snapshots of every screen, light and dark at two Dynamic Type sizes, on both
 # platforms, into app/shared/Tests/Snapshots; make mac-test and make ios-test compare against them.
-snapshots: ios-project mac-project
+snapshots: ios-project mac-project sim-boot
 	@mkdir -p tmp && touch tmp/record-snapshots
 	@rm -rf "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots"
 	@$(MAC_XCODEBUILD) test -only-testing:DomaTests/SnapshotTests -quiet || { rm -f tmp/record-snapshots; exit 1; }
