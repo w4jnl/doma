@@ -19,13 +19,19 @@ struct Lock: ViewModifier {
                 }
             }
             .animation(.easeOut(duration: Tokens.motionBase), value: locked)
-            .onChange(of: phase, initial: true) { _, now in
+            .onAppear {
+                // a launch starts locked; the ask follows once the scene is active
+                if enabled, !UITestHooks.testing { locked = true }
+            }
+            // the Face ID sheet itself takes the app to inactive and back, so only background
+            // locks, and only a locked app asks on return
+            .onChange(of: phase) { _, now in
                 guard enabled else { locked = false; return }
                 switch now {
                 case .background:
                     locked = true
                 case .active:
-                    if locked || !UITestHooks.testing { unlock() }
+                    if locked { unlock() }
                 default:
                     break
                 }
@@ -53,7 +59,6 @@ struct Lock: ViewModifier {
     /// One ask at a time; a failure keeps the cover and the button.
     private func unlock() {
         guard !asking, !UITestHooks.testing else { return }
-        locked = true
         asking = true
         let ctx = LAContext()
         ctx.localizedCancelTitle = String(localized: "Cancel")
