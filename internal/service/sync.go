@@ -251,8 +251,6 @@ func (s *Service) syncHousehold(ctx context.Context, v *events.Validator, person
 		return nil, err
 	}
 	s.log.LogAttrs(ctx, slog.LevelInfo, "sync", slog.String("household", hh.ID), slog.Int("accepted", len(res.Accepted)), slog.Int("rejected", len(res.Rejected)), slog.Int("returned", len(res.Events)), slog.Int64("next", res.Next))
-	if lastSeq > 0 && s.bus != nil {
-		s.bus.Publish(bus.HouseholdChanged{HouseholdID: hh.ID, Seq: lastSeq})
-	}
+	s.changed(hh.ID, lastSeq)
 	return res, nil
 }

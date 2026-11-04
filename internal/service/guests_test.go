@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/w4jnl/doma/internal/auth"
+	"github.com/w4jnl/doma/internal/bus"
 	"github.com/w4jnl/doma/internal/domain"
 	"github.com/w4jnl/doma/internal/secrets"
 	"github.com/w4jnl/doma/internal/service"
@@ -18,6 +19,9 @@ import (
 
 func TestGuestLinksAndView(t *testing.T) {
 	svc, h, a, _ := newSyncWorld(t)
+	changes := bus.New()
+	pushes := changes.Subscribe()
+	svc.SetBus(changes)
 	ctx := context.Background()
 	first := sync1(t, svc, h, a)
 	listID := payloadField(first.Events[0].Payload, "list_id")
@@ -61,8 +65,22 @@ func TestGuestLinksAndView(t *testing.T) {
 	if len(view.Entries) != 1 || view.Entries[0].ItemName != "olijfolie" {
 		t.Fatalf("entries %+v", view.Entries)
 	}
+	// what the syncs above published is not what this is about
+	select {
+	case <-pushes:
+	default:
+	}
 	if err := svc.GuestAdd(ctx, sc, cred, "2 l melk"); err != nil {
 		t.Fatal(err)
+	}
+	// the guest's add reaches the push side like any other writer's
+	select {
+	case c := <-pushes:
+		if c.HouseholdID != h.ID || c.Seq == 0 {
+			t.Errorf("published %+v", c)
+		}
+	case <-time.After(time.Second):
+		t.Error("the guest's add was not published")
 	}
 	if err := svc.GuestAdd(ctx, sc, cred, "Olijfolie"); err != nil {
 		t.Fatal(err)
