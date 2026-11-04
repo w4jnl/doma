@@ -179,4 +179,51 @@ final class ScreenLogicTests: XCTestCase {
         let theirs = OpenMark(listID: listID, addedHLC: "9999999999999:0000:x", addedBy: "someone-else")
         XCTAssertEqual(s.unseen(household: s.currentHouseholdID ?? "", in: marks + [theirs])[listID], 1)
     }
+
+    /// A second family's doma: its household joins the switcher under its own server, the
+    /// scope, clock, client and names follow the household in front, an invite is routed by
+    /// its address, and a server whose last household is gone leaves with it.
+    func testTwoServersInOneSession() throws {
+        let s = try session()
+        try s.store.saveContext(ServerContext(serverID: "S2", baseURL: URL(string: "https://test.doma.example:8443")!, credentialID: "C9", personID: "pb", displayName: "", createdAt: 2))
+        try s.store.upsertHousehold(HouseholdRow(serverID: "S2", id: "H1", name: "Proef", timezone: "", stalenessDays: nil, role: "member"))
+        s.reload()
+        XCTAssertEqual(s.contexts.map(\.serverID), ["S1", "S2"])
+        XCTAssertEqual(s.households.map(\.ref.key), ["S1/H1", "S2/H1"], "the same household id on two servers is two households")
+        XCTAssertEqual(s.scope?.serverID, "S1")
+        XCTAssertEqual(s.scopes.count, 2)
+        XCTAssertEqual(s.servers.map(\.serverID), [], "no device key under test, so nothing to sync with")
+
+        let proef = try XCTUnwrap(s.households.first { $0.serverID == "S2" })
+        s.select(proef)
+        XCTAssertEqual(s.scope, Scope(serverID: "S2", householdID: "H1", personID: "pb"))
+        XCTAssertEqual(s.context?.credentialID, "C9")
+        XCTAssertEqual(s.clock?.device, "C9")
+        XCTAssertEqual(s.currentHouseholdID, "H1")
+        s.learn(names: ["pa": "Jaro", "px": "Ana"])
+        XCTAssertEqual(s.name(of: "px"), "Ana")
+        s.markSeen(household: "H1", list: "L1", upTo: "5")
+        XCTAssertEqual(s.seenMark(household: "H1", list: "L1"), "5")
+
+        s.select(try XCTUnwrap(s.households.first { $0.serverID == "S1" }))
+        XCTAssertEqual(s.scope?.personID, "pa")
+        XCTAssertNil(s.name(of: "px"), "names are per server")
+        XCTAssertNil(s.seenMark(household: "H1", list: "L1"), "seen marks are per server")
+
+        // routing an invite
+        XCTAssertEqual(s.context(for: InviteLink("https://test.doma.example:8443/i/9zSPFTrorRnHebdpwCbj7bgR1Vhzidzdkg012345678")!)?.serverID, "S2")
+        XCTAssertEqual(s.context(for: InviteLink("https://doma.example/i/9zSPFTrorRnHebdpwCbj7bgR1Vhzidzdkg012345678")!)?.serverID, "S1")
+        XCTAssertNil(s.context(for: InviteLink("https://other.example/i/9zSPFTrorRnHebdpwCbj7bgR1Vhzidzdkg012345678")!))
+        XCTAssertEqual(s.context(for: InviteLink("9zSPFTrorRnHebdpwCbj7bgR1Vhzidzdkg012345678")!)?.serverID, "S1", "a bare code is for the household in front's doma")
+        XCTAssertFalse(s.needsName(for: "https://doma.example/i/9zSPFTrorRnHebdpwCbj7bgR1Vhzidzdkg012345678"))
+        XCTAssertTrue(s.needsName(for: "https://test.doma.example:8443/i/9zSPFTrorRnHebdpwCbj7bgR1Vhzidzdkg012345678"), "no name there yet")
+        XCTAssertTrue(s.needsName(for: "https://other.example/i/9zSPFTrorRnHebdpwCbj7bgR1Vhzidzdkg012345678"))
+
+        // the last household of a server goes, and the server with it
+        try s.store.removeHousehold(Scope(serverID: "S2", householdID: "H1", personID: "pb"))
+        s.reload()
+        XCTAssertEqual(s.contexts.map(\.serverID), ["S1"])
+        XCTAssertEqual(try s.store.contexts().count, 1)
+        XCTAssertEqual(s.households.count, 1)
+    }
 }

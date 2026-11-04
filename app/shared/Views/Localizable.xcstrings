@@ -449,6 +449,38 @@
         }
       }
     },
+    "Could not accept the invite.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kon de uitnodiging niet aannemen."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozvánku sa nepodarilo prijať."
+          }
+        }
+      }
+    },
+    "Could not reach the family's doma.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kon de doma van het gezin niet bereiken."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rodinné doma sa nepodarilo dosiahnuť."
+          }
+        }
+      }
+    },
     "Could not reach the family's doma. Try again in a moment.": {
       "localizations": {
         "nl": {
@@ -1613,6 +1645,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tyrkysová"
+          }
+        }
+      }
+    },
+    "That is not an invite. Ask for the link or the code again.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dat is geen uitnodiging. Vraag de link of de code nog eens."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To nie je pozvánka. Vypýtajte si odkaz alebo kód znova."
           }
         }
       }

@@ -6,6 +6,11 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Two families' domas on one device.** An invite from another doma no longer bounces: the app
+  joins it next to the first, with the same device key, and the household switcher groups
+  households under each doma's address. A bare invite code goes to the doma of the household in
+  front; the name is asked once more for a new doma, filled in with the one used so far. Leaving
+  the last household on a doma leaves that doma.
 ## 0.2.1 (2026-11-04)
 
 The Mac app from Homebrew, and one sign-in behind your proxy.

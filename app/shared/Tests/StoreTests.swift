@@ -140,9 +140,36 @@ final class StoreTests: XCTestCase {
         try store.removeHousehold(scope)
         XCTAssertEqual(try store.households(serverID: "S1").count, 0)
         XCTAssertEqual(try store.tables(scope), Tables())
-        XCTAssertNotNil(try store.context())
+        XCTAssertEqual(try store.contexts().count, 1)
         try store.wipe(serverID: "S1")
-        XCTAssertNil(try store.context())
+        XCTAssertTrue(try store.contexts().isEmpty)
+    }
+
+    /// Two families' domas in one store: each keeps its households, rows and cursor under its
+    /// own server id, even for the same household id, and wiping one leaves the other whole.
+    func testTwoServersShareOneStore() throws {
+        let (store, clock) = try fresh()
+        let s1 = scope
+        let s2 = Scope(serverID: "S2", householdID: "H1", personID: "pb")
+        try store.saveContext(ServerContext(serverID: "S1", baseURL: URL(string: "https://doma.example")!, credentialID: "C1", personID: "pa", displayName: "Jaro", createdAt: 1))
+        try store.saveContext(ServerContext(serverID: "S2", baseURL: URL(string: "https://test.doma.example")!, credentialID: "C9", personID: "pb", displayName: "Jaro", createdAt: 2))
+        try store.upsertHousehold(HouseholdRow(serverID: "S1", id: "H1", name: "De Vries", timezone: "", stalenessDays: nil, role: "owner"))
+        try store.upsertHousehold(HouseholdRow(serverID: "S2", id: "H1", name: "Proef", timezone: "", stalenessDays: nil, role: "member"))
+        try store.record(Kind.listCreated, ListPayload(listID: "L1", name: "Shopping", isDefault: true), scope: s1, clock: clock)
+        try store.record(Kind.listCreated, ListPayload(listID: "L1", name: "Testlijst", isDefault: true), scope: s2, clock: HLCClock(device: "C9"))
+        try store.db.write { db in try DomaStore.setCursor(db, s2, 7) }
+        XCTAssertEqual(try store.contexts().map(\.serverID), ["S1", "S2"])
+        XCTAssertEqual(try store.households(serverID: "S1").map(\.name), ["De Vries"])
+        XCTAssertEqual(try store.households(serverID: "S2").map(\.name), ["Proef"])
+        XCTAssertEqual(try store.read(s1) { db, sc in try Queries.lists(db, sc) }.map(\.name), ["Shopping"])
+        XCTAssertEqual(try store.read(s2) { db, sc in try Queries.lists(db, sc) }.map(\.name), ["Testlijst"])
+        XCTAssertEqual(try store.db.read { db in try DomaStore.cursor(db, s1) }, 0)
+        XCTAssertEqual(try store.db.read { db in try DomaStore.cursor(db, s2) }, 7)
+        XCTAssertEqual(try store.outboxCount(s1), 1)
+        try store.wipe(serverID: "S2")
+        XCTAssertEqual(try store.contexts().map(\.serverID), ["S1"])
+        XCTAssertEqual(try store.read(s1) { db, sc in try Queries.lists(db, sc) }.count, 1)
+        XCTAssertEqual(try store.read(s2) { db, sc in try Queries.lists(db, sc) }.count, 0)
     }
 }
 

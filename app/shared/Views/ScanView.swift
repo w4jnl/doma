@@ -1,6 +1,8 @@
-// Scan: the first screen before any household, and Family's Add. The camera full-bleed, the
-// mark above it, one line of help, Paste a link as a text button; the display name is asked on
-// the first join only. On a Mac or without a camera, the link field is what there is.
+// Scan: the first screen before any household, and Family's Join another. The camera
+// full-bleed, the mark above it, one line of help, Paste a link as a text button; the display
+// name is asked on the first join, and once more for a first join to another family's doma,
+// filled in with the name used so far. On a Mac or without a camera, the link field is what
+// there is.
 import SwiftUI
 
 struct ScanView: View {
@@ -13,11 +15,12 @@ struct ScanView: View {
     @State private var problem: String?
     @State private var busy = false
     @State private var scanned: String?
+    @State private var nameAsked = false
     @FocusState private var focus: Field?
 
     enum Field { case link, name }
 
-    private var needsName: Bool { session.context?.displayName.isEmpty ?? true }
+    private var needsName: Bool { session.needsName(for: link) }
 
     var body: some View {
         ZStack {
@@ -113,12 +116,21 @@ struct ScanView: View {
 
     private func accept(_ text: String) {
         guard !busy else { return }
-        // a scanned invite on a first join still needs the name: show the field with the code in it
-        if needsName, name.trimmingCharacters(in: .whitespaces).isEmpty {
+        // a first join, here or to another family's doma, asks the name once: the field, with the
+        // code in it and the name used so far
+        if session.needsName(for: text), !nameAsked {
+            nameAsked = true
+            if name.trimmingCharacters(in: .whitespaces).isEmpty {
+                name = session.contexts.first?.displayName ?? ""
+            }
             link = text
             pasting = true
             focus = .name
             scanned = nil
+            return
+        }
+        if session.needsName(for: text), name.trimmingCharacters(in: .whitespaces).isEmpty {
+            focus = .name
             return
         }
         busy = true
