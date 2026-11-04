@@ -1,0 +1,58 @@
+# Authelia for doma: one rule, the LLDAP group doma-admin may open
+# doma.example.com with a second factor. Only the admin pages ever reach
+# Authelia; Traefik sends the family's links and the apps' paths straight
+# to doma (traefik.yaml). The {{ env }} names come from .env through
+# compose.yaml (X_AUTHELIA_CONFIG_FILTERS=template). Already running
+# Authelia? Add the access_control rule to yours and skip the rest.
+theme: auto
+
+server:
+  address: tcp://0.0.0.0:9091
+
+log:
+  level: info
+
+totp:
+  issuer: '{{ env "AUTH_HOST" }}'
+
+authentication_backend:
+  password_reset:
+    disable: true            # LLDAP has its own page for that
+  ldap:
+    implementation: lldap    # sets ou=people, ou=groups, uid, cn, mail, memberOf
+    address: '{{ env "LLDAP_ADDRESS" }}'
+    base_dn: '{{ env "LLDAP_BASE_DN" }}'
+    user: 'uid=authelia,ou=people,{{ env "LLDAP_BASE_DN" }}'
+    # password: AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD in the environment
+  # For a trial without LLDAP: comment the ldap block out and use the
+  # file next to this one; users_database.yml has one user in doma-admin.
+  # file:
+  #   path: /config/users_database.yml
+
+access_control:
+  default_policy: deny
+  rules:
+    - domain: '{{ env "DOMA_HOST" }}'
+      policy: two_factor
+      subject: ['group:doma-admin']
+
+session:
+  cookies:
+    - domain: '{{ env "COOKIE_DOMAIN" }}'
+      authelia_url: 'https://{{ env "AUTH_HOST" }}'
+      default_redirection_url: 'https://{{ env "DOMA_HOST" }}/admin'
+  # secret: AUTHELIA_SESSION_SECRET in the environment
+
+regulation:
+  max_retries: 3
+  find_time: 2m
+  ban_time: 5m
+
+storage:
+  local:
+    path: /config/db.sqlite3
+  # encryption_key: AUTHELIA_STORAGE_ENCRYPTION_KEY in the environment
+
+notifier:
+  filesystem:
+    filename: /config/notification.txt

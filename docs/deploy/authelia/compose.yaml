@@ -1,0 +1,79 @@
+# docker compose for doma behind Traefik and Authelia: three containers,
+# TLS from Let's Encrypt, the admin pages behind Authelia's sign-in and
+# everything the family's phones and the apps use left open. README.md in
+# this folder explains the split; traefik.yaml holds the routers.
+#
+#   cp .env.example .env            # hostnames, mail, secrets
+#   docker compose up -d
+#   open https://doma.example.com   # Authelia, then doma's setup page
+#
+# Authelia signs people in against an LLDAP server that already runs on
+# the external docker network named in .env; the LLDAP group doma-admin
+# is who may open the admin pages. For a trial without LLDAP, switch
+# authelia/configuration.yml to the file backend.
+services:
+  traefik:
+    image: traefik:v3.3
+    restart: unless-stopped
+    command:
+      - --providers.file.filename=/etc/traefik/dynamic/traefik.yaml
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMA_HOST: ${DOMA_HOST}
+      AUTH_HOST: ${AUTH_HOST}
+    volumes:
+      - ./traefik.yaml:/etc/traefik/dynamic/traefik.yaml:ro
+      - traefik-acme:/letsencrypt
+    networks: [front]
+
+  authelia:
+    image: authelia/authelia:4.39
+    restart: unless-stopped
+    environment:
+      X_AUTHELIA_CONFIG_FILTERS: template      # lets configuration.yml read the names below
+      DOMA_HOST: ${DOMA_HOST}
+      AUTH_HOST: ${AUTH_HOST}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+      LLDAP_ADDRESS: ${LLDAP_ADDRESS}
+      LLDAP_BASE_DN: ${LLDAP_BASE_DN}
+      AUTHELIA_AUTHENTICATION_BACKEND_LDAP_PASSWORD: ${LLDAP_AUTHELIA_PASSWORD}
+      AUTHELIA_SESSION_SECRET: ${AUTHELIA_SESSION_SECRET}
+      AUTHELIA_STORAGE_ENCRYPTION_KEY: ${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+    volumes:
+      - ./authelia:/config
+    networks: [front, lldap]
+
+  doma:
+    image: ghcr.io/w4jnl/doma:latest
+    restart: unless-stopped
+    environment:
+      DOMA_SERVER_BASE_URL: https://${DOMA_HOST}
+      DOMA_SERVER_TRUSTED_PROXIES: "172.16.0.0/12"   # the compose networks
+      DOMA_METRICS_TOKEN: ${DOMA_METRICS_TOKEN}
+      DOMA_LOG_FORMAT: json
+      # DOMA_PUSH_ENABLED: "true"        # after the APNs key is uploaded on /admin/server
+      # DOMA_PUSH_KEY_ID: "ABC123DEFG"
+      # DOMA_PUSH_TEAM_ID: "TEAM123456"
+    volumes:
+      - doma-data:/data
+    networks: [front]
+    stop_grace_period: 15s
+
+networks:
+  front:
+  lldap:
+    external: true
+    name: ${LLDAP_NETWORK}
+
+volumes:
+  traefik-acme:
+  doma-data:

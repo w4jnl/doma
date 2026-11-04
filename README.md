@@ -31,10 +31,11 @@ Not released yet; phase 0 runs from source. Linux on amd64 and arm64 for the ser
 4. Scan the QR with the doma app. The phone is in, as owner. Owners invite the rest of the
    family from the app's Family screen; the lists appear on each phone as it joins.
 
-Put the server behind the reverse proxy you already run, terminating TLS, with no sign-in in
-front of it: doma authenticates every route itself, and the invite and guest links must open
-from a phone on mobile data. `docs/deploy/` has a systemd unit, a compose file, a Nomad job and a
-Traefik snippet.
+Put the server behind the reverse proxy you already run, terminating TLS. doma authenticates
+every route itself, and the invite and guest links must open from a phone on mobile data, so
+the proxy's own sign-in, if you want one, goes in front of the admin pages only. `docs/deploy/`
+has a systemd unit, a compose file, a Nomad job, a Traefik snippet, and under `authelia/` a
+compose stack with Traefik and Authelia that does exactly that split.
 
 ## Why doma
 

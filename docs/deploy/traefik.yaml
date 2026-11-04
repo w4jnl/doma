@@ -1,7 +1,8 @@
 # Traefik dynamic configuration for doma: terminate TLS and forward
 # everything. No auth middleware in front: doma authenticates every route
 # itself, and invite links (/i/…) and guest links (/g/…) must open from a
-# phone on mobile data.
+# phone on mobile data. To put Authelia in front of the admin pages only,
+# see authelia/traefik.yaml next to this file.
 http:
   routers:
     doma:
