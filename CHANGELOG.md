@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+## 0.2.0 (2026-11-04)
+
+Speech, sharing, and a place for the proxy's sign-in.
+
 - **Say an item.** A mic at the end of the add field, on the phone and the Mac: a tap listens,
   what you say lands in the field as the words settle, and a pause adds it as return would. Hold
   it (right-click on the Mac) to choose English, Nederlands or Slovenčina; the choice is kept.
