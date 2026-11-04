@@ -165,7 +165,10 @@ final class SnapshotTests: XCTestCase {
                 let full = "\(name)-\(dark ? "dark" : "light")-\(sizeName)"
                 let shown = view().environment(session)
                 #if os(macOS)
-                let withNav = AnyView(shown.environment(MacNav()))
+                // no window toolbar in a picture: a screen with toolbar items gets one a moment
+                // after its first layout, and the content moves by half a point when it comes;
+                // without a title bar to take it, it is drawn as a strip inside the content
+                let withNav = AnyView(shown.environment(MacNav()).toolbar(.hidden, for: .windowToolbar))
                 #else
                 let withNav = AnyView(shown)
                 #endif
@@ -229,14 +232,17 @@ final class SnapshotTests: XCTestCase {
         return Pixels(width: w, height: h, bytes: bytes)
     }
 
-    /// Takes the picture once layout has settled: two shots 200 ms apart that agree, or the
-    /// last of six. A fixed wait caught the rows mid-settle now and then.
+    /// Takes the picture once layout has settled: three shots 300 ms apart that agree, or the
+    /// last of fifteen. A fixed wait caught the rows mid-settle now and then, and two shots
+    /// could both come before a starved main thread had laid the rows out at all.
     func settled(_ shot: () throws -> Data) async throws -> Data {
         var last = try shot()
-        for _ in 0..<6 {
-            try await Task.sleep(for: .milliseconds(200))
+        var agreed = 0
+        for _ in 0..<15 {
+            try await Task.sleep(for: .milliseconds(300))
             let next = try shot()
-            if next == last { return next }
+            agreed = next == last ? agreed + 1 : 0
+            if agreed >= 2 { return next }
             last = next
         }
         return last
@@ -275,9 +281,36 @@ final class SnapshotTests: XCTestCase {
         override var canBecomeMain: Bool { true }
     }
 
+    /// Every layer under view, with its animations removed, so it draws at its model values;
+    /// and every scroll view at its top, under its inset, where a screen opens.
+    static func finishAnimations(_ view: NSView) {
+        func walk(_ layer: CALayer) {
+            layer.removeAllAnimations()
+            layer.sublayers?.forEach(walk)
+        }
+        if let layer = view.layer { walk(layer) }
+        if let scroll = view as? NSScrollView {
+            let top = NSPoint(x: 0, y: -scroll.contentInsets.top)
+            if scroll.contentView.bounds.origin != top {
+                scroll.contentView.scroll(to: top)
+                scroll.reflectScrolledClipView(scroll.contentView)
+            }
+        }
+        view.subviews.forEach(finishAnimations)
+    }
+
     func render(_ content: AnyView, dark: Bool) async throws -> Data {
-        let window = KeyWindow(contentRect: NSRect(origin: .zero, size: Self.size), styleMask: [.titled], backing: .buffered, defer: false)
+        // on the sharpest screen there is, from the start: a window made on a 1x display and
+        // moved to a Retina one rasterises what it laid out before the move at the old scale,
+        // so text and a QR code land a half pixel off in some pictures and not in others
+        let sharp = NSScreen.screens.max(by: { $0.backingScaleFactor < $1.backingScaleFactor })
+        let origin = sharp.map { NSPoint(x: $0.visibleFrame.origin.x.rounded(), y: $0.visibleFrame.origin.y.rounded()) } ?? .zero
+        let window = KeyWindow(contentRect: NSRect(origin: origin, size: Self.size), styleMask: [.titled], backing: .buffered, defer: false, screen: sharp)
         window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+        // unseen: the pictures are drawn into a bitmap, not read off the screen, so the window
+        // need not show, and a run of them is not a run of windows over the person's work
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
         let hosting = NSHostingView(rootView: content)
         hosting.frame = NSRect(origin: .zero, size: Self.size)
         window.contentView = hosting
@@ -285,6 +318,10 @@ final class SnapshotTests: XCTestCase {
         hosting.layoutSubtreeIfNeeded()
         try await Task.sleep(for: .milliseconds(500))
         let png = try await settled {
+            // the model, not a frame: on a display the system is not driving, an animation can
+            // stand still part way, and a list's scroll to its inset is one; its layers are
+            // snapped to where they are going before the bitmap is drawn
+            Self.finishAnimations(hosting)
             let rep = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
             hosting.cacheDisplay(in: hosting.bounds, to: rep)
             // at 1x: the pictures are for the eye and the diff, not for the shop window; a view
