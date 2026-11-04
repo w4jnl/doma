@@ -83,7 +83,7 @@ struct ListsHome: View {
         .onChange(of: again) { path = path.isEmpty ? [.all] : [] }
     }
 
-    private var key: String { "list.current." + (session.current?.id ?? "") }
+    private var key: String { "list.current." + (session.currentRef?.key ?? "") }
 
     private func observe() {
         guard let scope = session.scope else { return }
@@ -131,7 +131,8 @@ struct Badge: ViewModifier {
     }
 }
 
-/// A menu over the households in the title's place, only when the person is in more than one.
+/// A menu over the households in the title's place, only when the person is in more than one;
+/// grouped under each family's doma when there is more than one of those.
 struct HouseholdTitle: ToolbarContent {
     @Environment(Session.self) private var session
 
@@ -139,15 +140,17 @@ struct HouseholdTitle: ToolbarContent {
         if session.households.count > 1 {
             ToolbarItem(placement: .principal) {
                 Menu {
-                    ForEach(session.households) { h in
-                        Button {
-                            session.currentHouseholdID = h.id
-                        } label: {
-                            if h.id == session.current?.id {
-                                Label(h.name, systemImage: "checkmark")
-                            } else {
-                                Text(h.name)
+                    if session.contexts.count > 1 {
+                        ForEach(session.contexts, id: \.serverID) { c in
+                            Section(c.baseURL.host ?? "") {
+                                ForEach(session.households.filter { $0.serverID == c.serverID }, id: \.ref) { h in
+                                    row(h)
+                                }
                             }
+                        }
+                    } else {
+                        ForEach(session.households, id: \.ref) { h in
+                            row(h)
                         }
                     }
                 } label: {
@@ -160,6 +163,18 @@ struct HouseholdTitle: ToolbarContent {
                     .foregroundStyle(Tokens.ink)
                 }
                 .accessibilityLabel(Text("Household"))
+            }
+        }
+    }
+
+    private func row(_ h: HouseholdRow) -> some View {
+        Button {
+            session.select(h)
+        } label: {
+            if h.ref == session.current?.ref {
+                Label(h.name, systemImage: "checkmark")
+            } else {
+                Text(h.name)
             }
         }
     }

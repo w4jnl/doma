@@ -44,7 +44,8 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   `mac-*` and `ios-*` make targets; DomaKit: `Model` (HLC, ULID, the name key, the typed line,
   events and rows), `Fold` (the port, `MemStore`, tested against the fixture in every order),
   `Store` (GRDB schema, `SQLFoldStore`, `DomaStore` with log, outbox, cursor and snapshot import),
-  `Identity` (`DeviceKey` in the Keychain, `InviteLink`, `Session`), `Sync` (`SyncClient` with
+  `Identity` (`DeviceKey` in the Keychain, `InviteLink`, `Session` with one context per server
+  and the household in front chosen across them), `Sync` (`SyncClient` with
   the signature, `Syncer` with the triggers, `Background` for the phone's refresh and push),
   `Voice` (speech to words on the device in English, Dutch and Slovak, nt's Listener, and the mic
   in the add bar; `make voice` checks the three languages on the Mac);

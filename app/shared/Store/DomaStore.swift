@@ -11,7 +11,8 @@ import Foundation
 import GRDB
 import os
 
-/// The one server this app talks to (v1 holds a single context) and this device's place on it.
+/// One family's doma this device belongs to, and its place there: the server id is this
+/// device's own, minted when it joined; the credential and person are the server's.
 struct ServerContext: Hashable, Sendable {
     var serverID: String
     var baseURL: URL
@@ -31,6 +32,8 @@ struct HouseholdRow: Hashable, Sendable, Identifiable {
     var role: String
 
     var isOwner: Bool { role == "owner" }
+    /// The household on its server, since two servers may hold the same id.
+    var ref: Session.HouseholdRef { Session.HouseholdRef(serverID: serverID, householdID: id) }
 }
 
 /// One event waiting to go up.
@@ -73,9 +76,10 @@ final class DomaStore: Sendable {
 
     // MARK: context and households
 
-    func context() throws -> ServerContext? {
+    /// Every server this device belongs to, oldest first.
+    func contexts() throws -> [ServerContext] {
         try db.read { db in
-            try Row.fetchOne(db, sql: "SELECT * FROM contexts ORDER BY created_at LIMIT 1").flatMap { r in
+            try Row.fetchAll(db, sql: "SELECT * FROM contexts ORDER BY created_at, server_id").compactMap { r in
                 guard let url = URL(string: r["base_url"]) else { return nil }
                 return ServerContext(serverID: r["server_id"], baseURL: url, credentialID: r["credential_id"], personID: r["person_id"], displayName: r["display_name"], createdAt: r["created_at"])
             }

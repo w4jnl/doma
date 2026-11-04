@@ -1,6 +1,8 @@
-// Session is the app's root: the local store, the server context and this device's key, the
-// households the person is in, the clock that stamps their events, and the syncer. Screens read
-// and write through it. v1 holds one server context and refuses a second with a message.
+// Session is the app's root: the local store, the families' domas this device belongs to and
+// its one key, the households the person is in on each, the clocks that stamp their events, and
+// the syncer. Screens read and write through it. A second family's doma is a second context:
+// the same device key, its own credential, households and cursors; nothing about servers shows
+// until there is more than one.
 import Foundation
 import Observation
 #if os(iOS)
@@ -11,24 +13,23 @@ import UserNotifications
 @MainActor @Observable
 final class Session {
     let store: DomaStore
-    private(set) var context: ServerContext?
+    /// Every family's doma this device belongs to, oldest first.
+    private(set) var contexts: [ServerContext] = []
+    /// The households on all of them, in their servers' order.
     private(set) var households: [HouseholdRow] = []
     private(set) var key: DeviceKey?
-    private(set) var clock: HLCClock?
+    /// One clock per server; its device id is this device's credential there.
+    private var clocks: [String: HLCClock] = [:]
     private(set) var syncer: Syncer!
     /// The household the screens show: the one last shown on this device, the first one until
     /// the person switches.
-    var currentHouseholdID: String? {
-        didSet {
-            guard let id = currentHouseholdID, let c = context else { return }
-            UserDefaults.standard.set(id, forKey: "household.current." + c.serverID)
-        }
-    }
-    /// The family's names by person id, from the members the Family screen and the membership
-    /// refresh bring; held in memory, never stored. A struck row names who got it from these.
-    private(set) var names: [String: String] = [:]
-    /// Per list, the stamp of the newest entry this device had in front: what others added after
-    /// it is unseen, and counts on the icon and in the overview. Kept on the device only.
+    private(set) var currentRef: HouseholdRef?
+    /// The family's names by server and person id, from the members the Family screen and the
+    /// membership refresh bring; held in memory, never stored. A struck row names who got it.
+    private(set) var names: [String: [String: String]] = [:]
+    /// Per list, the stamp of the newest entry this device had in front, keyed
+    /// server/household/list: what others added after it is unseen, and counts on the icon and
+    /// in the overview. Kept on the device only, one dictionary per server.
     private(set) var seen: [String: String] = [:]
     /// The one mic, for the list in front: speech to words on the device, never sent anywhere.
     @ObservationIgnored let dictation = Listener()
@@ -36,13 +37,18 @@ final class Session {
     /// The one used by the app process, for the push and background entry points.
     nonisolated(unsafe) static weak var current: Session?
 
+    /// A household on one server.
+    struct HouseholdRef: Hashable {
+        var serverID: String
+        var householdID: String
+        var key: String { serverID + "/" + householdID }
+    }
+
     init(store: DomaStore) {
         self.store = store
         syncer = Syncer(store: store,
-                        client: { [weak self] in self?.syncClient },
-                        scopes: { [weak self] in self?.scopes ?? [] },
-                        clock: { [weak self] in self?.clock },
-                        revoked: { [weak self] in self?.forgetServer() },
+                        servers: { [weak self] in self?.servers ?? [] },
+                        revoked: { [weak self] in self?.forgetServer($0) },
                         removed: { [weak self] in self?.householdRemoved($0) })
         reload()
         Session.current = self
@@ -78,146 +84,216 @@ final class Session {
     var hasHousehold: Bool { !households.isEmpty }
 
     var current: HouseholdRow? {
-        households.first { $0.id == currentHouseholdID } ?? households.first
+        households.first { $0.ref == currentRef } ?? households.first
     }
 
+    /// The current household's id, for the keys screens remember things under.
+    var currentHouseholdID: String? { current?.id }
+
+    /// The current household's doma; the first one while there is no household.
+    var context: ServerContext? {
+        current.flatMap { context(for: $0.serverID) } ?? contexts.first
+    }
+
+    func context(for serverID: String) -> ServerContext? {
+        contexts.first { $0.serverID == serverID }
+    }
+
+    /// The clock that stamps the current household's events.
+    var clock: HLCClock? { context.flatMap { clocks[$0.serverID] } }
+
     var scope: Scope? {
-        guard let c = context, let h = current else { return nil }
+        guard let h = current, let c = context(for: h.serverID) else { return nil }
         return Scope(serverID: c.serverID, householdID: h.id, personID: c.personID)
     }
 
+    /// Every household on every server.
     var scopes: [Scope] {
-        guard let c = context else { return [] }
-        return households.map { Scope(serverID: c.serverID, householdID: $0.id, personID: c.personID) }
+        households.compactMap { h in context(for: h.serverID).map { Scope(serverID: $0.serverID, householdID: h.id, personID: $0.personID) } }
     }
 
-    var client: SyncClient? {
-        guard let c = context, let key else { return nil }
+    /// The client of the current household's doma.
+    var client: SyncClient? { context.flatMap(client(for:)) }
+
+    func client(for c: ServerContext) -> SyncClient? {
+        guard let key else { return nil }
         return SyncClient(baseURL: c.baseURL, key: key, credentialID: c.credentialID)
     }
 
-    /// The syncer's client: the same, or one that reaches nothing while a UI test holds sync back.
-    var syncClient: SyncClient? {
-        guard var c = client else { return nil }
-        if UITestHooks.enabled, UITestHooks.blockSync {
-            c.baseURL = URL(string: "http://127.0.0.1:9")!
+    /// What the syncer talks to, one per server; clients that reach nothing while a UI test
+    /// holds sync back.
+    var servers: [Syncer.Server] {
+        contexts.compactMap { c in
+            guard var client = client(for: c), let clock = clocks[c.serverID] else { return nil }
+            if UITestHooks.enabled, UITestHooks.blockSync {
+                client.baseURL = URL(string: "http://127.0.0.1:9")!
+            }
+            return Syncer.Server(serverID: c.serverID, client: client, clock: clock, scopes: scopes.filter { $0.serverID == c.serverID })
         }
-        return c
+    }
+
+    /// Shows a household.
+    func select(_ h: HouseholdRow) {
+        currentRef = h.ref
+        if !UITestHooks.testing {
+            UserDefaults.standard.set(h.ref.key, forKey: "household.current")
+        }
     }
 
     func reload() {
         defer { loadSeen() }
-        context = try? store.context()
         key = DeviceKey.load()
-        if let c = context {
-            households = (try? store.households(serverID: c.serverID)) ?? []
-            if clock?.device != c.credentialID {
-                clock = HLCClock(device: c.credentialID)
+        var kept: [ServerContext] = []
+        var all: [HouseholdRow] = []
+        for c in (try? store.contexts()) ?? [] {
+            let hs = (try? store.households(serverID: c.serverID)) ?? []
+            if hs.isEmpty {
+                // the last household there is gone: the server goes with it, the key stays
+                try? store.wipe(serverID: c.serverID)
+                continue
             }
-        } else {
-            households = []
-            clock = nil
+            kept.append(c)
+            all += hs
+            if clocks[c.serverID]?.device != c.credentialID {
+                clocks[c.serverID] = HLCClock(device: c.credentialID)
+            }
         }
-        if context != nil, key == nil, !(UITestHooks.testing && !UITestHooks.enabled) {
+        contexts = kept
+        households = all
+        clocks = clocks.filter { id, _ in kept.contains { $0.serverID == id } }
+        if !contexts.isEmpty, key == nil, !(UITestHooks.testing && !UITestHooks.enabled) {
             // the store knows the family but the key is gone: nothing can be signed, and the
             // screens must say so rather than look fine and never sync
             syncer.noteMissingKey()
         }
-        if currentHouseholdID == nil || !households.contains(where: { $0.id == currentHouseholdID }) {
-            let remembered = UITestHooks.testing ? nil : context.flatMap { UserDefaults.standard.string(forKey: "household.current." + $0.serverID) }
-            currentHouseholdID = households.first { $0.id == remembered }?.id ?? households.first?.id
+        if currentRef == nil || !households.contains(where: { $0.ref == currentRef }) {
+            let remembered = UITestHooks.testing ? nil : rememberedRef()
+            currentRef = households.first { $0.ref == remembered }?.ref ?? households.first?.ref
         }
+    }
+
+    /// The household last shown, from this device's defaults; the one-server key of earlier
+    /// builds counts for the first server.
+    private func rememberedRef() -> HouseholdRef? {
+        if let s = UserDefaults.standard.string(forKey: "household.current"), let i = s.firstIndex(of: "/") {
+            return HouseholdRef(serverID: String(s[..<i]), householdID: String(s[s.index(after: i)...]))
+        }
+        if let c = contexts.first, let h = UserDefaults.standard.string(forKey: "household.current." + c.serverID) {
+            return HouseholdRef(serverID: c.serverID, householdID: h)
+        }
+        return nil
     }
 
     // MARK: Invites
 
     enum AcceptError: Error, LocalizedError {
         case notAnInvite
-        case anotherServer
         case server(String)
 
         var errorDescription: String? {
             switch self {
-            case .notAnInvite: "That is not an invite. Ask for the link or the code again."
-            case .anotherServer: "This invite is for another family's doma. This app can join one at a time."
+            case .notAnInvite: String(localized: "That is not an invite. Ask for the link or the code again.")
             case .server(let s): s
             }
         }
     }
 
+    /// The doma an invite is for, when the device already belongs to it: the link's address, or
+    /// the current household's doma for a bare code.
+    func context(for link: InviteLink) -> ServerContext? {
+        if let s = link.server {
+            return contexts.first { $0.baseURL.host == s.host && $0.baseURL.port == s.port }
+        }
+        return context
+    }
+
+    /// Whether joining with this text needs the person's name: on the first join, and on the
+    /// first join to another family's doma.
+    func needsName(for text: String) -> Bool {
+        guard let link = InviteLink(text) else { return contexts.isEmpty }
+        return context(for: link)?.displayName.isEmpty ?? true
+    }
+
     /// Accepts an invite: makes the device key if needed, registers this device, stores the
-    /// context and the household, and syncs. The display name is asked on the first join only.
+    /// context and the household, and syncs. A link to a doma this device does not know yet
+    /// makes a new context, with the same key and its own credential there.
     func accept(_ text: String, displayName: String) async throws {
         guard let link = InviteLink(text) else { throw AcceptError.notAnInvite }
-        let server: URL
-        if let c = context {
-            if let s = link.server, s.host != c.baseURL.host || s.port != c.baseURL.port { throw AcceptError.anotherServer }
-            server = c.baseURL
-        } else if let s = link.server {
-            server = s
-        } else {
-            throw AcceptError.notAnInvite
-        }
+        let known = context(for: link)
+        guard let server = known?.baseURL ?? link.server else { throw AcceptError.notAnInvite }
         let key = try self.key ?? DeviceKey.loadOrMake()
         self.key = key
-        let client = SyncClient(baseURL: server, key: key, credentialID: context?.credentialID)
-        let name = context?.displayName.isEmpty == false ? context!.displayName : displayName
+        let client = SyncClient(baseURL: server, key: key, credentialID: known?.credentialID)
+        let typed = displayName.trimmingCharacters(in: .whitespaces)
+        let name = known?.displayName.isEmpty == false ? known!.displayName : (typed.isEmpty ? (contexts.first?.displayName ?? "") : typed)
         let acc: Accepted
         do {
             acc = try await client.accept(token: link.token, displayName: name, label: Self.deviceLabel, platform: Self.platform)
         } catch let e as ClientError {
             if case .problem(let p) = e { throw AcceptError.server(p.message) }
-            if case .transport(let s) = e { throw AcceptError.server("Could not reach the family's doma. " + s) }
-            throw AcceptError.server("Could not accept the invite.")
+            if case .transport(let s) = e { throw AcceptError.server(String(localized: "Could not reach the family's doma.") + " " + s) }
+            throw AcceptError.server(String(localized: "Could not accept the invite."))
         }
-        let known = acc.displayName?.trimmingCharacters(in: .whitespaces) ?? ""
-        if let c = context {
+        let told = acc.displayName?.trimmingCharacters(in: .whitespaces) ?? ""
+        let serverID: String
+        if let c = known {
+            serverID = c.serverID
             // a device that joined again with a new key: the context follows the credential
             if c.credentialID != acc.credentialID || c.personID != acc.personID {
-                try store.saveContext(ServerContext(serverID: c.serverID, baseURL: c.baseURL, credentialID: acc.credentialID, personID: acc.personID, displayName: known.isEmpty ? c.displayName : known, createdAt: c.createdAt))
+                try store.saveContext(ServerContext(serverID: c.serverID, baseURL: c.baseURL, credentialID: acc.credentialID, personID: acc.personID, displayName: told.isEmpty ? c.displayName : told, createdAt: c.createdAt))
             }
         } else {
-            let c = ServerContext(serverID: ULID.make(), baseURL: server, credentialID: acc.credentialID, personID: acc.personID, displayName: known.isEmpty ? name : known, createdAt: millis(Date()))
-            try store.saveContext(c)
+            serverID = ULID.make()
+            try store.saveContext(ServerContext(serverID: serverID, baseURL: server, credentialID: acc.credentialID, personID: acc.personID, displayName: told.isEmpty ? name : told, createdAt: millis(Date())))
         }
+        let h = HouseholdRow(serverID: serverID, id: acc.household.id, name: acc.household.name, timezone: acc.household.timezone ?? "", stalenessDays: acc.household.stalenessDays, role: acc.role)
+        try store.upsertHousehold(h)
         reload()
-        guard let c = context else { return }
-        try store.upsertHousehold(HouseholdRow(serverID: c.serverID, id: acc.household.id, name: acc.household.name, timezone: acc.household.timezone ?? "", stalenessDays: acc.household.stalenessDays, role: acc.role))
-        reload()
-        currentHouseholdID = acc.household.id
+        select(h)
         await syncer.sync()
         await refreshMemberships()
     }
 
     // MARK: Seen
 
-    private var seenKey: String { "seen." + (context?.serverID ?? "") }
-
     private func loadSeen() {
         // under a test the marks stay in memory, so every run starts unseen and pictures agree
         guard !UITestHooks.testing else { return }
-        seen = UserDefaults.standard.dictionary(forKey: seenKey) as? [String: String] ?? [:]
+        var all: [String: String] = [:]
+        for c in contexts {
+            for (k, v) in UserDefaults.standard.dictionary(forKey: "seen." + c.serverID) as? [String: String] ?? [:] {
+                all[c.serverID + "/" + k] = v
+            }
+        }
+        seen = all
+    }
+
+    private func seenKey(_ household: String, _ list: String) -> String {
+        (scope?.serverID ?? "") + "/" + household + "/" + list
     }
 
     /// The list was in front with entries up to this stamp.
     func markSeen(household: String, list: String, upTo stamp: String) {
-        let key = household + "/" + list
+        let key = seenKey(household, list)
         if let have = seen[key], have >= stamp { return }
         seen[key] = stamp
-        if !UITestHooks.testing {
-            UserDefaults.standard.set(seen, forKey: seenKey)
+        if !UITestHooks.testing, let server = scope?.serverID {
+            let prefix = server + "/"
+            var mine: [String: String] = [:]
+            for (k, v) in seen where k.hasPrefix(prefix) { mine[String(k.dropFirst(prefix.count))] = v }
+            UserDefaults.standard.set(mine, forKey: "seen." + server)
         }
     }
 
     /// The stamp a list was last seen up to, or nothing.
     func seenMark(household: String, list: String) -> String? {
-        seen[household + "/" + list]
+        seen[seenKey(household, list)]
     }
 
     /// Whether an entry is unseen here: someone else added it after the list's seen mark.
     func isUnseen(household: String, list: String, addedHLC: String, addedBy: String) -> Bool {
         guard addedBy != context?.personID else { return false }
-        guard let mark = seen[household + "/" + list] else { return true }
+        guard let mark = seen[seenKey(household, list)] else { return true }
         return addedHLC > mark
     }
 
@@ -247,40 +323,44 @@ final class Session {
     /// The name for a person id when it is someone else in a household of more than one;
     /// nil for yourself, for an unknown id and for a household of one.
     func name(of personID: String?) -> String? {
-        guard let personID, personID != context?.personID, names.count > 1 else { return nil }
-        return names[personID]
+        guard let personID, let c = context, personID != c.personID, let known = names[c.serverID], known.count > 1 else { return nil }
+        return known[personID]
     }
 
-    /// Takes the names a members answer carried.
-    func learn(names new: [String: String]) {
-        for (id, name) in new where !name.isEmpty { names[id] = name }
+    /// Takes the names a members answer carried, for the current household's doma unless a
+    /// server is named.
+    func learn(names new: [String: String], server: String? = nil) {
+        guard let server = server ?? context?.serverID else { return }
+        for (id, name) in new where !name.isEmpty { names[server, default: [:]][id] = name }
     }
 
-    /// Refreshes the households and roles from the server, and the family's names with them.
+    /// Refreshes the households and roles from every server, and the families' names with them.
     func refreshMemberships() async {
-        guard let client, let c = context else { return }
-        guard let me: MeDocument = try? await client.get("/api/v1/me") else { return }
         struct Members: Decodable { var members: [Member]? }
-        for m in me.memberships {
-            if let doc: Members = try? await client.get("/api/v1/h/\(m.householdID)/members") {
-                learn(names: Dictionary((doc.members ?? []).map { ($0.personID, $0.displayName) }, uniquingKeysWith: { a, _ in a }))
+        for c in contexts {
+            guard let client = client(for: c), let me: MeDocument = try? await client.get("/api/v1/me") else { continue }
+            for m in me.memberships {
+                if let doc: Members = try? await client.get("/api/v1/h/\(m.householdID)/members") {
+                    learn(names: Dictionary((doc.members ?? []).map { ($0.personID, $0.displayName) }, uniquingKeysWith: { a, _ in a }), server: c.serverID)
+                }
             }
-        }
-        let known = Set(me.memberships.map(\.householdID))
-        for h in households where !known.contains(h.id) {
-            try? store.removeHousehold(Scope(serverID: c.serverID, householdID: h.id, personID: c.personID))
-        }
-        for m in me.memberships {
-            let old = households.first { $0.id == m.householdID }
-            try? store.upsertHousehold(HouseholdRow(serverID: c.serverID, id: m.householdID, name: m.householdName, timezone: old?.timezone ?? "", stalenessDays: old?.stalenessDays, role: m.role))
+            let known = Set(me.memberships.map(\.householdID))
+            for h in households where h.serverID == c.serverID && !known.contains(h.id) {
+                try? store.removeHousehold(Scope(serverID: c.serverID, householdID: h.id, personID: c.personID))
+            }
+            for m in me.memberships {
+                let old = households.first { $0.serverID == c.serverID && $0.id == m.householdID }
+                try? store.upsertHousehold(HouseholdRow(serverID: c.serverID, id: m.householdID, name: m.householdName, timezone: old?.timezone ?? "", stalenessDays: old?.stalenessDays, role: m.role))
+            }
         }
         reload()
     }
 
-    /// Leaves the server: the device key stays for a fresh invite.
-    func forgetServer() {
-        if let c = context {
-            try? store.wipe(serverID: c.serverID)
+    /// Leaves a server, the current household's unless named: the device key stays for a
+    /// fresh invite.
+    func forgetServer(_ serverID: String? = nil) {
+        if let id = serverID ?? context?.serverID {
+            try? store.wipe(serverID: id)
         }
         reload()
     }
@@ -309,10 +389,9 @@ final class Session {
 
     // MARK: Push
 
-    /// The APNs token, sent to the server for this credential, with which of Apple's gateways
-    /// it belongs to: a build from Xcode registers a development token.
+    /// The APNs token, sent to every server for this device's credential there, with which of
+    /// Apple's gateways it belongs to: a build from Xcode registers a development token.
     func registerPush(token: Data) async {
-        guard let client, let c = context else { return }
         struct Body: Encodable { var token: String, sandbox: Bool }
         let hex = token.map { String(format: "%02x", $0) }.joined()
         #if DEBUG
@@ -320,10 +399,13 @@ final class Session {
         #else
         let sandbox = false
         #endif
-        do {
-            let _: SyncClient.Empty = try await client.post("/api/v1/devices/\(c.credentialID)/apns", Body(token: hex, sandbox: sandbox))
-        } catch {
-            // the next launch registers again
+        for c in contexts {
+            guard let client = client(for: c) else { continue }
+            do {
+                let _: SyncClient.Empty = try await client.post("/api/v1/devices/\(c.credentialID)/apns", Body(token: hex, sandbox: sandbox))
+            } catch {
+                // the next launch registers again
+            }
         }
     }
 

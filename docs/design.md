@@ -63,7 +63,7 @@ A new member goes from App Store to a working shared list in under a minute, wit
 
 A guest link is the same flow without an app: the owner picks a home and a list, taps **Guest link**, shares it; the guest opens it in any browser and sees that home's missing items and that list, nothing else. Default validity 7 days, revocable.
 
-An owner who belongs to a second household accepts a second invite the same way; the app adds the household to its switcher. If the second household lives on a different server, the app stores a second server context; v1 ships with a single context and refuses a second with a clear message (see open decisions).
+An owner who belongs to a second household accepts a second invite the same way; the app adds the household to its switcher. If the second household lives on a different server, the app stores a second server context: the same device key, its own credential and person there, its own households and cursors. The switcher then groups households under each doma's address; a bare invite code goes to the doma of the household in front, and the name is asked once more on the first join to a new doma, filled in with the name used so far. When the last household on a server is left, the context goes with it.
 
 The apps come back where they were left: the household and the screen last in front on that device, and within a household the list last opened. A person who asked for it in Settings gets the lock: the app covers itself and asks Face ID, Touch ID or the passcode (`LocalAuthentication`, kept on the device) on a return after a chosen time away: at once, 30 seconds, 1 minute, 5, 15, an hour, 24 hours, or when the date turns. A second device of the same person, a Mac or a new phone, joins through *Add a device* in Settings: a one-use invite bound to the person, valid a day, shown as a QR. The new device scans it like any invite and gets its own key under the same name and every household the person is in; it never becomes a second member. A device invite is not among the household's pending invites.
 
@@ -361,7 +361,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 - Optimistic everywhere: the row appears, strikes or moves on tap; a sync failure shows one small offline badge in the toolbar, never an alert.
 - Dynamic Type and VoiceOver on every row; the strike is announced as "checked".
 - A household switcher appears only when the person has more than one membership; otherwise the household name is a title.
-- Nothing about servers is visible unless the app holds more than one context, which v1 does not allow.
+- Nothing about servers is visible unless the app holds more than one context; then the household switcher shows each doma's address as a section heading, and Settings describes the household in front's doma.
 
 **Voice**
 
@@ -577,7 +577,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 **Phase 3 — designed-for features** (each its own gate)
 
 - [ ] Passkeys and the member web client
-- [ ] Multiple server contexts in the app
+- [x] Multiple server contexts in the app (pulled forward from phase 3: a test and a production doma on one phone)
 - [ ] `flag.proposed` from a vision model over new photos, with a confirm screen
 - [ ] History and overviews: purchases per item, per month and per home, totals of `qty` by `unit`; read from the entries table, no new events
 - [ ] Tasks as a third list kind
@@ -594,6 +594,6 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 | Default list per household | one, auto-created, renameable | user chooses the target list on each `out` |
 | Autocomplete order | `use_count`, then recency | recency only, as ShopShop |
 | Photo size | 1600 px long edge, JPEG 0.8 | originals; 4–8× the storage |
-| Second server in one app | refused in v1 with a message | supported from v1; adds a context picker to Scan |
+| Second server in one app | supported (decided 2026-11-04): a second context, the switcher grouped by doma, no picker on Scan since a link names its doma and a bare code goes to the household in front's | refused with a message, as the first builds did |
 | Admin TOTP | in v1 | phase 2 |
 | Licence and repo visibility | public, MIT, as vink (opened 2026-11-03) | private until the public install |
