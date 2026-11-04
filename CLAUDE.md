@@ -44,7 +44,9 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   events and rows), `Fold` (the port, `MemStore`, tested against the fixture in every order),
   `Store` (GRDB schema, `SQLFoldStore`, `DomaStore` with log, outbox, cursor and snapshot import),
   `Identity` (`DeviceKey` in the Keychain, `InviteLink`, `Session`), `Sync` (`SyncClient` with
-  the signature, `Syncer` with the triggers, `Background` for the phone's refresh and push);
+  the signature, `Syncer` with the triggers, `Background` for the phone's refresh and push),
+  `Voice` (speech to words on the device in English, Dutch and Slovak, nt's Listener, and the mic
+  in the add bar; `make voice` checks the three languages on the Mac);
   the screens under `Views` (Scan, Lists, List, Family, Settings, the Mac split view) over
   `Store/Queries.swift` (what they read, live through GRDB observation) and
   `Store/ListActions.swift` (what they write, as events), with one string catalogue in English,

@@ -39,12 +39,25 @@ Scan the invite the owner shows, or paste its link, and give your name as the fa
 The phone makes its key, the server registers the device, and the household's lists come down.
 From then on the app talks to that one doma and nothing else.
 
+## Voice
+
+The mic at the end of the add field says an item instead of typing it: each piece the model
+settles lands in the field as if typed, the words it may still change shown faintly after it,
+and a pause adds what was said as return would. A tap again stops it and keeps the words.
+Holding the mic chooses the language, English, Nederlands or Slovenčina, whose code shows under
+it; the choice is remembered on the phone. Apple's SpeechAnalyzer does the work on the phone:
+SpeechTranscriber for English, DictationTranscriber, the keyboard's model, for Dutch and Slovak;
+iOS fetches a language's model the first time it is used. Only the words are kept, never the
+sound. The simulator has no speech models, so `make voice` runs the same Listener on the Mac,
+on a sentence in each language that `say` speaks.
+
 ## What is where
 
 `app/shared` is DomaKit, compiled into this app and the Mac app: `Model` (stamps, ids, the
 typed line, events and rows), `Fold` (the port of the server's fold, tested against the same
 fixture), `Store` (GRDB, what the screens read and write), `Identity` (the device key, invites,
-the session), `Sync` (the signed client, the syncer, background refresh and push), `Views`
+the session), `Sync` (the signed client, the syncer, background refresh and push), `Voice`
+(speech to words on the device and the mic), `Views`
 (the screens, the string catalogue in English, Dutch and Slovak) and `Design` (the tokens, the
 mark, the custom symbols). `Doma/` here holds only the entry point, the icon and the
 entitlements; `DomaTests` and `DomaUITests` the tests this platform runs.

@@ -31,6 +31,8 @@ struct ListView: View {
     @State private var usual: [Match] = []
     @State private var matches: [Match] = []
     @State private var text = ""
+    /// Where the add field's insertion point is: after the words the mic puts in.
+    @State private var selection: TextSelection?
     /// Rows to show on `accentSoft` for a moment: one just added, one already on the list, or
     /// ones that arrived from another device. Entry ids.
     @State private var flashed: Set<String> = []
@@ -52,6 +54,9 @@ struct ListView: View {
     @State private var adds = 0
     @State private var repeats = 0
     @State private var clears = 0
+    @State private var micTaps = 0
+    /// What the mic could not do, under the add field until the next try.
+    @State private var voiceProblem: String?
     @FocusState private var fieldFocused: Bool
     @FocusState private var editFocused: Bool
     #if os(macOS)
@@ -112,6 +117,9 @@ struct ListView: View {
             .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: adds)
             .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.5), trigger: repeats)
             .sensoryFeedback(.success, trigger: clears)
+            // the mic taps back at once, then says when it listens and when it stops
+            .sensoryFeedback(.impact(weight: .light), trigger: micTaps)
+            .sensoryFeedback(trigger: session.dictation.busy) { _, now in now ? .start : .stop }
             .navigationTitle(summary?.value?.name ?? "")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
@@ -160,9 +168,13 @@ struct ListView: View {
             .onChange(of: session.scope) { observe() }
             .onChange(of: rows?.value) { markSeen() }
             // back from the background with the list in front: what came while away is new
-            .onChange(of: scenePhase) { _, now in if now == .active, visible { beginVisit() } }
+            .onChange(of: scenePhase) { _, now in
+                if now == .active, visible { beginVisit() }
+                if now == .background { stopDictation() }
+            }
             .onDisappear {
                 visible = false
+                stopDictation()
                 // the keyboard belongs to this screen: it goes when the screen goes
                 fieldFocused = false
                 session.syncer.setPolling(seconds: nil)
@@ -246,7 +258,7 @@ struct ListView: View {
                 .foregroundStyle(Tokens.accent)
                 .frame(width: Tokens.space5)
                 .accessibilityHidden(true)
-            TextField("Add", text: $text)
+            TextField("Add", text: $text, selection: $selection)
                 .accessibilityIdentifier("add-field")
                 .textFieldStyle(.plain)
                 .focused($fieldFocused)
@@ -254,11 +266,20 @@ struct ListView: View {
                 .onExitCommand { fieldFocused = false; text = "" }
                 .autocorrectionDisabled()
                 .accessibilityLabel(Text("Add an item"))
+                .overlay(alignment: .leading) { hearing }
+            MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
         }
         .frame(minHeight: ListView.rowHeight)
         .listRowBackground(Tokens.ground)
         .listRowSeparator(.hidden)
         .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+        if let voiceProblem {
+            ProblemLine(text: voiceProblem)
+                .padding(.leading, Tokens.space5 + Tokens.space3)
+                .listRowBackground(Tokens.ground)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: Tokens.space2, trailing: Tokens.space4))
+        }
         if !text.isEmpty {
             ForEach(Array(matches.prefix(5).enumerated()), id: \.element.id) { i, m in
                 let exact = matches.contains { Norm.name($0.name) == Norm.name(text) }
@@ -492,6 +513,14 @@ struct ListView: View {
                     usualChips
                         .transition(Motion.arrive(reduceMotion, from: .bottom))
                 }
+                if let voiceProblem {
+                    ProblemLine(text: voiceProblem)
+                        .padding(.horizontal, Tokens.space4)
+                        .padding(.vertical, Tokens.space2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassEffect(.regular, in: .rect(cornerRadius: Tokens.radiusMD))
+                        .transition(Motion.arrive(reduceMotion, from: .bottom))
+                }
                 addField
                     .padding(.horizontal, Tokens.space4)
                     .frame(minHeight: ListView.rowHeight)
@@ -503,6 +532,7 @@ struct ListView: View {
         .animation(Motion.of(reduceMotion, Motion.quick), value: matches.map(\.id))
         .animation(Motion.of(reduceMotion, Motion.quick), value: text.isEmpty)
         .animation(Motion.of(reduceMotion, Motion.quick), value: fieldFocused && !usual.isEmpty)
+        .animation(Motion.of(reduceMotion, Motion.quick), value: voiceProblem)
         #else
         VStack(spacing: 0) {
             if !text.isEmpty {
@@ -539,7 +569,7 @@ struct ListView: View {
                     .foregroundStyle(Tokens.onAccent)
             }
             .accessibilityHidden(true)
-            TextField("Add", text: $text)
+            TextField("Add", text: $text, selection: $selection)
                 .accessibilityIdentifier("add-field")
                 .textFieldStyle(.plain)
                 .focused($fieldFocused)
@@ -550,7 +580,70 @@ struct ListView: View {
                 #endif
                 .autocorrectionDisabled()
                 .accessibilityLabel(Text("Add an item"))
+                .overlay(alignment: .leading) { hearing }
+            MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
         }
+    }
+
+    /// The words the model may still change, faint after what is in the field; the field's own
+    /// text sits under them unseen so they start where it ends.
+    @ViewBuilder
+    private var hearing: some View {
+        let volatile = session.dictation.heard.volatile
+        if session.dictation.busy, !volatile.isEmpty {
+            HStack(spacing: text.isEmpty ? 0 : Tokens.space1) {
+                Text(text).opacity(0)
+                Text(volatile)
+                    .foregroundStyle(Tokens.inkFaint)
+                    .lineLimit(1)
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+    }
+
+    // MARK: Saying an item
+
+    /// The mic's tap: listen in the language last chosen, or stop. Each piece the model settles
+    /// lands in the field as if typed, the matches answer it, and a pause adds it as return
+    /// would. Stopping keeps the words in the field.
+    private func toggleDictation() {
+        let listener = session.dictation
+        micTaps += 1
+        if listener.busy {
+            stopDictation()
+            return
+        }
+        voiceProblem = nil
+        listener.lines = false
+        listener.words = { piece in
+            text = Heard.item(Heard.join(text, piece))
+            // the insertion point follows the words, so typing goes on after them
+            selection = TextSelection(insertionPoint: text.endIndex)
+        }
+        listener.paused = {
+            if !text.isEmpty { addTyped() }
+        }
+        Task {
+            await listener.start(Language.remembered)
+            if case .failed(let why) = listener.state { voiceProblem = why }
+        }
+    }
+
+    /// The language chosen under the mic: remembered, and listened in from now.
+    private func dictate(in language: Language) {
+        Language.remembered = language
+        let listener = session.dictation
+        Task {
+            if listener.busy { await listener.stop() }
+            toggleDictation()
+        }
+    }
+
+    private func stopDictation() {
+        let listener = session.dictation
+        guard listener.busy else { return }
+        Task { await listener.stop() }
     }
 
     /// The catalog's answers above the bar, the best nearest the thumb; the row nearest the bar
@@ -653,7 +746,8 @@ struct ListView: View {
     private func after(_ outcome: AddOutcome) {
         text = ""
         matches = []
-        fieldFocused = true
+        // the keyboard stays for the next tap; a spoken add does not call it up
+        if !session.dictation.busy { fieldFocused = true }
         switch outcome {
         case .added(let itemID):
             // the row arrives through the store's observation; `arrived` scrolls to it and

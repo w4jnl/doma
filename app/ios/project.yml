@@ -67,6 +67,8 @@ targets:
         UIBackgroundModes: [fetch, remote-notification]
         BGTaskSchedulerPermittedIdentifiers: [nl.w4j.doma.refresh]
         NSCameraUsageDescription: Scan your family's invite.
+        NSMicrophoneUsageDescription: Say an item onto a list. The words are made on this phone; the sound is never kept.
+        NSSpeechRecognitionUsageDescription: Your speech is turned into words on this phone, for the list. The sound is never kept.
         CFBundleURLTypes:
           - CFBundleURLName: nl.w4j.doma
             CFBundleURLSchemes: [doma]

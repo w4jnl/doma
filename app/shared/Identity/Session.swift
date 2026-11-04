@@ -30,6 +30,8 @@ final class Session {
     /// Per list, the stamp of the newest entry this device had in front: what others added after
     /// it is unseen, and counts on the icon and in the overview. Kept on the device only.
     private(set) var seen: [String: String] = [:]
+    /// The one mic, for the list in front: speech to words on the device, never sent anywhere.
+    @ObservationIgnored let dictation = Listener()
 
     /// The one used by the app process, for the push and background entry points.
     nonisolated(unsafe) static weak var current: Session?

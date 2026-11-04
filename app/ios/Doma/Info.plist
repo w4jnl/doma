@@ -43,6 +43,10 @@
 	<string>Scan your family's invite.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock doma with Face ID.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Say an item onto a list. The words are made on this phone; the sound is never kept.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Your speech is turned into words on this phone, for the list. The sound is never kept.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

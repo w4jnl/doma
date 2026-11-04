@@ -19,7 +19,7 @@ GOLANGCI   := $(call tool,golangci-lint)
 GORELEASER := $(call tool,goreleaser)
 
 .PHONY: build run test vet lint fmt generate generate-check migrate e2e check-tenancy check-egress release-check tools brand clean \
-	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight ui-test snapshots
+	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight ui-test snapshots voice
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN)/doma ./cmd/doma
@@ -137,6 +137,19 @@ snapshots: ios-project mac-project
 	@$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' test -only-testing:DomaTests/SnapshotTests CODE_SIGN_IDENTITY=- -collect-test-diagnostics never -quiet || { rm -f tmp/record-snapshots; exit 1; }
 	@rm -f tmp/record-snapshots
 	@ls app/shared/Tests/Snapshots/*/ | wc -l | xargs echo "snapshots:"
+
+# Speech to words (app/shared/Voice) on the Mac, which has the speech models the simulator lacks:
+# a sentence each in English, Dutch and Slovak, spoken by say and played to the Listener as the
+# microphone would be (scripts/voice.swift). A model the Mac lacks is fetched by macOS, once.
+# make mac-test then runs the same three through the app's Listener, while the sound is there.
+VOICE := $(MAC)/build/voice
+voice:
+	@mkdir -p $(VOICE)
+	say -v Samantha -o $(VOICE)/en.aiff "Two litres of milk and a loaf of bread."
+	say -v Xander -o $(VOICE)/nl.aiff "Twee liter melk en een brood."
+	say -v Laura -o $(VOICE)/sk.aiff "Dva litre mlieka a jeden chlieb."
+	swiftc -parse-as-library -target $(shell uname -m)-apple-macos26.0 -swift-version 6 -o $(VOICE)/check app/shared/Voice/Listener.swift scripts/voice.swift
+	$(VOICE)/check $(VOICE)
 
 # Build, install and launch on the iPhone (unlocked; on a cable, or on Wi-Fi once paired), signed
 # with Local.xcconfig's team. The first device devicectl lists as reachable is taken;
