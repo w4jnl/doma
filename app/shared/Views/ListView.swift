@@ -622,11 +622,25 @@ struct ListView: View {
             selection = TextSelection(insertionPoint: text.endIndex)
         }
         listener.paused = {
-            if !text.isEmpty { addTyped() }
+            if !text.isEmpty { addSpoken() }
         }
         Task {
             await listener.start(Language.remembered)
             if case .failed(let why) = listener.state { voiceProblem = why }
+        }
+    }
+
+    /// The pause's add: the spoken line split into the items it names, by the catalog's names
+    /// and the separators said, each added as return would. Nothing said is lost: what no rule
+    /// splits is one item.
+    private func addSpoken() {
+        guard let scope = session.scope else { return }
+        let names = (try? session.store.read(scope) { db, s in try Queries.itemNames(db, s) }) ?? []
+        let pieces = Spoken.split(text, language: Language.remembered, names: names)
+        guard !pieces.isEmpty else { text = ""; return }
+        for piece in pieces {
+            guard let outcome = try? ListActions.add(piece, to: listID, in: session) else { continue }
+            after(outcome)
         }
     }
 

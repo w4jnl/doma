@@ -43,7 +43,8 @@ From then on the app talks to that one doma and nothing else.
 
 The mic at the end of the add field says an item instead of typing it: each piece the model
 settles lands in the field as if typed, the words it may still change shown faintly after it,
-and a pause adds what was said as return would. A tap again stops it and keeps the words.
+and a pause adds what was said as return would; one breath can name several items, split by
+the catalog's names, commas and the language's "and". A tap again stops it and keeps the words.
 Holding the mic chooses the language, English, Nederlands or Slovenčina, whose code shows under
 it; the choice is remembered on the phone. Apple's SpeechAnalyzer does the work on the phone:
 SpeechTranscriber for English, DictationTranscriber, the keyboard's model, for Dutch and Slovak;

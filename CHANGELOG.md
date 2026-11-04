@@ -9,7 +9,9 @@ updates this file first. Dates are the tag dates.
 - **Say an item.** A mic at the end of the add field, on the phone and the Mac: a tap listens,
   what you say lands in the field as the words settle, and a pause adds it as return would. Hold
   it (right-click on the Mac) to choose English, Nederlands or Slovenčina; the choice is kept.
-  The words are made on the device and the sound is never kept.
+  The words are made on the device and the sound is never kept. One breath can name several
+  items: "apples, oranges and bread" is three rows, and names the household already uses are
+  told apart from the rest, so "olive oil" stays one.
 - **Share a personal list.** Rename's neighbours on a personal list gain *Share with the family*:
   a household list of the same name takes what is still open, and the personal one is archived
   with its history.

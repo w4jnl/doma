@@ -168,6 +168,11 @@ enum Queries {
     }
 
     /// The item that owns a typed name exactly, by name or alias, or nil.
+    /// Every name in the catalog, for splitting a spoken line into the items it names.
+    static func itemNames(_ db: Database, _ s: Scope) throws -> [String] {
+        try String.fetchAll(db, sql: "SELECT name FROM items WHERE server_id = ? AND household_id = ? AND merged_into IS NULL AND archived_at IS NULL", arguments: [s.serverID, s.householdID])
+    }
+
     static func itemID(_ db: Database, _ s: Scope, norm: String) throws -> String? {
         guard !norm.isEmpty else { return nil }
         if let id = try String.fetchOne(db, sql: "SELECT id FROM items WHERE server_id = ? AND household_id = ? AND merged_into IS NULL AND norm_name = ?", arguments: [s.serverID, s.householdID, norm]) {
