@@ -6,3 +6,9 @@ DOMA_TEAM_ID =
 // only; set it to keep the device key across rebuilds, since each ad hoc build is a new app to
 // the Keychain and loses the key the last one stored.
 // DOMA_MAC_IDENTITY = Apple Development
+
+// For make mac-release only: the App Store Connect API key that notarizes the app, the same
+// one app/ios/Local.xcconfig names for TestFlight (the script reads that file when these are
+// empty). The .p8 lives in ~/.appstoreconnect/private_keys/.
+// DOMA_ASC_KEY_ID =
+// DOMA_ASC_ISSUER_ID =

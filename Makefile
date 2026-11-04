@@ -19,7 +19,7 @@ GOLANGCI   := $(call tool,golangci-lint)
 GORELEASER := $(call tool,goreleaser)
 
 .PHONY: build run test vet lint fmt generate generate-check migrate e2e check-tenancy check-egress release-check tools brand clean \
-	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight ui-test snapshots voice sim-boot
+	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight mac-release ui-test snapshots voice sim-boot
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN)/doma ./cmd/doma
@@ -101,6 +101,12 @@ mac-test: mac-project
 
 mac-run: mac-build
 	open $(MAC)/build/DerivedData/Build/Products/Debug/doma.app
+
+# doma for Mac for a release, V=0.2.0: signed with the Developer ID, notarized, stapled, and the
+# DMG that carries it, in app/macos/build/release (scripts/mac-release.sh; release.sh runs it).
+mac-release:
+	@[ -n "$(V)" ] || { echo "make mac-release V=<version>, e.g. V=0.2.0" >&2; exit 2; }
+	scripts/mac-release.sh $(V)
 
 IOS := app/ios
 IOS_SIM_NAME ?= iPhone 17
