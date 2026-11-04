@@ -31,6 +31,8 @@ struct ListView: View {
     @State private var usual: [Match] = []
     @State private var matches: [Match] = []
     @State private var text = ""
+    /// Where the add field's insertion point is: after the words the mic puts in.
+    @State private var selection: TextSelection?
     /// Rows to show on `accentSoft` for a moment: one just added, one already on the list, or
     /// ones that arrived from another device. Entry ids.
     @State private var flashed: Set<String> = []
@@ -52,6 +54,7 @@ struct ListView: View {
     @State private var adds = 0
     @State private var repeats = 0
     @State private var clears = 0
+    @State private var micTaps = 0
     /// What the mic could not do, under the add field until the next try.
     @State private var voiceProblem: String?
     @FocusState private var fieldFocused: Bool
@@ -114,6 +117,9 @@ struct ListView: View {
             .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: adds)
             .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.5), trigger: repeats)
             .sensoryFeedback(.success, trigger: clears)
+            // the mic taps back at once, then says when it listens and when it stops
+            .sensoryFeedback(.impact(weight: .light), trigger: micTaps)
+            .sensoryFeedback(trigger: session.dictation.busy) { _, now in now ? .start : .stop }
             .navigationTitle(summary?.value?.name ?? "")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
@@ -252,7 +258,7 @@ struct ListView: View {
                 .foregroundStyle(Tokens.accent)
                 .frame(width: Tokens.space5)
                 .accessibilityHidden(true)
-            TextField("Add", text: $text)
+            TextField("Add", text: $text, selection: $selection)
                 .accessibilityIdentifier("add-field")
                 .textFieldStyle(.plain)
                 .focused($fieldFocused)
@@ -563,7 +569,7 @@ struct ListView: View {
                     .foregroundStyle(Tokens.onAccent)
             }
             .accessibilityHidden(true)
-            TextField("Add", text: $text)
+            TextField("Add", text: $text, selection: $selection)
                 .accessibilityIdentifier("add-field")
                 .textFieldStyle(.plain)
                 .focused($fieldFocused)
@@ -603,6 +609,7 @@ struct ListView: View {
     /// would. Stopping keeps the words in the field.
     private func toggleDictation() {
         let listener = session.dictation
+        micTaps += 1
         if listener.busy {
             stopDictation()
             return
@@ -611,6 +618,8 @@ struct ListView: View {
         listener.lines = false
         listener.words = { piece in
             text = Heard.item(Heard.join(text, piece))
+            // the insertion point follows the words, so typing goes on after them
+            selection = TextSelection(insertionPoint: text.endIndex)
         }
         listener.paused = {
             if !text.isEmpty { addTyped() }
