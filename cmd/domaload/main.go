@@ -14,10 +14,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"math"
 	"math/rand/v2"
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -79,7 +82,11 @@ func run() error {
 	}
 	household := owner.household
 	devices = append(devices, owner.device)
+	// the owner mints five a second: inside the REST limit of one device (300 a minute, a
+	// burst of 60), and never two in one millisecond, which on a fast loopback they otherwise
+	// do and which the server takes for a replay of one signature
 	for n := 1; n < c.devices; n++ {
+		time.Sleep(200 * time.Millisecond)
 		var inv struct {
 			URL string `json:"url"`
 		}
@@ -193,6 +200,7 @@ func run() error {
 	fmt.Printf("syncs %d, failed %d, events sent %d\n", len(latencies), failures, len(all))
 	fmt.Printf("latency p50 %s, p95 %s, p99 %s, max %s\n", pct(0.50).Round(time.Millisecond), pct(0.95).Round(time.Millisecond), pct(0.99).Round(time.Millisecond), pct(1).Round(time.Millisecond))
 	fmt.Printf("events missing on some device: %d\n", lost)
+	serverSide(ctx, httpClient, c.server)
 	ok := pct(0.99) < 50*time.Millisecond && lost == 0 && failures == 0
 	if ok {
 		fmt.Println("ok: p99 under 50 ms, nothing lost")
@@ -201,13 +209,96 @@ func run() error {
 	return errors.New("not within the acceptance (p99 under 50 ms, no failure, nothing lost)")
 }
 
+// serverSide prints what the server measured itself, when /metrics is open: the sync and the
+// database write durations, so a slow tail can be told apart as the server's or the way to it.
+func serverSide(ctx context.Context, httpClient *http.Client, server string) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(server, "/")+"/metrics", nil)
+	if err != nil {
+		return
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		fmt.Println("server side: /metrics not open, no server durations")
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var body strings.Builder
+	if _, err := io.Copy(&body, resp.Body); err != nil {
+		return
+	}
+	for _, name := range []string{"doma_sync_duration_seconds", "doma_db_write_duration_seconds"} {
+		type bucket struct {
+			le    float64
+			count float64
+		}
+		var buckets []bucket
+		var total float64
+		for _, line := range strings.Split(body.String(), "\n") {
+			if !strings.HasPrefix(line, name+"_bucket") {
+				continue
+			}
+			i := strings.Index(line, `le="`)
+			j := strings.Index(line[i+4:], `"`)
+			if i < 0 || j < 0 {
+				continue
+			}
+			le, err1 := strconv.ParseFloat(line[i+4:i+4+j], 64)
+			n, err2 := strconv.ParseFloat(strings.TrimSpace(line[strings.LastIndex(line, " ")+1:]), 64)
+			if err1 != nil || err2 != nil {
+				continue
+			}
+			buckets = append(buckets, bucket{le, n})
+			if le > total {
+				total = n // the +Inf bucket parses as the largest le and holds the total
+			}
+		}
+		sort.Slice(buckets, func(i, j int) bool { return buckets[i].le < buckets[j].le })
+		if len(buckets) == 0 || total == 0 {
+			fmt.Printf("server side: no %s samples\n", name)
+			continue
+		}
+		total = buckets[len(buckets)-1].count
+		at := func(q float64) string {
+			for _, b := range buckets {
+				if b.count >= q*total {
+					if math.IsInf(b.le, 1) {
+						return "over the last bucket"
+					}
+					return "under " + (time.Duration(b.le * float64(time.Second))).String()
+				}
+			}
+			return "?"
+		}
+		fmt.Printf("server side: %s p50 %s, p95 %s, p99 %s (%d samples)\n", name, at(0.5), at(0.95), at(0.99), int(total))
+	}
+}
+
 type joined struct {
 	*device
 	household string
 }
 
+// fromAddress gives a device an address of its own in X-Forwarded-For, as 200 phones would
+// come from 200 places; the throwaway server trusts the loopback as a proxy (make load sets
+// that), so its per-address limits, ten invite accepts a minute among them, see 200 clients.
+type fromAddress struct {
+	rt http.RoundTripper
+	ip string
+}
+
+func (f fromAddress) RoundTrip(r *http.Request) (*http.Response, error) {
+	r = r.Clone(r.Context())
+	r.Header.Set("X-Forwarded-For", f.ip)
+	return f.rt.RoundTrip(r)
+}
+
 func newDevice(ctx context.Context, server string, httpClient *http.Client, n int, token string) (*joined, error) {
-	c, err := client.New(server, httpClient)
+	own := *httpClient
+	own.Transport = fromAddress{rt: httpClient.Transport, ip: fmt.Sprintf("10.%d.%d.%d", (n>>16)&255, (n>>8)&255, n&255)}
+	c, err := client.New(server, &own)
 	if err != nil {
 		return nil, err
 	}

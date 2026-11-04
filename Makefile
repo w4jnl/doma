@@ -70,7 +70,7 @@ e2e:
 # cmd/domaload against it, 200 devices syncing every 5 s for two minutes; p99 under 50 ms and
 # nothing lost. LOAD_FLAGS='-devices 50 -for 1m' for a shorter run.
 load:
-	scripts/ui-test.sh sh -c 'go run ./cmd/domaload -server "$$(python3 -c "import json; print(json.load(open(\"tmp/live.json\"))[\"base_url\"])")" -invite "$$(python3 -c "import json; print(json.load(open(\"tmp/live.json\"))[\"invite\"])")" $(LOAD_FLAGS)'
+	DOMA_SERVER_TRUSTED_PROXIES=127.0.0.1/32 scripts/ui-test.sh sh -c 'go run ./cmd/domaload -server "$$(python3 -c "import json; print(json.load(open(\"tmp/live.json\"))[\"base_url\"])")" -invite "$$(python3 -c "import json; print(json.load(open(\"tmp/live.json\"))[\"invite\"])")" $(LOAD_FLAGS)'
 
 check-tenancy:
 	@scripts/check-tenancy.sh
