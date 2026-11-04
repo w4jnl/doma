@@ -107,6 +107,26 @@ final class ScreenLogicTests: XCTestCase {
         XCTAssertEqual(try lists(s).map(\.name), ["Shopping", "Hut"])
     }
 
+    func testSharingAPersonalListMovesWhatIsOpen() throws {
+        let s = try session()
+        let mine = try XCTUnwrap(ListActions.createList(named: "Weekend", personal: true, colour: "list-4", in: s))
+        _ = try ListActions.add("2 kg appels (zoet)", to: mine, in: s)
+        _ = try ListActions.add("kaas", to: mine, in: s)
+        _ = try ListActions.add("wijn", to: mine, in: s)
+        let wine = try XCTUnwrap(s.store.read(s.scope!) { db, sc in try Queries.entries(db, sc, listID: mine) }.first { $0.name == "wijn" })
+        try ListActions.toggle(wine, on: mine, in: s)
+        let shared = try XCTUnwrap(ListActions.shareList(try XCTUnwrap(lists(s).first { $0.id == mine }), in: s))
+        let all = try lists(s)
+        XCTAssertEqual(all.map(\.name), ["Shopping", "Weekend"], "the personal list is archived, the household one carries its name")
+        let new = try XCTUnwrap(all.first { $0.id == shared })
+        XCTAssertFalse(new.isPersonal)
+        XCTAssertEqual(new.colour, "list-4")
+        let rows = try s.store.read(s.scope!) { db, sc in try Queries.entries(db, sc, listID: shared) }
+        XCTAssertEqual(rows.map(\.name), ["appels", "kaas"], "what was open moved, in order; the struck one stays with the history")
+        XCTAssertEqual(rows.first.map { ($0.qty, $0.unit, $0.note) }.map { "\($0.0 ?? 0) \($0.1 ?? "") \($0.2)" }, "2.0 kg zoet")
+        XCTAssertNil(try ListActions.shareList(new, in: s), "a household list has nowhere to go")
+    }
+
     func testMenuActions() throws {
         let s = try session()
         _ = try ListActions.add("olijfolie", to: "L1", in: s)

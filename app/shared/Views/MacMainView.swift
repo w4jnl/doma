@@ -1,6 +1,7 @@
 // The Mac: a sidebar with the lists and Family, the list in the main pane. New list sits at the
 // foot of the sidebar and opens into a small form there, no sheet; a right-click on a list
-// offers Rename, Colour and Archive, armed in place like everywhere. Keyboard: ⌘N new list,
+// offers Rename, Colour, Share with the family on a personal list, and Archive, armed in place
+// like everywhere. Keyboard: ⌘N new list,
 // return adds, space or ⌫ strikes the selected row, ⌘⌫ clears, ⌘1 and ⌘4 the sections (⌘2 and
 // ⌘3 arrive with Homes and Trip).
 #if os(macOS)
@@ -173,6 +174,11 @@ struct MacMainView: View {
                                     ColourDots.name(c)
                                 }
                             }
+                        }
+                    }
+                    if l.isPersonal {
+                        Button("Share with the family") {
+                            if let id = try? ListActions.shareList(l, in: session) { selection = .list(id) }
                         }
                     }
                     Divider()

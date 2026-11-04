@@ -175,4 +175,28 @@ enum ListActions {
     static func archiveList(_ listID: String, in session: Session) throws {
         try session.record(Kind.listArchived, ListPayload(listID: listID))
     }
+
+    /// A personal list shared with the family: a household list of the same name and colour
+    /// takes what is still open, in order, and the personal one is archived, its history with
+    /// it. One write, so the family sees the list whole or not yet; the new list's id comes back
+    /// for the screen to follow.
+    @discardableResult
+    static func shareList(_ l: ListSummary, in session: Session) throws -> String? {
+        guard l.isPersonal, let scope = session.scope else { return nil }
+        let open = try session.store.read(scope) { db, s in try Queries.entries(db, s, listID: l.id) }
+            .filter { !$0.isChecked }
+            .sorted { $0.sort < $1.sort }
+        let id = ULID.make()
+        try session.record { events, clock, person in
+            events.append(Event(id: ULID.make(), personID: person, hlc: clock.next(), kind: Kind.listCreated,
+                                payload: ListPayload(listID: id, name: l.name, colour: l.colour, ownerPersonID: nil, isDefault: false).jsonValue))
+            for row in open {
+                var p = EntryPayload(listID: id, itemID: row.itemID, note: row.note.isEmpty ? nil : row.note, qty: row.qty, unit: row.unit)
+                p.forHomeID = row.forHomeID
+                events.append(Event(id: ULID.make(), personID: person, hlc: clock.next(), kind: Kind.entryAdded, payload: p.jsonValue))
+            }
+            events.append(Event(id: ULID.make(), personID: person, hlc: clock.next(), kind: Kind.listArchived, payload: ListPayload(listID: l.id).jsonValue))
+        }
+        return id
+    }
 }

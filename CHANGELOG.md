@@ -10,6 +10,9 @@ updates this file first. Dates are the tag dates.
   what you say lands in the field as the words settle, and a pause adds it as return would. Hold
   it (right-click on the Mac) to choose English, Nederlands or Slovenčina; the choice is kept.
   The words are made on the device and the sound is never kept.
+- **Share a personal list.** Rename's neighbours on a personal list gain *Share with the family*:
+  a household list of the same name takes what is still open, and the personal one is archived
+  with its history.
 
 ## 0.1.0 (2026-11-04)
 
