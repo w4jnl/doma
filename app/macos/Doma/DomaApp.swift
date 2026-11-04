@@ -9,16 +9,20 @@ struct DomaApp: App {
     @State private var session: Session
     @State private var nav = MacNav()
 
+    /// The tests' host: the suites draw into windows of their own, and this one is a point in
+    /// the bottom right corner. It has to exist, the pictures come out half a pixel off without
+    /// a window of the app's own, but nobody needs to see it; hiding it or making the app an
+    /// accessory shifts them the same way.
+    private static let testing = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     init() {
-        let testing = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
-        _session = State(initialValue: testing ? Session(store: try! DomaStore.inMemory()) : Session.live())
+        _session = State(initialValue: Self.testing ? Session(store: try! DomaStore.inMemory()) : Session.live())
     }
 
     var body: some Scene {
         WindowGroup {
             Group {
-                if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-                    // the tests' host: nothing to launch
+                if Self.testing {
                     Color.clear
                 } else {
                     RootView()
@@ -28,7 +32,8 @@ struct DomaApp: App {
             .environment(session)
             .environment(nav)
         }
-        .defaultSize(width: 960, height: 640)
+        .defaultSize(width: Self.testing ? 1 : 960, height: Self.testing ? 1 : 640)
+        .defaultPosition(Self.testing ? .bottomTrailing : .center)
         .onChange(of: phase) {
             if phase == .active, session.hasHousehold {
                 Task {
