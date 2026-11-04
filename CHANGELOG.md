@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **doma for Mac from Homebrew.** `brew install --cask w4jnl/tap/doma` installs the Mac app,
+  signed with a Developer ID and notarized, on macOS 26 or later; every release updates the cask.
+
 ## 0.2.0 (2026-11-04)
 
 Speech, sharing, and a place for the proxy's sign-in.
