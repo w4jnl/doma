@@ -23,6 +23,8 @@ struct SettingsView: View {
     #endif
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
+    /// Phase 1 brings the Homes tab and with it the flags setting.
+    static let homesArrived = false
 
     var body: some View {
         List {
@@ -121,7 +123,9 @@ struct SettingsView: View {
             .listRowBackground(FamilyView.rowGround)
             .listRowSeparatorTint(Tokens.line)
             #endif
-            if isOwner, !(homes?.value ?? []).isEmpty {
+            // the flags' staleness belongs to Homes and arrives with the Homes tab in phase 1;
+            // until then Settings shows only what works
+            if Self.homesArrived, isOwner, !(homes?.value ?? []).isEmpty {
                 Section {
                     Stepper(value: $staleness, in: 1...365, step: 1) {
                         LabeledContent("Ask again after") {

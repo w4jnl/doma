@@ -10,7 +10,8 @@ updates this file first. Dates are the tag dates.
   most every two minutes per device and then say everything since. Settings gains a switch per
   shared list and one for clears, kept on the server, which composes the words; and a lock
   that covers the app on a return after a chosen time away, from at once to until tomorrow,
-  and asks Face ID, Touch ID or the passcode.
+  and asks Face ID, Touch ID or the passcode. The flags setting, which belongs to Homes, waits
+  for the Homes tab.
 - **Each device's own push gateway.** A device says whether its token is a development one when
   it registers it, and the server sends each push to the matching Apple host, so one server
   serves a build from Xcode and the family's TestFlight builds alike. The `push.sandbox` config
