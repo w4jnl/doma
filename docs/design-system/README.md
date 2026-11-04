@@ -204,7 +204,8 @@ row, not a new screen.
   the only sound in doma; the app itself stays silent. Words come at most every two minutes per
   device and then cover everything since; Settings has a switch per shared list and one for
   clears, so a chatty list can be quiet. The lock, when asked for, is the ground with the mark
-  and one *Unlock* button, nothing of the lists behind it. Seen marks move only while the app is active and the list on screen,
+  and one *Unlock* button, nothing of the lists behind it; *Lock after* says how long away
+  counts, from at once to until tomorrow. Seen marks move only while the app is active and the list on screen,
   so what arrives while the phone is locked is still new when it is opened, and the badge is
   counted from the store after every sync, not from a screen. Nothing moves on a timer. Destructive
   actions arm in place (*Remove → Really remove?*), the pill springing in and fading back after

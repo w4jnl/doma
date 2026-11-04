@@ -19,6 +19,7 @@ struct SettingsView: View {
     @State private var notifications: UNAuthorizationStatus?
     @State private var lists: Live<[ListSummary]>?
     @AppStorage("lock.biometrics") private var lockWithBiometrics = false
+    @AppStorage("lock.after") private var lockAfter = LockAfter.immediately.rawValue
     #endif
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
@@ -101,10 +102,19 @@ struct SettingsView: View {
                     Text("Lock with Face ID")
                 }
                 .tint(Tokens.accent)
+                if lockWithBiometrics {
+                    Picker("Lock after", selection: $lockAfter) {
+                        ForEach(LockAfter.allCases) { choice in
+                            Text(choice.title).tag(choice.rawValue)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(Tokens.inkMuted)
+                }
             } header: {
                 SectionHeader("Privacy")
             } footer: {
-                Text("Face ID, or the passcode, each time you come back to doma.")
+                Text("Face ID, or the passcode, when you come back to doma after that long away.")
                     .font(.footnote)
                     .foregroundStyle(Tokens.inkMuted)
             }

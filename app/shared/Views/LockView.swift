@@ -4,11 +4,43 @@
 import LocalAuthentication
 import SwiftUI
 
+/// How long the app stays open after it went to the background, in seconds; 0 locks at once,
+/// `untilTomorrow` locks when the date turns.
+enum LockAfter: Int, CaseIterable, Identifiable {
+    case immediately = 0, halfMinute = 30, minute = 60, fiveMinutes = 300, quarterHour = 900, hour = 3600, day = 86_400, untilTomorrow = -1
+
+    var id: Int { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .immediately: "Immediately"
+        case .halfMinute: "30 seconds"
+        case .minute: "1 minute"
+        case .fiveMinutes: "5 minutes"
+        case .quarterHour: "15 minutes"
+        case .hour: "1 hour"
+        case .day: "24 hours"
+        case .untilTomorrow: "Until tomorrow"
+        }
+    }
+
+    /// Whether a return at `now`, after leaving at `left`, has to ask again.
+    func due(left: Date, now: Date) -> Bool {
+        switch self {
+        case .untilTomorrow: !Calendar.current.isDate(left, inSameDayAs: now)
+        default: now.timeIntervalSince(left) >= Double(rawValue)
+        }
+    }
+}
+
 struct Lock: ViewModifier {
     @AppStorage("lock.biometrics") private var enabled = false
+    @AppStorage("lock.after") private var after = LockAfter.immediately.rawValue
     @Environment(\.scenePhase) private var phase
     @State private var locked = false
     @State private var asking = false
+    /// When the app last went to the background; the grace runs from here.
+    @State private var left: Date?
 
     func body(content: Content) -> some View {
         content
@@ -29,8 +61,14 @@ struct Lock: ViewModifier {
                 guard enabled else { locked = false; return }
                 switch now {
                 case .background:
-                    locked = true
+                    if left == nil { left = Date() }
                 case .active:
+                    // back within the grace: stay open; past it, or at launch: ask
+                    if let left, !locked {
+                        let grace = LockAfter(rawValue: after) ?? .immediately
+                        if grace.due(left: left, now: Date()) { locked = true }
+                    }
+                    left = nil
                     if locked { unlock() }
                 default:
                     break
