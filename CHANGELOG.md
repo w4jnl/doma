@@ -12,6 +12,10 @@ updates this file first. Dates are the tag dates.
   The words are made on the device and the sound is never kept. One breath can name several
   items: "apples, oranges and bread" is three rows, and names the household already uses are
   told apart from the rest, so "olive oil" stays one.
+- **Admin pages behind your proxy's sign-in.** `docs/deploy/authelia/` is a compose stack with
+  Traefik and Authelia that puts the setup and admin pages behind Authelia, gated by an LLDAP
+  group, and leaves the family's invite and guest links, the apps' paths and the probes open. doma
+  keeps its own admin password behind it. A test holds the open paths to the routes.
 - **Share a personal list.** Rename's neighbours on a personal list gain *Share with the family*:
   a household list of the same name takes what is still open, and the personal one is archived
   with its history.

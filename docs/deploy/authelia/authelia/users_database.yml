@@ -1,0 +1,12 @@
+# The file backend, for a trial without LLDAP: in configuration.yml,
+# comment the ldap block out and uncomment the file block. One user in
+# the group the access rule names; the password is change-me. Make your
+# own hash with
+#   docker run --rm authelia/authelia:4.39 authelia crypto hash generate argon2 --password 'your password'
+# Unused while the LDAP backend is on.
+users:
+  operator:
+    displayname: Operator
+    email: operator@example.com
+    password: '$argon2id$v=19$m=65536,t=3,p=4$+lGHz9Gyxt6J+gpd1+t0TA$sDQOu9k6vqMRgA7tXKBQk45BWTgyjve04x0giR2U88k'
+    groups: [doma-admin]

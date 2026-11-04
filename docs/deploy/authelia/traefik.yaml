@@ -1,0 +1,58 @@
+# Traefik dynamic configuration for doma behind Authelia (file provider).
+#
+# Two routers on one host. The open one, at a higher priority, carries
+# everything a phone, a guest, the apps or a probe reach without a browser
+# sign-in: invite links (/i/), guest links (/g/), the pages' assets
+# (/static/), the apps' API and sync paths, health and metrics. The other
+# carries the rest, which is the setup page and the admin pages, through
+# Authelia's forward auth. doma reads no identity header, so none is
+# passed on: behind Authelia the admin still signs in with doma's own
+# password, and on a host without Authelia that password is the whole
+# gate, so a dev or test setup needs nothing from this file.
+#
+# /metrics is on the open router because Prometheus cannot sign in; set
+# metrics.token (DOMA_METRICS_TOKEN) so it asks for a bearer token.
+#
+# Traefik's file provider does not expand ${VAR}; it runs Go templates,
+# so the hostnames are written as {{ env "DOMA_HOST" }} and Traefik must
+# have DOMA_HOST and AUTH_HOST in its own environment (compose.yaml does
+# that from .env). Already running Traefik and Authelia? Take the two
+# doma routers and the authelia middleware only.
+http:
+  middlewares:
+    authelia:
+      forwardAuth:
+        address: http://authelia:9091/api/authz/forward-auth
+        trustForwardHeader: true
+
+  routers:
+    doma-open:   # phones, guests, the apps, probes: no forward auth
+      rule: 'Host(`{{ env "DOMA_HOST" }}`) && (PathPrefix(`/i/`) || PathPrefix(`/g/`) || PathPrefix(`/static/`) || PathPrefix(`/api/`) || PathPrefix(`/sync/`) || Path(`/healthz`) || Path(`/readyz`) || Path(`/metrics`))'
+      priority: 100
+      entryPoints: [websecure]
+      service: doma
+      tls:
+        certResolver: letsencrypt
+    doma-admin:  # /, /setup, /admin and everything under it: through Authelia
+      rule: 'Host(`{{ env "DOMA_HOST" }}`)'
+      entryPoints: [websecure]
+      middlewares: [authelia]
+      service: doma
+      tls:
+        certResolver: letsencrypt
+    authelia:
+      rule: 'Host(`{{ env "AUTH_HOST" }}`)'
+      entryPoints: [websecure]
+      service: authelia
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    doma:
+      loadBalancer:
+        servers:
+          - url: http://doma:8080
+    authelia:
+      loadBalancer:
+        servers:
+          - url: http://authelia:9091

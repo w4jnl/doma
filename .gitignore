@@ -13,3 +13,4 @@ app/*/xcuserdata/
 app/*/Local.xcconfig
 app/*/build/
 DerivedData/
+docs/deploy/authelia/.env
