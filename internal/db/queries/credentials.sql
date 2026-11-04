@@ -28,3 +28,6 @@ UPDATE credentials SET apns_token = ?, apns_sandbox = ? WHERE id = ?;
 
 -- name: TouchCredential :exec
 UPDATE credentials SET last_used_at = ? WHERE id = ?;
+
+-- name: SetNotifyPrefs :exec
+UPDATE credentials SET muted_lists = ?, notify_clears = ? WHERE id = ?;

@@ -113,18 +113,18 @@
         }
       }
     },
-    "A word when someone else adds to a list or clears it. Never for what you did yourself.": {
+    "A word when someone else adds to a list or clears it, at most every two minutes. Never for what you did yourself.": {
       "localizations": {
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Een berichtje als iemand anders iets op een lijst zet of een lijst leegmaakt. Nooit voor wat je zelf deed."
+            "value": "Een berichtje als iemand anders iets op een lijst zet of een lijst leegmaakt, hooguit elke twee minuten. Nooit voor wat je zelf deed."
           }
         },
         "sk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Správa, keď niekto iný pridá niečo do zoznamu alebo ho vyčistí. Nikdy za to, čo si urobil sám."
+            "value": "Správa, keď niekto iný pridá niečo do zoznamu alebo ho vyčistí, najviac raz za dve minúty. Nikdy za to, čo si urobil sám."
           }
         }
       }
@@ -397,6 +397,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Upraviť"
+          }
+        }
+      }
+    },
+    "Face ID, or the passcode, each time you come back to doma.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face ID, of de toegangscode, elke keer dat je terugkomt in doma."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face ID alebo kód zakaždým, keď sa vrátiš do domy."
           }
         }
       }
@@ -801,6 +817,22 @@
         }
       }
     },
+    "Lock with Face ID": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergrendelen met Face ID"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zamknúť pomocou Face ID"
+          }
+        }
+      }
+    },
     "Make the link": {
       "localizations": {
         "nl": {
@@ -1005,6 +1037,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Slivková"
+          }
+        }
+      }
+    },
+    "Privacy": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Súkromie"
           }
         }
       }
@@ -1457,6 +1505,38 @@
         }
       }
     },
+    "Unlock": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ontgrendelen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odomknúť"
+          }
+        }
+      }
+    },
+    "Unlock doma": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ontgrendel doma"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odomknúť domu"
+          }
+        }
+      }
+    },
     "Valid once, for 7 days, as": {
       "localizations": {
         "nl": {
@@ -1533,6 +1613,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Čaká na odoslanie"
+          }
+        }
+      }
+    },
+    "When a list is cleared": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als een lijst wordt leeggemaakt"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keď sa zoznam vyčistí"
           }
         }
       }

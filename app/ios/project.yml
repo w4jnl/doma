@@ -63,7 +63,7 @@ targets:
         UILaunchScreen:
           UIColorName: LaunchBackground
         LSApplicationCategoryType: public.app-category.lifestyle
-        UILaunchScreen: {}
+        NSFaceIDUsageDescription: Unlock doma with Face ID.
         UIBackgroundModes: [fetch, remote-notification]
         BGTaskSchedulerPermittedIdentifiers: [nl.w4j.doma.refresh]
         NSCameraUsageDescription: Scan your family's invite.

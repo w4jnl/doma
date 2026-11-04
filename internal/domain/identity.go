@@ -32,6 +32,10 @@ type Credential struct {
 	CreatedAt  int64
 	LastUsedAt *int64
 	RevokedAt  *int64
+	// MutedLists are the lists this device does not want words about; NotifyClears
+	// whether a cleared list is worth a word.
+	MutedLists   []string
+	NotifyClears bool
 }
 
 // Revoked reports whether the credential has been revoked.

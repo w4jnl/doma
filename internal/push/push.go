@@ -39,7 +39,13 @@ type Registry interface {
 	Changes(ctx context.Context, householdID string, after, upTo int64) ([]Change, error)
 	// Unseen counts what others added after a moment, for the badge.
 	Unseen(ctx context.Context, householdID, personID string, sinceMs int64) (int, error)
+	// RecordSpoken notes that a device heard words up to seq.
+	RecordSpoken(ctx context.Context, householdID, credentialID string, seq int64) error
 }
+
+// SpokenCoalesce is the least time between two spoken pushes to one device; the
+// second says everything since the first. Silent pushes keep Coalesce.
+const SpokenCoalesce = 2 * time.Minute
 
 // Sound is the file in the app's bundle a spoken push plays: a soft two-note chime.
 const Sound = "chime.caf"
@@ -52,6 +58,10 @@ type Target struct {
 	LastSeq      int64
 	LastUsedAt   int64
 	Sandbox      bool
+	MutedLists   []string
+	NotifyClears bool
+	SpokenAt     int64
+	SpokenSeq    int64
 }
 
 // Change is one add or clear with its names; the service fills it.
@@ -146,14 +156,25 @@ func (p *Pusher) Handle(ctx context.Context, c bus.HouseholdChanged) {
 		// what the device missed, minus what its own person did: that is the
 		// alert; nothing left means a silent push, as before
 		payload, alert := silent, false
-		if _, ok := changes[t.LastSeq]; !ok {
-			ch, err := p.reg.Changes(ctx, c.HouseholdID, t.LastSeq, c.Seq)
-			if err != nil {
-				p.log.Error("push changes", "err", err, "household", c.HouseholdID)
-			}
-			changes[t.LastSeq] = ch
+		// words at most every two minutes, and then everything since the last words
+		since := t.SpokenSeq
+		if since == 0 {
+			since = t.LastSeq
 		}
-		if title, body, thread := Compose(changes[t.LastSeq], t.PersonID); body != "" {
+		speak := p.now().UnixMilli()-t.SpokenAt >= SpokenCoalesce.Milliseconds()
+		if speak {
+			if _, ok := changes[since]; !ok {
+				ch, err := p.reg.Changes(ctx, c.HouseholdID, since, c.Seq)
+				if err != nil {
+					p.log.Error("push changes", "err", err, "household", c.HouseholdID)
+				}
+				changes[since] = ch
+			}
+		}
+		if title, body, thread := Compose(Wanted(changes[since], t), t.PersonID); speak && body != "" {
+			if err := p.reg.RecordSpoken(ctx, c.HouseholdID, t.CredentialID, c.Seq); err != nil {
+				p.log.Error("record spoken", "err", err)
+			}
 			aps := map[string]any{
 				"alert":             map[string]string{"title": title, "body": body},
 				"sound":             Sound,
@@ -258,4 +279,21 @@ func Compose(changes []Change, forPerson string) (title, body, thread string) {
 		body += ", and cleared " + mine[0].List
 	}
 	return title, body, thread
+}
+
+// Wanted keeps the changes a device wants words about: not on a list it muted,
+// and a clear only when it asked for those.
+func Wanted(changes []Change, t Target) []Change {
+	muted := map[string]bool{}
+	for _, id := range t.MutedLists {
+		muted[id] = true
+	}
+	var out []Change
+	for _, c := range changes {
+		if muted[c.ListID] || (c.Cleared && !t.NotifyClears) {
+			continue
+		}
+		out = append(out, c)
+	}
+	return out
 }

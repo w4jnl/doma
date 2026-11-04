@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/w4jnl/doma/internal/db"
@@ -14,7 +15,7 @@ func person(r db.Person) domain.Person {
 }
 
 func credential(r db.Credential) domain.Credential {
-	c := domain.Credential{ID: r.ID, PersonID: r.PersonID, Kind: r.Kind, Label: r.Label, Platform: r.Platform, APNSToken: r.ApnsToken, CreatedAt: r.CreatedAt, LastUsedAt: r.LastUsedAt, RevokedAt: r.RevokedAt}
+	c := domain.Credential{ID: r.ID, PersonID: r.PersonID, Kind: r.Kind, Label: r.Label, Platform: r.Platform, APNSToken: r.ApnsToken, CreatedAt: r.CreatedAt, LastUsedAt: r.LastUsedAt, RevokedAt: r.RevokedAt, MutedLists: mutedLists(r.MutedLists), NotifyClears: r.NotifyClears != 0}
 	if r.PublicKey != nil {
 		c.PublicKey = *r.PublicKey
 	}
@@ -283,5 +284,37 @@ func (s *Service) SetAPNSToken(ctx context.Context, personID, credentialID, toke
 			box = 1
 		}
 		return q.SetAPNSToken(ctx, db.SetAPNSTokenParams{ApnsToken: &token, ApnsSandbox: box, ID: credentialID})
+	})
+}
+
+// mutedLists reads the JSON array a device keeps; anything unreadable mutes nothing.
+func mutedLists(raw string) []string {
+	var out []string
+	if err := json.Unmarshal([]byte(raw), &out); err != nil || out == nil {
+		return []string{}
+	}
+	return out
+}
+
+// SetNotifyPrefs keeps what a device wants to hear: the lists it mutes and
+// whether a cleared list is worth a word; the device's own person only.
+func (s *Service) SetNotifyPrefs(ctx context.Context, personID, credentialID string, muted []string, clears bool) error {
+	if len(muted) > 200 {
+		return domain.Invalid("muted_lists", "too many lists")
+	}
+	if muted == nil {
+		muted = []string{}
+	}
+	raw, _ := json.Marshal(muted)
+	return s.db.Tx(ctx, func(q *db.Queries) error {
+		c, err := q.GetCredential(ctx, credentialID)
+		if err != nil || c.PersonID != personID {
+			return domain.ErrNotFound
+		}
+		var yes int64
+		if clears {
+			yes = 1
+		}
+		return q.SetNotifyPrefs(ctx, db.SetNotifyPrefsParams{MutedLists: string(raw), NotifyClears: yes, ID: credentialID})
 	})
 }

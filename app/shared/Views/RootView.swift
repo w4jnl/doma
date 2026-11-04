@@ -19,6 +19,7 @@ struct RootView: View {
         }
         .tint(Tokens.accent)
         .background(Tokens.ground)
+        .lockable()
         .onOpenURL { url in
             // doma://invite#<token> from the invite page
             Task { try? await session.accept(url.absoluteString, displayName: session.context?.displayName ?? "") }

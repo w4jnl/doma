@@ -70,6 +70,11 @@ paths:
       summary: Register or refresh the APNs token; body {token, sandbox} where sandbox says the token belongs to Apple's development gateway (a build from Xcode)
       responses:
         "204": {description: stored}
+  /api/v1/devices/{credential}/notify:
+    put:
+      summary: What this device wants to hear; body {muted_lists: [list ids], clears: bool}; the device's own person only
+      responses:
+        "204": {description: kept}
   /api/v1/h/{household}:
     put:
       summary: Rename the household, set its time zone and staleness; owners

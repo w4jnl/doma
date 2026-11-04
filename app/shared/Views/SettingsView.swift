@@ -17,6 +17,8 @@ struct SettingsView: View {
     @State private var makingDevice = false
     #if os(iOS)
     @State private var notifications: UNAuthorizationStatus?
+    @State private var lists: Live<[ListSummary]>?
+    @AppStorage("lock.biometrics") private var lockWithBiometrics = false
     #endif
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
@@ -60,10 +62,49 @@ struct SettingsView: View {
                         EmptyView()
                     }
                 }
+                if let m = model, let me = m.devices.first(where: { $0.id == session.context?.credentialID }) {
+                    // which lists are worth a word, and whether a clear is
+                    ForEach((lists?.value ?? []).filter { !$0.isPersonal }) { l in
+                        Toggle(isOn: Binding(
+                            get: { !me.mutedLists.contains(l.id) },
+                            set: { on in
+                                var muted = Set(me.mutedLists)
+                                if on { muted.remove(l.id) } else { muted.insert(l.id) }
+                                Task { await m.setNotify(device: me.id, muted: Array(muted).sorted(), clears: me.notifyClears) }
+                            })) {
+                            HStack(spacing: Tokens.space3) {
+                                ListDot(colour: l.colour)
+                                    .frame(width: Tokens.space5)
+                                Text(l.name)
+                            }
+                        }
+                        .tint(Tokens.accent)
+                    }
+                    Toggle(isOn: Binding(
+                        get: { me.notifyClears },
+                        set: { on in Task { await m.setNotify(device: me.id, muted: me.mutedLists, clears: on) } })) {
+                        Text("When a list is cleared")
+                    }
+                    .tint(Tokens.accent)
+                }
             } header: {
                 SectionHeader("Notifications")
             } footer: {
-                Text("A word when someone else adds to a list or clears it. Never for what you did yourself.")
+                Text("A word when someone else adds to a list or clears it, at most every two minutes. Never for what you did yourself.")
+                    .font(.footnote)
+                    .foregroundStyle(Tokens.inkMuted)
+            }
+            .listRowBackground(FamilyView.rowGround)
+            .listRowSeparatorTint(Tokens.line)
+            Section {
+                Toggle(isOn: $lockWithBiometrics) {
+                    Text("Lock with Face ID")
+                }
+                .tint(Tokens.accent)
+            } header: {
+                SectionHeader("Privacy")
+            } footer: {
+                Text("Face ID, or the passcode, each time you come back to doma.")
                     .font(.footnote)
                     .foregroundStyle(Tokens.inkMuted)
             }
@@ -220,6 +261,9 @@ struct SettingsView: View {
         .task(id: session.context?.serverID) {
             if let scope = session.scope {
                 homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }
+                #if os(iOS)
+                lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
+                #endif
             }
             guard let server = session.context?.serverID else { return }
             waiting = Live(session.store, initial: 0) { db in

@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -233,6 +235,15 @@ func TestMembersRolesAndBoundaries(t *testing.T) {
 	}
 	if rec, _ := member.do(http.MethodPost, "/api/v1/devices/"+member.cred+"/apns", map[string]any{"token": "abc", "sandbox": true}); rec.Code != http.StatusNoContent {
 		t.Errorf("apns sandbox: %d", rec.Code)
+	}
+	if rec, _ := member.do(http.MethodPut, "/api/v1/devices/"+member.cred+"/notify", map[string]any{"muted_lists": []string{"L9"}, "clears": false}); rec.Code != http.StatusNoContent {
+		t.Errorf("notify prefs: %d", rec.Code)
+	}
+	if rec, out := member.do(http.MethodGet, "/api/v1/me", nil); rec.Code != http.StatusOK || !strings.Contains(fmt.Sprint(out["credentials"]), "L9") {
+		t.Errorf("me carries the prefs: %d %v", rec.Code, out["credentials"])
+	}
+	if rec, _ := member.do(http.MethodPut, "/api/v1/devices/"+owner.cred+"/notify", map[string]any{"muted_lists": []string{}, "clears": true}); rec.Code != http.StatusNotFound {
+		t.Errorf("notify prefs on another device: %d", rec.Code)
 	}
 	if rec, _ := member.do(http.MethodPost, "/api/v1/devices/"+owner.cred+"/apns", map[string]string{"token": "abc"}); rec.Code != http.StatusNotFound {
 		t.Errorf("apns on another device: %d", rec.Code)

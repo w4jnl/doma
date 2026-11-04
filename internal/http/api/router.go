@@ -112,6 +112,7 @@ func (a *API) Mount(mux *http.ServeMux) {
 	a.handle(mux, "GET "+Prefix+"/me", modeDevice, a.me)
 	a.handle(mux, "DELETE "+Prefix+"/credentials/{id}", modeDevice, a.revokeCredential)
 	a.handle(mux, "POST "+Prefix+"/devices/{credential}/apns", modeDevice, a.registerAPNS)
+	a.handle(mux, "PUT "+Prefix+"/devices/{credential}/notify", modeDevice, a.setNotify)
 	a.handle(mux, "PUT "+Prefix+"/h/{household}", modeHousehold, a.updateHousehold)
 	a.handle(mux, "GET "+Prefix+"/h/{household}/members", modeHousehold, a.members)
 	a.handle(mux, "DELETE "+Prefix+"/h/{household}/members/{person}", modeHousehold, a.removeMember)
