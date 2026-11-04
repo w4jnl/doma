@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"net"
 	"net/http"
+	"strconv"
 )
 
 // The proxy's sign-in: with admin.auth = "proxy" the reverse proxy in front
@@ -56,8 +57,12 @@ func (p *Proxy) Identify(r *http.Request) (user, reason string) {
 	if !trusted {
 		return "", "peer " + host + " is not in admin.proxy_cidrs"
 	}
-	if subtle.ConstantTimeCompare([]byte(r.Header.Get(ProxySecretHeader)), []byte(p.secret)) != 1 {
-		return "", ProxySecretHeader + " does not match admin.proxy_secret"
+	secret := r.Header.Get(ProxySecretHeader)
+	if secret == "" {
+		return "", "no " + ProxySecretHeader + " header; the proxy does not add it on this route"
+	}
+	if subtle.ConstantTimeCompare([]byte(secret), []byte(p.secret)) != 1 {
+		return "", ProxySecretHeader + " does not match admin.proxy_secret (the proxy sends one of " + strconv.Itoa(len(secret)) + " characters, doma expects " + strconv.Itoa(len(p.secret)) + ")"
 	}
 	user = r.Header.Get(ProxyUserHeader)
 	if user == "" {
