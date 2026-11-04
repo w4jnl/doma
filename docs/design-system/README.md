@@ -227,7 +227,8 @@ row, not a new screen.
   the system draws it), the open count as the system's badge in mono; *New list* at the
   sidebar's foot is a plain accent button whose menu offers *Just me*; it opens one field in the
   sidebar, return creates, escape cancels. A right-click on a list offers *Rename* (in the row),
-  *Colour* (the six names) and *Archive*, armed in place. The pane hangs off the left at
+  *Colour* (the six names), *Share with the family* on a personal list, and *Archive*, armed in
+  place. The pane hangs off the left at
   `content-max`: the list's name in title weight with the dot and count under it, rows at
   `row-h-compact` (32pt) with hairlines from the text column, a hovered row on `surface`, the
   selected row on `accent-soft`. A click selects a row, the symbol strikes it (and turns

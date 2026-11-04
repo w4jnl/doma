@@ -1489,6 +1489,22 @@
         }
       }
     },
+    "Share with the family": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delen met de familie"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zdieľať s rodinou"
+          }
+        }
+      }
+    },
     "Shared": {
       "localizations": {
         "nl": {

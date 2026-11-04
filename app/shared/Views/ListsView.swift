@@ -1,7 +1,8 @@
 // All lists, one level under the list on screen: the household's lists first, then the person's
 // own, each with its dot, name and how many are to get; + creates one, with the next free colour.
 // A long-press or a swipe on a row offers Rename and Archive, armed in place; the household's
-// default list can only be renamed. Rename also offers the colour.
+// default list can only be renamed. Rename also offers the colour. A personal list also offers
+// Share with the family: a household list of the same name takes what is open on it.
 import SwiftUI
 
 struct ListsView: View {
@@ -139,6 +140,9 @@ struct ListsView: View {
             .alignmentGuide(.listRowSeparatorLeading) { d in d[.leading] + Tokens.space5 + Tokens.space3 }
             .contextMenu {
                 Button("Rename") { startRename(l) }
+                if l.isPersonal {
+                    Button("Share with the family") { share(l) }
+                }
                 if !l.isDefault {
                     Button("Archive") { arm(l) }
                 }
@@ -146,6 +150,10 @@ struct ListsView: View {
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 if !l.isDefault {
                     Button("Archive") { arm(l) }
+                }
+                if l.isPersonal {
+                    Button("Share with the family") { share(l) }
+                        .tint(Tokens.inkMuted)
                 }
                 Button("Rename") { startRename(l) }
                     .tint(Tokens.accent)
@@ -224,6 +232,12 @@ struct ListsView: View {
     private func commitRename(_ l: ListSummary, keepEditing: Bool = false) {
         try? ListActions.renameList(l.id, to: renameText, colour: l.isDefault ? l.colour : renameColour, in: session)
         if !keepEditing { renaming = nil }
+    }
+
+    /// The personal list becomes a household one, and the screen follows it when it can.
+    private func share(_ l: ListSummary) {
+        guard let id = try? ListActions.shareList(l, in: session) else { return }
+        pick?(id)
     }
 
     /// Archive waits four seconds for the second tap, in the row, as every destructive action.
