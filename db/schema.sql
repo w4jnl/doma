@@ -17,7 +17,7 @@ CREATE TABLE credentials (
   created_at    INTEGER NOT NULL,
   last_used_at  INTEGER,
   revoked_at    INTEGER
-, apns_sandbox INTEGER NOT NULL DEFAULT 0);
+, apns_sandbox INTEGER NOT NULL DEFAULT 0, muted_lists TEXT NOT NULL DEFAULT '[]', notify_clears INTEGER NOT NULL DEFAULT 1);
 CREATE INDEX credentials_person ON credentials(person_id);
 CREATE UNIQUE INDEX credentials_hash ON credentials(hash) WHERE hash IS NOT NULL;
 CREATE TABLE households (
@@ -198,11 +198,12 @@ CREATE TABLE push_log (
   household_id   TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   credential_id  TEXT NOT NULL,
   sent_at        INTEGER NOT NULL,
-  seq            INTEGER NOT NULL,
+  seq            INTEGER NOT NULL, spoken_at INTEGER, spoken_seq INTEGER,
   PRIMARY KEY (household_id, credential_id)
 );
 -- Dbmate schema migrations
 INSERT INTO "schema_migrations" (version) VALUES
   ('20261101000000'),
   ('20261103000000'),
-  ('20261104000000');
+  ('20261104000000'),
+  ('20261104010000');

@@ -19,6 +19,11 @@ type PushTarget struct {
 	LastUsedAt int64
 	// Sandbox: the token belongs to Apple's development gateway.
 	Sandbox bool
+	// What the device wants to hear, and when it last heard words and up to where.
+	MutedLists   []string
+	NotifyClears bool
+	SpokenAt     int64
+	SpokenSeq    int64
 }
 
 // Change is one thing a notification can say: who added which item to which
@@ -51,7 +56,15 @@ func (s *Service) PushTargets(ctx context.Context, householdID string, notBefore
 			if r.LastUsedAt != nil {
 				used = *r.LastUsedAt
 			}
-			out = append(out, PushTarget{CredentialID: r.CredentialID, Token: *r.ApnsToken, PersonID: r.PersonID, LastSeq: last, LastUsedAt: used, Sandbox: r.ApnsSandbox != 0})
+			var spokenAt, spokenSeq int64
+			if r.SpokenAt != nil {
+				spokenAt = *r.SpokenAt
+			}
+			if r.SpokenSeq != nil {
+				spokenSeq = *r.SpokenSeq
+			}
+			out = append(out, PushTarget{CredentialID: r.CredentialID, Token: *r.ApnsToken, PersonID: r.PersonID, LastSeq: last, LastUsedAt: used, Sandbox: r.ApnsSandbox != 0,
+				MutedLists: mutedLists(r.MutedLists), NotifyClears: r.NotifyClears != 0, SpokenAt: spokenAt, SpokenSeq: spokenSeq})
 		}
 	}
 	return out, nil
@@ -60,6 +73,13 @@ func (s *Service) PushTargets(ctx context.Context, householdID string, notBefore
 // RecordPush notes a push so the next one to the device waits 30 s.
 func (s *Service) RecordPush(ctx context.Context, householdID, credentialID string, seq int64) error {
 	return s.db.Write().RecordPush(ctx, db.RecordPushParams{HouseholdID: householdID, CredentialID: credentialID, SentAt: s.nowMs(), Seq: seq})
+}
+
+// RecordSpoken notes that a device heard words up to seq: the next spoken
+// push waits two minutes and starts from here.
+func (s *Service) RecordSpoken(ctx context.Context, householdID, credentialID string, seq int64) error {
+	now := s.nowMs()
+	return s.db.Write().RecordSpoken(ctx, db.RecordSpokenParams{SpokenAt: &now, SpokenSeq: &seq, HouseholdID: householdID, CredentialID: credentialID})
 }
 
 // ClearPushToken forgets a token Apple says is gone.

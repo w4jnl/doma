@@ -41,13 +41,18 @@
 	<string>public.app-category.lifestyle</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan your family's invite.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Unlock doma with Face ID.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
 	<key>UILaunchScreen</key>
-	<dict/>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

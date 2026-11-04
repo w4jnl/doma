@@ -25,6 +25,9 @@ type credentialDTO struct {
 	CreatedAt  int64  `json:"created_at"`
 	LastUsedAt *int64 `json:"last_used_at,omitempty"`
 	HasPush    bool   `json:"has_push"`
+	// What the device wants to hear.
+	MutedLists   []string `json:"muted_lists"`
+	NotifyClears bool     `json:"notify_clears"`
 }
 
 type membershipDTO struct {
@@ -101,7 +104,7 @@ func (a *API) me(w http.ResponseWriter, r *http.Request, c *Caller) error {
 		Memberships []membershipDTO `json:"memberships"`
 	}{Person: personDTO{ID: me.Person.ID, DisplayName: me.Person.DisplayName, LastSeenAt: me.Person.LastSeenAt}, Credentials: []credentialDTO{}, Memberships: []membershipDTO{}}
 	for _, cr := range me.Credentials {
-		out.Credentials = append(out.Credentials, credentialDTO{ID: cr.ID, Kind: cr.Kind, Label: cr.Label, Platform: cr.Platform, CreatedAt: cr.CreatedAt, LastUsedAt: cr.LastUsedAt, HasPush: cr.APNSToken != nil})
+		out.Credentials = append(out.Credentials, credentialDTO{ID: cr.ID, Kind: cr.Kind, Label: cr.Label, Platform: cr.Platform, CreatedAt: cr.CreatedAt, LastUsedAt: cr.LastUsedAt, HasPush: cr.APNSToken != nil, MutedLists: cr.MutedLists, NotifyClears: cr.NotifyClears})
 	}
 	for _, m := range me.Memberships {
 		out.Memberships = append(out.Memberships, membershipDTO{HouseholdID: m.HouseholdID, HouseholdName: m.HouseholdName, Role: string(m.Role)})
@@ -130,6 +133,22 @@ func (a *API) registerAPNS(w http.ResponseWriter, r *http.Request, c *Caller) er
 		return err
 	}
 	if err := a.svc.SetAPNSToken(r.Context(), c.Credential.PersonID, r.PathValue("credential"), req.Token, req.Sandbox); err != nil {
+		return err
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
+// setNotify: PUT /api/v1/devices/{credential}/notify.
+func (a *API) setNotify(w http.ResponseWriter, r *http.Request, c *Caller) error {
+	var req struct {
+		MutedLists []string `json:"muted_lists"`
+		Clears     bool     `json:"clears"`
+	}
+	if err := decodeJSON(c.Body, &req); err != nil {
+		return err
+	}
+	if err := a.svc.SetNotifyPrefs(r.Context(), c.Credential.PersonID, r.PathValue("credential"), req.MutedLists, req.Clears); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)

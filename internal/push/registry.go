@@ -18,7 +18,8 @@ func (r ServiceRegistry) PushTargets(ctx context.Context, householdID string, no
 	}
 	out := make([]Target, 0, len(rows))
 	for _, t := range rows {
-		out = append(out, Target{CredentialID: t.CredentialID, Token: t.Token, PersonID: t.PersonID, LastSeq: t.LastSeq, LastUsedAt: t.LastUsedAt, Sandbox: t.Sandbox})
+		out = append(out, Target{CredentialID: t.CredentialID, Token: t.Token, PersonID: t.PersonID, LastSeq: t.LastSeq, LastUsedAt: t.LastUsedAt, Sandbox: t.Sandbox,
+			MutedLists: t.MutedLists, NotifyClears: t.NotifyClears, SpokenAt: t.SpokenAt, SpokenSeq: t.SpokenSeq})
 	}
 	return out, nil
 }
@@ -45,6 +46,10 @@ func (r ServiceRegistry) Changes(ctx context.Context, householdID string, after,
 
 func (r ServiceRegistry) Unseen(ctx context.Context, householdID, personID string, sinceMs int64) (int, error) {
 	return r.Svc.AddedByOthersSince(ctx, householdID, personID, sinceMs)
+}
+
+func (r ServiceRegistry) RecordSpoken(ctx context.Context, householdID, credentialID string, seq int64) error {
+	return r.Svc.RecordSpoken(ctx, householdID, credentialID, seq)
 }
 
 var _ Registry = ServiceRegistry{}

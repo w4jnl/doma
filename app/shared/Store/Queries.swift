@@ -202,7 +202,7 @@ enum Queries {
         try Row.fetchAll(db, sql: """
             SELECT e.list_id, e.added_hlc, e.added_by FROM entries e
             JOIN lists l ON l.server_id = e.server_id AND l.household_id = e.household_id AND l.id = e.list_id
-            WHERE e.server_id = ? AND e.household_id = ? AND e.checked_hlc IS NULL AND e.cleared_hlc IS NULL AND l.archived_hlc IS NULL
+            WHERE e.server_id = ? AND e.household_id = ? AND e.checked_hlc IS NULL AND e.cleared_hlc IS NULL AND l.archived_at IS NULL
               AND (l.owner_person_id IS NULL OR l.owner_person_id = ?)
             """, arguments: [s.serverID, s.householdID, s.personID]).map { r in
             OpenMark(listID: r["list_id"], addedHLC: r["added_hlc"], addedBy: r["added_by"] ?? "")

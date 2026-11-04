@@ -81,6 +81,102 @@
         }
       }
     },
+    "1 hour": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 uur"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 hodine"
+          }
+        }
+      }
+    },
+    "1 minute": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 minuut"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 minúte"
+          }
+        }
+      }
+    },
+    "15 minutes": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "15 minuten"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "15 minútach"
+          }
+        }
+      }
+    },
+    "24 hours": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24 uur"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "24 hodinách"
+          }
+        }
+      }
+    },
+    "30 seconds": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 seconden"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 sekundách"
+          }
+        }
+      }
+    },
+    "5 minutes": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 minuten"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 minútach"
+          }
+        }
+      }
+    },
     "A flag older than this shows as unknown, and the home screen asks whether it is still there.": {
       "localizations": {
         "nl": {
@@ -113,18 +209,18 @@
         }
       }
     },
-    "A word when someone else adds to a list or clears it. Never for what you did yourself.": {
+    "A word when someone else adds to a list or clears it, at most every two minutes. Never for what you did yourself.": {
       "localizations": {
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Een berichtje als iemand anders iets op een lijst zet of een lijst leegmaakt. Nooit voor wat je zelf deed."
+            "value": "Een berichtje als iemand anders iets op een lijst zet of een lijst leegmaakt, hooguit elke twee minuten. Nooit voor wat je zelf deed."
           }
         },
         "sk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Správa, keď niekto iný pridá niečo do zoznamu alebo ho vyčistí. Nikdy za to, čo si urobil sám."
+            "value": "Správa, keď niekto iný pridá niečo do zoznamu alebo ho vyčistí, najviac raz za dve minúty. Nikdy za to, čo si urobil sám."
           }
         }
       }
@@ -401,6 +497,22 @@
         }
       }
     },
+    "Face ID, or the passcode, when you come back to doma after that long away.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face ID, of de toegangscode, als je na zo lang weg terugkomt in doma."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face ID alebo kód, keď sa do domy vrátiš po takom čase."
+          }
+        }
+      }
+    },
     "Family": {
       "localizations": {
         "nl": {
@@ -573,6 +685,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Domácnosť"
+          }
+        }
+      }
+    },
+    "Immediately": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meteen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hneď"
           }
         }
       }
@@ -801,6 +929,38 @@
         }
       }
     },
+    "Lock after": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergrendelen na"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zamknúť po"
+          }
+        }
+      }
+    },
+    "Lock with Face ID": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergrendelen met Face ID"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zamknúť pomocou Face ID"
+          }
+        }
+      }
+    },
     "Make the link": {
       "localizations": {
         "nl": {
@@ -1005,6 +1165,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Slivková"
+          }
+        }
+      }
+    },
+    "Privacy": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Súkromie"
           }
         }
       }
@@ -1457,6 +1633,54 @@
         }
       }
     },
+    "Unlock": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ontgrendelen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odomknúť"
+          }
+        }
+      }
+    },
+    "Unlock doma": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ontgrendel doma"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odomknúť domu"
+          }
+        }
+      }
+    },
+    "Until tomorrow": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tot morgen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Do zajtra"
+          }
+        }
+      }
+    },
     "Valid once, for 7 days, as": {
       "localizations": {
         "nl": {
@@ -1533,6 +1757,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Čaká na odoslanie"
+          }
+        }
+      }
+    },
+    "When a list is cleared": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als een lijst wordt leeggemaakt"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keď sa zoznam vyčistí"
           }
         }
       }

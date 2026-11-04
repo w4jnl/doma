@@ -23,6 +23,21 @@ type fakeReg struct {
 	cleared []string
 	now     func() time.Time
 	changes []Change
+	spoken  map[string]int64 // credential -> seq
+}
+
+func (f *fakeReg) RecordSpoken(_ context.Context, _, credentialID string, seq int64) error {
+	if f.spoken == nil {
+		f.spoken = map[string]int64{}
+	}
+	f.spoken[credentialID] = seq
+	for i := range f.targets {
+		if f.targets[i].CredentialID == credentialID {
+			f.targets[i].SpokenAt = f.now().UnixMilli()
+			f.targets[i].SpokenSeq = seq
+		}
+	}
+	return nil
 }
 
 func (f *fakeReg) Changes(_ context.Context, _ string, _, _ int64) ([]Change, error) {
@@ -217,5 +232,42 @@ func TestCompose(t *testing.T) {
 	}
 	if title, _, thread := Compose([]Change{sam("melk"), {PersonID: "sam", Person: "Sam", ListID: "L2", List: "Weekend", Item: "wijn"}}, "jaro"); title != "Lists" || thread != "lists" {
 		t.Errorf("two lists: %q %q", title, thread)
+	}
+}
+
+// TestSpokenPushesWaitAndFilter: words at most every two minutes, nothing about a muted
+// list, clears only when asked for.
+func TestSpokenPushesWaitAndFilter(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	reg := &fakeReg{
+		targets: []Target{{CredentialID: "c2", Token: "t2", PersonID: "jaro", MutedLists: []string{"L2"}, NotifyClears: false}},
+		pushed:  map[string]int64{}, now: func() time.Time { return now },
+		changes: []Change{
+			{PersonID: "sam", Person: "Sam", ListID: "L1", List: "Shopping", Item: "melk"},
+			{PersonID: "sam", Person: "Sam", ListID: "L2", List: "Weekend", Item: "wijn"},
+			{PersonID: "sam", Person: "Sam", ListID: "L1", List: "Shopping", Cleared: true},
+		},
+	}
+	snd := &fakeSender{}
+	p := New(reg, snd, "https://doma.test", slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	p.SetClock(func() time.Time { return now })
+	p.Handle(context.Background(), bus.HouseholdChanged{HouseholdID: "h", Seq: 7})
+	if snd.alerts != 1 || !strings.Contains(snd.sent[0], `"body":"Sam added melk"`) || strings.Contains(snd.sent[0], "wijn") || strings.Contains(snd.sent[0], "cleared") {
+		t.Fatalf("filtered words: %v", snd.sent)
+	}
+	if reg.spoken["c2"] != 7 {
+		t.Errorf("spoken seq %v", reg.spoken)
+	}
+	// a minute on: more changes, but the words wait; the sync push still goes
+	now = now.Add(time.Minute)
+	p.Handle(context.Background(), bus.HouseholdChanged{HouseholdID: "h", Seq: 9})
+	if len(snd.sent) != 2 || snd.alerts != 1 {
+		t.Errorf("inside the spoken window: alerts %d sent %d", snd.alerts, len(snd.sent))
+	}
+	// two minutes on: words again
+	now = now.Add(2 * time.Minute)
+	p.Handle(context.Background(), bus.HouseholdChanged{HouseholdID: "h", Seq: 11})
+	if snd.alerts != 2 {
+		t.Errorf("after the spoken window: alerts %d", snd.alerts)
 	}
 }

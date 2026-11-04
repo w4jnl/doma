@@ -103,11 +103,14 @@ type Querier interface {
 	// cutoff: one push per device per 30 s.
 	PushTargets(ctx context.Context, arg PushTargetsParams) ([]PushTargetsRow, error)
 	RecordPush(ctx context.Context, arg RecordPushParams) error
+	// the device heard words up to seq: the next spoken push waits two minutes and starts here
+	RecordSpoken(ctx context.Context, arg RecordSpokenParams) error
 	RecountItemUsage(ctx context.Context, arg RecountItemUsageParams) error
 	RevokeCredential(ctx context.Context, arg RevokeCredentialParams) (int64, error)
 	RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int64, error)
 	SetAPNSToken(ctx context.Context, arg SetAPNSTokenParams) error
 	SetAdminTOTP(ctx context.Context, totpSecret []byte) error
+	SetNotifyPrefs(ctx context.Context, arg SetNotifyPrefsParams) error
 	TouchCredential(ctx context.Context, arg TouchCredentialParams) error
 	TouchPerson(ctx context.Context, arg TouchPersonParams) error
 	UpdateHousehold(ctx context.Context, arg UpdateHouseholdParams) error

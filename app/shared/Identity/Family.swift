@@ -50,9 +50,30 @@ struct Credential: Decodable, Hashable, Sendable, Identifiable {
     var createdAt: Int64
     var lastUsedAt: Int64?
     var hasPush: Bool
+    /// What this device wants to hear: not these lists, and clears only when true.
+    var mutedLists: [String] = []
+    var notifyClears: Bool = true
     enum CodingKeys: String, CodingKey {
         case id, label, platform
         case createdAt = "created_at", lastUsedAt = "last_used_at", hasPush = "has_push"
+        case mutedLists = "muted_lists", notifyClears = "notify_clears"
+    }
+
+    init(id: String, label: String, platform: String, createdAt: Int64, lastUsedAt: Int64?, hasPush: Bool, mutedLists: [String] = [], notifyClears: Bool = true) {
+        self.id = id; self.label = label; self.platform = platform; self.createdAt = createdAt; self.lastUsedAt = lastUsedAt; self.hasPush = hasPush
+        self.mutedLists = mutedLists; self.notifyClears = notifyClears
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        label = try c.decode(String.self, forKey: .label)
+        platform = try c.decode(String.self, forKey: .platform)
+        createdAt = try c.decode(Int64.self, forKey: .createdAt)
+        lastUsedAt = try c.decodeIfPresent(Int64.self, forKey: .lastUsedAt)
+        hasPush = try c.decode(Bool.self, forKey: .hasPush)
+        mutedLists = try c.decodeIfPresent([String].self, forKey: .mutedLists) ?? []
+        notifyClears = try c.decodeIfPresent(Bool.self, forKey: .notifyClears) ?? true
     }
 }
 
@@ -145,6 +166,24 @@ final class FamilyModel {
         } catch {
             problem = Self.message(error)
             return nil
+        }
+    }
+
+    /// What this device wants to hear; kept on the server, which composes the words.
+    func setNotify(device credentialID: String, muted: [String], clears: Bool) async {
+        guard let client = session.client else { return }
+        struct Body: Encodable {
+            var mutedLists: [String], clears: Bool
+            enum CodingKeys: String, CodingKey { case clears, mutedLists = "muted_lists" }
+        }
+        do {
+            let _: SyncClient.Empty = try await client.put("/api/v1/devices/\(credentialID)/notify", Body(mutedLists: muted, clears: clears))
+            if let i = devices.firstIndex(where: { $0.id == credentialID }) {
+                devices[i].mutedLists = muted
+                devices[i].notifyClears = clears
+            }
+        } catch {
+            problem = Self.message(error)
         }
     }
 

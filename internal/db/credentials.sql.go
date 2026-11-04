@@ -10,7 +10,7 @@ import (
 )
 
 const credentialsForHousehold = `-- name: CredentialsForHousehold :many
-SELECT c.id, c.person_id, c.kind, c.public_key, c.hash, c.label, c.platform, c.apns_token, c.created_at, c.last_used_at, c.revoked_at, c.apns_sandbox FROM credentials c
+SELECT c.id, c.person_id, c.kind, c.public_key, c.hash, c.label, c.platform, c.apns_token, c.created_at, c.last_used_at, c.revoked_at, c.apns_sandbox, c.muted_lists, c.notify_clears FROM credentials c
 JOIN memberships m ON m.person_id = c.person_id
 WHERE m.household_id = ? AND c.kind = 'device_key'
 ORDER BY c.created_at
@@ -38,6 +38,8 @@ func (q *Queries) CredentialsForHousehold(ctx context.Context, householdID strin
 			&i.LastUsedAt,
 			&i.RevokedAt,
 			&i.ApnsSandbox,
+			&i.MutedLists,
+			&i.NotifyClears,
 		); err != nil {
 			return nil, err
 		}
@@ -53,7 +55,7 @@ func (q *Queries) CredentialsForHousehold(ctx context.Context, householdID strin
 }
 
 const credentialsForPerson = `-- name: CredentialsForPerson :many
-SELECT id, person_id, kind, public_key, hash, label, platform, apns_token, created_at, last_used_at, revoked_at, apns_sandbox FROM credentials WHERE person_id = ? ORDER BY created_at
+SELECT id, person_id, kind, public_key, hash, label, platform, apns_token, created_at, last_used_at, revoked_at, apns_sandbox, muted_lists, notify_clears FROM credentials WHERE person_id = ? ORDER BY created_at
 `
 
 func (q *Queries) CredentialsForPerson(ctx context.Context, personID string) ([]Credential, error) {
@@ -78,6 +80,8 @@ func (q *Queries) CredentialsForPerson(ctx context.Context, personID string) ([]
 			&i.LastUsedAt,
 			&i.RevokedAt,
 			&i.ApnsSandbox,
+			&i.MutedLists,
+			&i.NotifyClears,
 		); err != nil {
 			return nil, err
 		}
@@ -93,7 +97,7 @@ func (q *Queries) CredentialsForPerson(ctx context.Context, personID string) ([]
 }
 
 const getCredential = `-- name: GetCredential :one
-SELECT id, person_id, kind, public_key, hash, label, platform, apns_token, created_at, last_used_at, revoked_at, apns_sandbox FROM credentials WHERE id = ?
+SELECT id, person_id, kind, public_key, hash, label, platform, apns_token, created_at, last_used_at, revoked_at, apns_sandbox, muted_lists, notify_clears FROM credentials WHERE id = ?
 `
 
 func (q *Queries) GetCredential(ctx context.Context, id string) (Credential, error) {
@@ -112,12 +116,14 @@ func (q *Queries) GetCredential(ctx context.Context, id string) (Credential, err
 		&i.LastUsedAt,
 		&i.RevokedAt,
 		&i.ApnsSandbox,
+		&i.MutedLists,
+		&i.NotifyClears,
 	)
 	return i, err
 }
 
 const getCredentialByHash = `-- name: GetCredentialByHash :one
-SELECT id, person_id, kind, public_key, hash, label, platform, apns_token, created_at, last_used_at, revoked_at, apns_sandbox FROM credentials WHERE hash = ? LIMIT 1
+SELECT id, person_id, kind, public_key, hash, label, platform, apns_token, created_at, last_used_at, revoked_at, apns_sandbox, muted_lists, notify_clears FROM credentials WHERE hash = ? LIMIT 1
 `
 
 func (q *Queries) GetCredentialByHash(ctx context.Context, hash []byte) (Credential, error) {
@@ -136,12 +142,14 @@ func (q *Queries) GetCredentialByHash(ctx context.Context, hash []byte) (Credent
 		&i.LastUsedAt,
 		&i.RevokedAt,
 		&i.ApnsSandbox,
+		&i.MutedLists,
+		&i.NotifyClears,
 	)
 	return i, err
 }
 
 const getCredentialByPublicKey = `-- name: GetCredentialByPublicKey :one
-SELECT id, person_id, kind, public_key, hash, label, platform, apns_token, created_at, last_used_at, revoked_at, apns_sandbox FROM credentials WHERE public_key = ? AND revoked_at IS NULL LIMIT 1
+SELECT id, person_id, kind, public_key, hash, label, platform, apns_token, created_at, last_used_at, revoked_at, apns_sandbox, muted_lists, notify_clears FROM credentials WHERE public_key = ? AND revoked_at IS NULL LIMIT 1
 `
 
 func (q *Queries) GetCredentialByPublicKey(ctx context.Context, publicKey *string) (Credential, error) {
@@ -160,6 +168,8 @@ func (q *Queries) GetCredentialByPublicKey(ctx context.Context, publicKey *strin
 		&i.LastUsedAt,
 		&i.RevokedAt,
 		&i.ApnsSandbox,
+		&i.MutedLists,
+		&i.NotifyClears,
 	)
 	return i, err
 }
@@ -223,6 +233,21 @@ type SetAPNSTokenParams struct {
 
 func (q *Queries) SetAPNSToken(ctx context.Context, arg SetAPNSTokenParams) error {
 	_, err := q.db.ExecContext(ctx, setAPNSToken, arg.ApnsToken, arg.ApnsSandbox, arg.ID)
+	return err
+}
+
+const setNotifyPrefs = `-- name: SetNotifyPrefs :exec
+UPDATE credentials SET muted_lists = ?, notify_clears = ? WHERE id = ?
+`
+
+type SetNotifyPrefsParams struct {
+	MutedLists   string
+	NotifyClears int64
+	ID           string
+}
+
+func (q *Queries) SetNotifyPrefs(ctx context.Context, arg SetNotifyPrefsParams) error {
+	_, err := q.db.ExecContext(ctx, setNotifyPrefs, arg.MutedLists, arg.NotifyClears, arg.ID)
 	return err
 }
 
