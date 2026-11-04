@@ -10,13 +10,16 @@ struct VoiceCheck {
     @MainActor
     static func main() async {
         let dir = URL(filePath: CommandLine.arguments[1])
-        let cases: [(Language, [String])] = [
-            (.english, ["milk", "bread"]),
-            (.dutch, ["melk", "brood"]),
-            (.slovak, ["mlieka", "chlieb"]),
+        // the file, its language and the words that must come back; en-list is three items said
+        // with a short silence between them, which must come apart as commas
+        let cases: [(String, Language, [String])] = [
+            ("en", .english, ["milk", "bread"]),
+            ("nl", .dutch, ["melk", "brood"]),
+            ("sk", .slovak, ["mlieka", "chlieb"]),
+            ("en-list", .english, ["apples,", "oranges,", "bread"]),
         ]
         var failed = false
-        for (language, expected) in cases {
+        for (file, language, expected) in cases {
             guard let module = await Listener.module(language) else {
                 print("voice: \(language.name): no model")
                 failed = true
@@ -25,17 +28,17 @@ struct VoiceCheck {
             let listener = Listener()
             var words: [String] = []
             listener.words = { words.append($0) }
-            await listener.play(dir.appending(path: "\(language.rawValue).aiff"), language)
+            await listener.play(dir.appending(path: "\(file).aiff"), language)
             let text = words.joined(separator: " ")
             let missing = expected.filter { !text.lowercased().contains($0) }
             if case .failed(let why) = listener.state {
                 print("voice: \(language.name): \(why)")
                 failed = true
             } else if !missing.isEmpty {
-                print("voice: \(language.name) (\(type(of: module))): \"\(text)\" has no \(missing.joined(separator: ", "))")
+                print("voice: \(file) (\(type(of: module))): \"\(text)\" has no \(missing.joined(separator: ", "))")
                 failed = true
             } else {
-                print("voice: \(language.name) (\(type(of: module))): \"\(text)\"")
+                print("voice: \(file) (\(type(of: module))): \"\(text)\"")
             }
         }
         exit(failed ? 1 : 0)
