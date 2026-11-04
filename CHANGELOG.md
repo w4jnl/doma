@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+## 0.1.0 (2026-11-04)
+
+The first build: phase 0 of the plan, the family's shared lists on doma.
+
 - **Quieter words, your choice of them, and a lock.** A warmer chime. Spoken pushes come at
   most every two minutes per device and then say everything since. Settings gains a switch per
   shared list and one for clears, kept on the server, which composes the words; and a lock
