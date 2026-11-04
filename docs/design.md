@@ -347,7 +347,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | --- | --- | --- |
 | Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join | registers the device, accepts the invite |
 | Lists | opens into the last-used list; the Lists button or a second tab tap leads to the overview: household lists, then personal, colour dot, name, how many to get; `+` to create | `list.created` |
-| List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it; swipe left for Edit, long-press to drag | `item.named`, `entry.*` |
+| List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it, and the mic at its end; swipe left for Edit, long-press to drag | `item.named`, `entry.*` |
 | Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails | — |
 | Home | staples grouped by spot with flag buttons; other flagged items; *Take photos*; manage staples and spots behind Edit | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
 | Trip | from/to pickers, date; Bring, Buy, Check on arrival groups; *Arrived* | `entry.added`, `trip.arrived` |
@@ -362,6 +362,13 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 - Dynamic Type and VoiceOver on every row; the strike is announced as "checked".
 - A household switcher appears only when the person has more than one membership; otherwise the household name is a title.
 - Nothing about servers is visible unless the app holds more than one context, which v1 does not allow.
+
+**Voice**
+
+- The mic at the end of the add field says an item instead of typing it, on the phone and on the Mac, offline. A tap listens; each piece the model settles lands in the field as if typed, the words it may still change shown faintly after it, and the matches answer as for typing. A pause (1.5 s with every word settled) adds what was said as return would: the exact item when the name exists, the line as a new item otherwise, without its full stop. A second tap stops and keeps the words in the field; leaving the list or the app stops it too.
+- Language: English, Nederlands and Slovenčina, the app's three, chosen under the mic (held on the phone, right-clicked on the Mac), since speech is not told its language by itself. The code (EN, NL, SK) shows under the mic and the last choice is remembered on the device; until one is made, the device's own language.
+- The model is Apple's `SpeechAnalyzer`, on the device: `SpeechTranscriber` where it has the language exactly (`supportedLocales`; English), else `DictationTranscriber`, the keyboard's model (Dutch and Slovak). The system fetches a language's model the first time it is used, as it does for the keyboard; that is the one fetch, by the system, and the app itself still talks to its doma only. Only the words are kept, never the sound.
+- Tests: the simulator has no speech models, so `make voice` runs the same `Listener` on the Mac on a sentence in each language spoken by `say`, and `make mac-test` repeats it while that sound is there.
 
 **Local store and identity**
 
@@ -530,7 +537,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 - Fold fixture: `docs/fixtures/fold.json` holds ordered event sequences and the expected tables after each, including out-of-order delivery, duplicate ids, two devices naming the same item offline, re-add after clear, and a trip. The Go and Swift fold tests both load it; a change to the fold is a change to the fixture first.
 - Server integration: boot on a temp SQLite file; exercise invite acceptance, sync round trips with two devices, the guest view, photo upload and quota, export; the cross-tenant and cross-person suites.
 - Property test on the fold: random event sets applied in random orders converge to the same tables.
-- App UI tests: add, strike, clear, offline add then sync, accept invite from a QR image; snapshot tests for every screen in light and dark, two Dynamic Type sizes.
+- App UI tests: add, strike, clear, offline add then sync, accept invite from a QR image; snapshot tests for every screen in light and dark, two Dynamic Type sizes; `make voice`, the three languages through the Listener on the Mac.
 - End-to-end smoke: `make e2e` starts the server, creates a household, accepts two invites with a Go test client that implements the device-key signature, adds on one and reads on the other, flips a flag, derives a trip, commits it, and checks the flags moved.
 - Load: `cmd/domaload` with 200 devices syncing every 5 s against a laptop; acceptance is p99 sync under 50 ms and no event lost.
 - CI: `go vet`, `golangci-lint`, `sqlc diff`, `govulncheck`, tests with `-race`, the household_id grep gate, `xcodebuild test` for DomaKit.

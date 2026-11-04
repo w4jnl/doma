@@ -37,5 +37,9 @@
 	<string>Scan your family's invite.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>w4j.nl</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Say an item onto a list. The words are made on this Mac; the sound is never kept.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Your speech is turned into words on this Mac, for the list. The sound is never kept.</string>
 </dict>
 </plist>

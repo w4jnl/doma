@@ -4,7 +4,8 @@
 #
 # ../shared is DomaKit, compiled into this app and the iPhone app (app/ios): the design tokens,
 # the store, the fold, sync, identity and the views, with #if os() where the platforms differ.
-# The app is sandboxed: it talks to the configured server and, for an invite, to the camera.
+# The app is sandboxed: it talks to the configured server and, for an invite, to the camera, and
+# listens to the microphone for a spoken item.
 name: Doma
 options:
   bundleIdPrefix: nl.w4j
@@ -64,6 +65,8 @@ targets:
         LSApplicationCategoryType: public.app-category.lifestyle
         NSHumanReadableCopyright: w4j.nl
         NSCameraUsageDescription: Scan your family's invite.
+        NSMicrophoneUsageDescription: Say an item onto a list. The words are made on this Mac; the sound is never kept.
+        NSSpeechRecognitionUsageDescription: Your speech is turned into words on this Mac, for the list. The sound is never kept.
         CFBundleURLTypes:
           - CFBundleURLName: nl.w4j.doma
             CFBundleURLSchemes: [doma]

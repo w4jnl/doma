@@ -17,6 +17,22 @@
         }
       }
     },
+    "%@ speech is not available on this device": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spraak in het %@ is niet beschikbaar op dit apparaat"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reč v jazyku %@ nie je na tomto zariadení dostupná"
+          }
+        }
+      }
+    },
     "%@, %lld to get": {
       "localizations": {
         "nl": {
@@ -577,6 +593,22 @@
         }
       }
     },
+    "Getting the %@ speech model, once": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het spraakmodel voor %@ wordt eenmalig opgehaald"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sťahuje sa rečový model pre %@, raz"
+          }
+        }
+      }
+    },
     "Gold": {
       "localizations": {
         "nl": {
@@ -845,6 +877,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Len ja"
+          }
+        }
+      }
+    },
+    "Language": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taal"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jazyk"
           }
         }
       }
@@ -1345,6 +1393,22 @@
         }
       }
     },
+    "Say an item, in %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeg iets, in het %@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Povedz položku, v jazyku %@"
+          }
+        }
+      }
+    },
     "Scan the invite the owner shows you.": {
       "localizations": {
         "nl": {
@@ -1489,6 +1553,22 @@
         }
       }
     },
+    "Stop listening": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop met luisteren"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prestať počúvať"
+          }
+        }
+      }
+    },
     "Tap again to confirm": {
       "localizations": {
         "nl": {
@@ -1521,6 +1601,22 @@
         }
       }
     },
+    "The %@ speech model takes no sound from this device": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het spraakmodel voor %@ neemt geen geluid van dit apparaat aan"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rečový model pre %@ neprijíma zvuk z tohto zariadenia"
+          }
+        }
+      }
+    },
     "The guest sees what is missing at that home and that list, for 7 days.": {
       "localizations": {
         "nl": {
@@ -1533,6 +1629,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hosť vidí, čo v tom domove chýba, a ten zoznam, 7 dní."
+          }
+        }
+      }
+    },
+    "There is no microphone to listen with": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er is geen microfoon om mee te luisteren"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie je tu mikrofón, ktorým by sa dalo počúvať"
           }
         }
       }
@@ -1901,6 +2013,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "zbalené"
+          }
+        }
+      }
+    },
+    "doma may not use the microphone: allow it in Settings": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "doma mag de microfoon niet gebruiken: sta het toe in Instellingen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "doma nesmie používať mikrofón: povoľ to v Nastaveniach"
           }
         }
       }
