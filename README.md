@@ -29,7 +29,8 @@ Not released yet; phase 0 runs from source. Linux on amd64 and arm64 for the ser
 3. Create the household on the Households page: a name, a time zone, the first home. Open it
    and make the owner invite: a QR code, shown once.
 4. Scan the QR with the doma app. The phone is in, as owner. Owners invite the rest of the
-   family from the app's Family screen; the lists appear on each phone as it joins.
+   family from the app's Family screen; the lists appear on each phone as it joins. A Mac joins
+   the same way: `brew install --cask w4jnl/tap/doma`, then an invite from Settings, Add a device.
 
 Put the server behind the reverse proxy you already run, terminating TLS. doma authenticates
 every route itself, and the invite and guest links must open from a phone on mobile data, so

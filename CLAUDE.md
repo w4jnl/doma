@@ -146,5 +146,9 @@ the fold can rebuild from the log, and a test proves it.
   for TestFlight. `make ui-test` runs the UI tests and the live test against a throwaway server;
   `make snapshots` records the screen pictures the test suites compare against, after a change
   to a screen.
+- `make mac-release V=<version>`: doma for Mac signed with the Developer ID, notarized and
+  stapled, as a DMG under `app/macos/build/release` (`scripts/mac-release.sh`).
 - `scripts/release.sh <version>`: tag a release; goreleaser builds the binaries and the image in
-  CI. It needs a `## <version> (YYYY-MM-DD)` section in `CHANGELOG.md`.
+  CI. Before the tag it builds the Mac app, after it adds the DMG to the GitHub release and
+  writes the cask `doma` in w4jnl/homebrew-tap (`scripts/cask.sh`); `DOMA_NO_APP=1` skips the
+  app. It needs a `## <version> (YYYY-MM-DD)` section in `CHANGELOG.md`.
