@@ -51,7 +51,6 @@ token = "env:DOMA_TEST_METRICS"
 	cfg, err := LoadWith(path, env(map[string]string{
 		"DOMA_SERVER_LISTEN":          ":7070",
 		"DOMA_SERVER_TRUSTED_PROXIES": "10.0.0.0/8, 192.168.0.0/16",
-		"DOMA_PUSH_SANDBOX":           "true",
 		"DOMA_RETENTION_EVENTS_DAYS":  "30",
 		"DOMA_TEST_METRICS":           "s3cret",
 	}))
@@ -64,8 +63,8 @@ token = "env:DOMA_TEST_METRICS"
 	if len(cfg.Server.TrustedProxies) != 2 {
 		t.Errorf("list from env: %v", cfg.Server.TrustedProxies)
 	}
-	if !cfg.Push.Sandbox || cfg.Retention.EventsDays != 30 {
-		t.Errorf("bool and int from env: %+v %+v", cfg.Push, cfg.Retention)
+	if cfg.Retention.EventsDays != 30 {
+		t.Errorf("int from env: %+v", cfg.Retention)
 	}
 	if cfg.Photos.MaxBytesPerUpload != 4<<20 {
 		t.Errorf("byte size: %d", cfg.Photos.MaxBytesPerUpload)
@@ -140,11 +139,12 @@ func TestValidate(t *testing.T) {
 }
 
 func TestPushEnabledValidates(t *testing.T) {
-	cfg, err := LoadWith("", env(map[string]string{"DOMA_PUSH_ENABLED": "true", "DOMA_PUSH_KEY_ID": "ABC123", "DOMA_PUSH_TEAM_ID": "TEAM42", "DOMA_PUSH_SANDBOX": "true"}))
+	cfg, err := LoadWith("", env(map[string]string{"DOMA_PUSH_ENABLED": "true", "DOMA_PUSH_KEY_ID": "ABC123", "DOMA_PUSH_TEAM_ID": "TEAM42"}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(cfg.Warnings()) != 1 || !strings.Contains(cfg.Warnings()[0], "sandbox") {
+	// which gateway a push goes to is the device's to say, so there is nothing to warn about
+	if len(cfg.Warnings()) != 0 {
 		t.Errorf("warnings: %v", cfg.Warnings())
 	}
 }

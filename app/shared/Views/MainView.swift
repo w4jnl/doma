@@ -125,10 +125,8 @@ struct Badge: ViewModifier {
                 guard let scope = session.scope else { return }
                 marks = Live(session.store, initial: []) { db in try Queries.openMarks(db, scope) }
             }
-            .onChange(of: unseen, initial: true) { _, n in
-                #if os(iOS)
-                UNUserNotificationCenter.current().setBadgeCount(n) { _ in }
-                #endif
+            .onChange(of: unseen, initial: true) { _, _ in
+                session.refreshBadge()
             }
     }
 }

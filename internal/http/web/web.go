@@ -88,7 +88,7 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 		}
 		files := []string{"templates/layout.html", name}
 		if strings.HasPrefix(base, "guest") || base == "_guest_fragment.html" {
-			files = append(files, "templates/_guest_list.html")
+			files = append(files, "templates/_guest_list.html", "templates/_guest_panel.html")
 		}
 		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, files...)
 		if err != nil {
@@ -96,12 +96,18 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 		}
 		pages[strings.TrimSuffix(base, ".html")] = t
 	}
-	// the polled fragment: the list alone, no layout
+	// the polled fragment: the list alone, no layout; and the panel, the form with the list,
+	// which an add swaps in whole so the field comes back empty without a line of script
 	frag, err := template.New("_guest_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_guest_fragment.html", "templates/_guest_list.html")
 	if err != nil {
 		return nil, fmt.Errorf("guest fragment: %w", err)
 	}
 	pages["_guest_fragment"] = frag
+	panel, err := template.New("_guest_panel_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_guest_panel_fragment.html", "templates/_guest_panel.html", "templates/_guest_list.html")
+	if err != nil {
+		return nil, fmt.Errorf("guest panel: %w", err)
+	}
+	pages["_guest_panel"] = panel
 	*w = Web{svc: svc, log: log, sessions: auth.NewSessions(secure), logins: ratelimit.New(LoginsPerMinute, LoginsPerMinute), pages: pages, now: func() time.Time { return time.Now().UTC() }, secure: secure, challenges: map[string]time.Time{}, InviteDays: 7}
 	return w, nil
 }

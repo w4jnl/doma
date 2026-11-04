@@ -123,11 +123,13 @@ func (a *API) revokeCredential(w http.ResponseWriter, r *http.Request, c *Caller
 func (a *API) registerAPNS(w http.ResponseWriter, r *http.Request, c *Caller) error {
 	var req struct {
 		Token string `json:"token"`
+		// Sandbox: a build from Xcode, whose token lives on Apple's development gateway.
+		Sandbox bool `json:"sandbox"`
 	}
 	if err := decodeJSON(c.Body, &req); err != nil {
 		return err
 	}
-	if err := a.svc.SetAPNSToken(r.Context(), c.Credential.PersonID, r.PathValue("credential"), req.Token); err != nil {
+	if err := a.svc.SetAPNSToken(r.Context(), c.Credential.PersonID, r.PathValue("credential"), req.Token, req.Sandbox); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)

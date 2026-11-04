@@ -12,6 +12,9 @@ type Querier interface {
 	AllEvents(ctx context.Context, householdID string) ([]Event, error)
 	ClearAPNSToken(ctx context.Context, id string) error
 	ClearedEntriesForHome(ctx context.Context, arg ClearedEntriesForHomeParams) ([]Entry, error)
+	// what a device missed while it was away: entries others added after it last spoke to us,
+	// the number on the icon until the app is open and counts for itself
+	CountAddedByOthersSince(ctx context.Context, arg CountAddedByOthersSinceParams) (int64, error)
 	CountDevices(ctx context.Context, householdID string) (int64, error)
 	CountEvents(ctx context.Context, householdID string) (int64, error)
 	// tenancy: root -- the instance gauge

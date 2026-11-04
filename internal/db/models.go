@@ -13,17 +13,18 @@ type Admin struct {
 }
 
 type Credential struct {
-	ID         string
-	PersonID   string
-	Kind       string
-	PublicKey  *string
-	Hash       []byte
-	Label      string
-	Platform   string
-	ApnsToken  *string
-	CreatedAt  int64
-	LastUsedAt *int64
-	RevokedAt  *int64
+	ID          string
+	PersonID    string
+	Kind        string
+	PublicKey   *string
+	Hash        []byte
+	Label       string
+	Platform    string
+	ApnsToken   *string
+	CreatedAt   int64
+	LastUsedAt  *int64
+	RevokedAt   *int64
+	ApnsSandbox int64
 }
 
 type Entry struct {

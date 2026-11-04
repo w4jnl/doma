@@ -6,6 +6,15 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Each device's own push gateway.** A device says whether its token is a development one when
+  it registers it, and the server sends each push to the matching Apple host, so one server
+  serves a build from Xcode and the family's TestFlight builds alike. The `push.sandbox` config
+  key is gone.
+- **The badge while away, and a chime.** A spoken push carries the number of entries others
+  added since the phone last spoke to the server, so the icon shows it while the app is away,
+  and the app counts for itself after every sync, in the background too. Seen marks move only
+  while the app is active and the list on screen, so what came while the phone was locked is
+  still new when it is opened. Spoken pushes play the app's own soft two-note chime.
 - **Every change pushes.** The guest page's adds, strikes and clears and the server's own events
   (a member removed, a device revoked) now tell the push side the household changed, as the
   apps' sync always did; before, a guest's add reached the phones only on their next poll.

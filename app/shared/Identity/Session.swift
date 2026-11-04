@@ -5,6 +5,7 @@ import Foundation
 import Observation
 #if os(iOS)
 import UIKit
+import UserNotifications
 #endif
 
 @MainActor @Observable
@@ -218,6 +219,20 @@ final class Session {
         return addedHLC > mark
     }
 
+    /// What this device has not seen in the current household, counted from the store; and
+    /// on the phone the icon's badge, set here so a sync in the background sets it as well,
+    /// where no screen updates.
+    @discardableResult
+    func refreshBadge() -> Int {
+        guard let scope, let h = currentHouseholdID else { return 0 }
+        let marks = (try? store.db.read { db in try Queries.openMarks(db, scope) }) ?? []
+        let n = unseen(household: h, in: marks).values.reduce(0, +)
+        #if os(iOS)
+        UNUserNotificationCenter.current().setBadgeCount(n) { _ in }
+        #endif
+        return n
+    }
+
     /// Unseen entries per list over the household's open marks.
     func unseen(household: String, in marks: [OpenMark]) -> [String: Int] {
         var out: [String: Int] = [:]
@@ -292,13 +307,19 @@ final class Session {
 
     // MARK: Push
 
-    /// The APNs token, sent to the server for this credential.
+    /// The APNs token, sent to the server for this credential, with which of Apple's gateways
+    /// it belongs to: a build from Xcode registers a development token.
     func registerPush(token: Data) async {
         guard let client, let c = context else { return }
-        struct Body: Encodable { var token: String }
+        struct Body: Encodable { var token: String, sandbox: Bool }
         let hex = token.map { String(format: "%02x", $0) }.joined()
+        #if DEBUG
+        let sandbox = true
+        #else
+        let sandbox = false
+        #endif
         do {
-            let _: SyncClient.Empty = try await client.post("/api/v1/devices/\(c.credentialID)/apns", Body(token: hex))
+            let _: SyncClient.Empty = try await client.post("/api/v1/devices/\(c.credentialID)/apns", Body(token: hex, sandbox: sandbox))
         } catch {
             // the next launch registers again
         }

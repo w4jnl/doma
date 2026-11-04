@@ -37,7 +37,6 @@ const jwtLifetime = 50 * time.Minute
 // APNs sends through Apple's HTTP/2 API with token-based auth.
 type APNs struct {
 	client *http.Client
-	host   string
 	key    *ecdsa.PrivateKey
 	keyID  string
 	teamID string
@@ -68,27 +67,28 @@ func ParseKey(pemBytes []byte) (*ecdsa.PrivateKey, error) {
 
 // NewAPNs builds the sender. This is the one place doma opens an outbound
 // connection; it is only called when push.enabled is true.
-func NewAPNs(key *ecdsa.PrivateKey, keyID, teamID, topic string, sandbox bool) *APNs {
-	host := HostProduction
-	if sandbox {
-		host = HostSandbox
-	}
+func NewAPNs(key *ecdsa.PrivateKey, keyID, teamID, topic string) *APNs {
 	transport := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return DialContext(ctx, network, addr)
 		},
 		ForceAttemptHTTP2: true, MaxIdleConns: 2, IdleConnTimeout: 10 * time.Minute, TLSHandshakeTimeout: 10 * time.Second,
 	}
-	return &APNs{client: &http.Client{Transport: transport, Timeout: 15 * time.Second}, host: host, key: key, keyID: keyID, teamID: teamID, topic: topic, now: time.Now}
+	return &APNs{client: &http.Client{Transport: transport, Timeout: 15 * time.Second}, key: key, keyID: keyID, teamID: teamID, topic: topic, now: time.Now}
 }
 
 // Send posts one background push.
-func (a *APNs) Send(ctx context.Context, deviceToken string, payload []byte, alert bool) error {
+func (a *APNs) Send(ctx context.Context, deviceToken string, payload []byte, alert, sandbox bool) error {
 	jwt, err := a.providerToken()
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://"+a.host+"/3/device/"+deviceToken, bytes.NewReader(payload))
+	// the gateway is the token's: a development build's token lives on the sandbox host
+	host := HostProduction
+	if sandbox {
+		host = HostSandbox
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://"+host+"/3/device/"+deviceToken, bytes.NewReader(payload))
 	if err != nil {
 		return err
 	}

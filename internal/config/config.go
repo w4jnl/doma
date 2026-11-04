@@ -68,9 +68,9 @@ type Push struct {
 	KeyFile string `toml:"key_file"`
 	KeyID   string `toml:"key_id"`
 	TeamID  string `toml:"team_id"`
-	// Topic is the app's bundle id.
-	Topic   string `toml:"topic"`
-	Sandbox bool   `toml:"sandbox"`
+	// Topic is the app's bundle id. Which of Apple's gateways a push goes to
+	// is the device's to say when it registers its token, not the server's.
+	Topic string `toml:"topic"`
 }
 
 type Invites struct {
@@ -272,9 +272,6 @@ func (c *Config) Warnings() []string {
 	var out []string
 	if u, err := url.Parse(c.Server.BaseURL); err == nil && u.Scheme == "http" && !isLoopback(u.Hostname()) {
 		out = append(out, "server.base_url is http on a non-local host; the admin cookie is only Secure over https")
-	}
-	if c.Push.Enabled && c.Push.Sandbox {
-		out = append(out, "push.sandbox is on: pushes go to Apple's development gateway, which only reaches debug builds")
 	}
 	return out
 }

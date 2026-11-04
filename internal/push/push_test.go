@@ -29,6 +29,16 @@ func (f *fakeReg) Changes(_ context.Context, _ string, _, _ int64) ([]Change, er
 	return f.changes, nil
 }
 
+func (f *fakeReg) Unseen(_ context.Context, _, person string, _ int64) (int, error) {
+	n := 0
+	for _, c := range f.changes {
+		if c.PersonID != person && !c.Cleared {
+			n++
+		}
+	}
+	return n, nil
+}
+
 func (f *fakeReg) PushTargets(_ context.Context, _ string, notBefore int64) ([]Target, error) {
 	var out []Target
 	for _, t := range f.targets {
@@ -50,15 +60,19 @@ func (f *fakeReg) ClearPushToken(_ context.Context, credentialID string) error {
 }
 
 type fakeSender struct {
-	sent   []string
-	alerts int
-	fail   map[string]error
+	sent    []string
+	alerts  int
+	sandbox []string
+	fail    map[string]error
 }
 
-func (s *fakeSender) Send(_ context.Context, token string, payload []byte, alert bool) error {
+func (s *fakeSender) Send(_ context.Context, token string, payload []byte, alert, sandbox bool) error {
 	s.sent = append(s.sent, token+" "+string(payload))
 	if alert {
 		s.alerts++
+	}
+	if sandbox {
+		s.sandbox = append(s.sandbox, token)
 	}
 	return s.fail[token]
 }
@@ -122,15 +136,15 @@ func TestParseKeyAndJWT(t *testing.T) {
 	if _, err := ParseKey([]byte("nope")); err == nil {
 		t.Error("garbage parsed")
 	}
-	a := NewAPNs(key, "KEYID", "TEAMID", "nl.w4j.doma", true)
+	a := NewAPNs(key, "KEYID", "TEAMID", "nl.w4j.doma")
 	now := time.Unix(1_800_000_000, 0)
 	a.now = func() time.Time { return now }
 	tok1, err := a.providerToken()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Count(tok1, ".") != 2 || a.host != HostSandbox {
-		t.Errorf("token %q host %s", tok1, a.host)
+	if strings.Count(tok1, ".") != 2 {
+		t.Errorf("token %q", tok1)
 	}
 	now = now.Add(10 * time.Minute)
 	tok2, _ := a.providerToken()
@@ -149,7 +163,7 @@ func TestParseKeyAndJWT(t *testing.T) {
 func TestAlertsSayWhatOthersDid(t *testing.T) {
 	now := time.Unix(1_800_000_000, 0)
 	reg := &fakeReg{
-		targets: []Target{{CredentialID: "c1", Token: "t1", PersonID: "sam"}, {CredentialID: "c2", Token: "t2", PersonID: "jaro"}},
+		targets: []Target{{CredentialID: "c1", Token: "t1", PersonID: "sam"}, {CredentialID: "c2", Token: "t2", PersonID: "jaro", Sandbox: true}},
 		pushed:  map[string]int64{}, now: func() time.Time { return now },
 		changes: []Change{
 			{PersonID: "sam", Person: "Sam", ListID: "L1", List: "Shopping", Item: "melk"},
@@ -168,6 +182,13 @@ func TestAlertsSayWhatOthersDid(t *testing.T) {
 	}
 	if !strings.Contains(snd.sent[1], `"body":"Sam added melk and brood"`) || !strings.Contains(snd.sent[1], `"title":"Shopping"`) || !strings.Contains(snd.sent[1], `"thread-id":"L1"`) || !strings.Contains(snd.sent[1], `"seq":7`) {
 		t.Errorf("jaro's alert: %s", snd.sent[1])
+	}
+	if !strings.Contains(snd.sent[1], `"badge":2`) || !strings.Contains(snd.sent[1], `"sound":"chime.caf"`) {
+		t.Errorf("jaro's alert badge and sound: %s", snd.sent[1])
+	}
+	// each device's token goes to its own gateway
+	if len(snd.sandbox) != 1 || snd.sandbox[0] != "t2" {
+		t.Errorf("sandbox tokens: %v", snd.sandbox)
 	}
 }
 

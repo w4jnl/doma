@@ -1,0 +1,12 @@
+{{define "form"}}
+<form class="dm-add" method="post" action="/g/{{.Data.Link}}/add" hx-post="/g/{{.Data.Link}}/add" hx-target="#panel" hx-swap="outerHTML">
+  <input class="dm-input" id="add" name="text" placeholder="Add" autocomplete="off" autofocus required>
+  <button class="dm-button" type="submit">Add</button>
+</form>
+{{end}}
+{{define "panel"}}
+<div id="panel">
+  {{template "form" .}}
+  {{template "list" .}}
+</div>
+{{end}}

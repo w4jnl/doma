@@ -29,6 +29,7 @@ enum BackgroundRefresh {
         schedule()
         let work = Task { @MainActor in
             await Session.current?.syncer.sync()
+            Session.current?.refreshBadge()
             task.setTaskCompleted(success: true)
         }
         task.expirationHandler = { work.cancel() }
@@ -55,6 +56,7 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void) {
         Task { @MainActor in
             await Session.current?.syncer.sync()
+            Session.current?.refreshBadge()
             completionHandler([])
         }
     }
@@ -77,8 +79,10 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
     }
 
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
-        // {"server": base_url, "household": id, "seq": n}: one exchange, within the 25 s budget
+        // {"server": base_url, "household": id, "seq": n}: one exchange, within the 25 s budget,
+        // and the icon's badge from the store, since no screen updates while the app is away
         await Session.current?.syncer.sync()
+        Session.current?.refreshBadge()
         return .newData
     }
 

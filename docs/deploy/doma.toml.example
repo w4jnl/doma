@@ -25,7 +25,6 @@ key_file = "/var/lib/doma/apns.p8"      # encrypted at rest after first start
 key_id = ""
 team_id = ""
 topic = "nl.w4j.doma"                   # the app's bundle id
-sandbox = false
 
 [invites]
 default_days = 7

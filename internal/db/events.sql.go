@@ -9,6 +9,26 @@ import (
 	"context"
 )
 
+const countAddedByOthersSince = `-- name: CountAddedByOthersSince :one
+SELECT COUNT(*) FROM events
+WHERE household_id = ? AND kind = 'entry.added' AND person_id != ? AND received_at > ?
+`
+
+type CountAddedByOthersSinceParams struct {
+	HouseholdID string
+	PersonID    string
+	ReceivedAt  int64
+}
+
+// what a device missed while it was away: entries others added after it last spoke to us,
+// the number on the icon until the app is open and counts for itself
+func (q *Queries) CountAddedByOthersSince(ctx context.Context, arg CountAddedByOthersSinceParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAddedByOthersSince, arg.HouseholdID, arg.PersonID, arg.ReceivedAt)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const entryEventsForKey = `-- name: EntryEventsForKey :many
 SELECT household_id, seq, id, person_id, credential_id, hlc, kind, payload, received_at FROM events
 WHERE household_id = ?1

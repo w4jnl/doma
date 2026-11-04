@@ -231,6 +231,9 @@ func TestMembersRolesAndBoundaries(t *testing.T) {
 	if rec, _ := member.do(http.MethodPost, "/api/v1/devices/"+member.cred+"/apns", map[string]string{"token": "abc"}); rec.Code != http.StatusNoContent {
 		t.Errorf("apns: %d", rec.Code)
 	}
+	if rec, _ := member.do(http.MethodPost, "/api/v1/devices/"+member.cred+"/apns", map[string]any{"token": "abc", "sandbox": true}); rec.Code != http.StatusNoContent {
+		t.Errorf("apns sandbox: %d", rec.Code)
+	}
 	if rec, _ := member.do(http.MethodPost, "/api/v1/devices/"+owner.cred+"/apns", map[string]string{"token": "abc"}); rec.Code != http.StatusNotFound {
 		t.Errorf("apns on another device: %d", rec.Code)
 	}

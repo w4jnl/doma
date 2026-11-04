@@ -266,9 +266,10 @@ func (s *Service) RevokeCredential(ctx context.Context, callerPersonID, credenti
 	return nil
 }
 
-// SetAPNSToken registers or refreshes a device's push token; the device's
-// own person only.
-func (s *Service) SetAPNSToken(ctx context.Context, personID, credentialID, token string) error {
+// SetAPNSToken registers or refreshes a device's push token and which of
+// Apple's gateways it belongs to (a build from Xcode says sandbox); the
+// device's own person only.
+func (s *Service) SetAPNSToken(ctx context.Context, personID, credentialID, token string, sandbox bool) error {
 	if len(token) == 0 || len(token) > 200 {
 		return domain.Invalid("token", "give the device's push token")
 	}
@@ -277,6 +278,10 @@ func (s *Service) SetAPNSToken(ctx context.Context, personID, credentialID, toke
 		if err != nil || c.PersonID != personID {
 			return domain.ErrNotFound
 		}
-		return q.SetAPNSToken(ctx, db.SetAPNSTokenParams{ApnsToken: &token, ID: credentialID})
+		var box int64
+		if sandbox {
+			box = 1
+		}
+		return q.SetAPNSToken(ctx, db.SetAPNSTokenParams{ApnsToken: &token, ApnsSandbox: box, ID: credentialID})
 	})
 }

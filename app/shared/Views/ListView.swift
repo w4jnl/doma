@@ -17,6 +17,9 @@ struct ListView: View {
     var overview: (() -> Void)?
     @Environment(Session.self) private var session
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    /// On screen, between appear and disappear.
+    @State private var visible = false
     #if os(macOS)
     @Environment(MacNav.self) private var nav
     @State private var hovered: String?
@@ -144,8 +147,8 @@ struct ListView: View {
             }
             .onAppear {
                 observe()
-                visitMark = session.seenMark(household: session.currentHouseholdID ?? "", list: listID) ?? ""
-                markSeen()
+                visible = true
+                beginVisit()
                 session.syncer.setPolling(seconds: 5)
                 #if os(iOS)
                 UIApplication.shared.isIdleTimerDisabled = true
@@ -156,7 +159,10 @@ struct ListView: View {
             }
             .onChange(of: session.scope) { observe() }
             .onChange(of: rows?.value) { markSeen() }
+            // back from the background with the list in front: what came while away is new
+            .onChange(of: scenePhase) { _, now in if now == .active, visible { beginVisit() } }
             .onDisappear {
+                visible = false
                 // the keyboard belongs to this screen: it goes when the screen goes
                 fieldFocused = false
                 session.syncer.setPolling(seconds: nil)
@@ -404,12 +410,20 @@ struct ListView: View {
         }
     }
 
-    /// Everything on the list has been in front: the seen mark moves to the newest entry.
+    /// A visit begins: what others added after the last visit's mark is new for this one.
+    private func beginVisit() {
+        visitMark = session.seenMark(household: session.currentHouseholdID ?? "", list: listID) ?? ""
+        markSeen()
+    }
+
+    /// Everything on the list has been in front: the seen mark moves to the newest entry. Only
+    /// while the app is active and the list on screen; a sync in the background marks nothing.
     private func markSeen() {
-        guard let h = session.currentHouseholdID else { return }
+        guard visible, scenePhase == .active, let h = session.currentHouseholdID else { return }
         let newest = (rows?.value ?? []).map(\.addedHLC).max()
         guard let newest else { return }
         session.markSeen(household: h, list: listID, upTo: newest.description)
+        session.refreshBadge()
     }
 
     /// Someone else added it after this visit began from the last seen mark.
