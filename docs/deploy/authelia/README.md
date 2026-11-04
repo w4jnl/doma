@@ -14,14 +14,17 @@ must work from a phone on mobile data without a browser sign-in.
 | probes and Prometheus | `/healthz`, `/readyz`, `/metrics` | no |
 
 `traefik.yaml` has the two routers: `doma-open` at a higher priority with the open paths and no
-middleware, `doma-admin` for the rest through Authelia's forward auth. `/metrics` is open to the
-network, so set `DOMA_METRICS_TOKEN` and it asks for `Authorization: Bearer <token>`.
+middleware, `doma-admin` for the rest through Authelia's forward auth, which passes `Remote-User`
+on and adds a shared secret. `/metrics` is open to the network, so set `DOMA_METRICS_TOKEN` and
+it asks for `Authorization: Bearer <token>`.
 
-**Two sign-ins, on purpose.** doma reads no identity header from the proxy, so behind Authelia the
-operator passes Authelia and then types doma's own admin password, once per twelve hours. Keep
-doma's TOTP off when Authelia does the second factor. On a host without Authelia, such as a dev
-or test setup with `make run` or the plain `../traefik.yaml`, that same password is the whole
-gate: nothing to configure, nothing to switch.
+**One sign-in.** doma runs with `admin.auth = proxy`: it takes the admin's name from `Remote-User`,
+believed only from Traefik's addresses (`admin.proxy_cidrs`) when the request also carries
+`X-Auth-Proxy-Secret` (`admin.proxy_secret`), on every request, and serves no password form. Sign
+out goes to Authelia's logout page (`admin.proxy_logout_url`). The setup page still asks for an
+admin password once; it is kept for a switch back to `admin.auth = password`, which is the
+default and the whole gate on a host without Authelia, such as a dev or test setup with `make run`
+or the plain `../traefik.yaml`. It is one or the other, never both.
 
 **Who gets in.** Authelia's rule in `authelia/configuration.yml` admits the group `doma-admin`
 with two factors. The group lives in LLDAP: Authelia's `lldap` backend reads a person's groups
@@ -34,11 +37,14 @@ You need three things from this folder, nothing else:
 
 1. An LLDAP group `doma-admin` with the operator in it.
 2. The `access_control` rule from `authelia/configuration.yml` in your Authelia configuration.
-3. The `doma-open` and `doma-admin` routers and the `doma` service from `traefik.yaml` in your
-   Traefik dynamic configuration, with the `authelia` middleware you already have.
+3. The `doma-open` and `doma-admin` routers, the `doma-secret` middleware and the `doma` service
+   from `traefik.yaml` in your Traefik dynamic configuration, with `Remote-User` in your
+   `authelia` middleware's `authResponseHeaders`.
 
 Run doma itself from `../compose.yaml` or `../doma.service` on the same network, with
-`DOMA_SERVER_BASE_URL` set to the https name and `DOMA_SERVER_TRUSTED_PROXIES` covering Traefik.
+`DOMA_SERVER_BASE_URL` set to the https name, `DOMA_SERVER_TRUSTED_PROXIES` covering Traefik, and
+the `[admin]` keys from `../doma.toml.example`: `auth = "proxy"`, `proxy_cidrs` with Traefik's
+addresses, `proxy_secret` the same value Traefik adds, and `proxy_logout_url` if you want Sign out.
 
 ## A fresh stack
 
@@ -73,7 +79,8 @@ curl -sI -X POST $B/sync/v1 | head -1          # 401 from doma, no redirect
 
 Then from a phone on mobile data: open an invite QR with the camera, the invite page loads and
 its button opens doma; the app syncs; a guest link opens in Safari. In a browser, `/admin` goes
-through Authelia, then doma's password, then the households page.
+through Authelia straight to the households page, with no second password; `doma serve -d` logs
+"admin signed in by the proxy" with the name, or "proxy sign-in refused" with the reason.
 
 `go test ./internal/http -run TestOpenPathsNeedNoBrowserSession` reads the open router's rule from
 `traefik.yaml` and checks it against the server's routes, so a new route and this folder cannot
@@ -86,6 +93,10 @@ drift apart.
 - Authelia says access denied after a correct sign-in: the account is not in the LLDAP group
   `doma-admin`, or the rule's `domain` does not match `DOMA_HOST`.
 - `/metrics` answers anyone: `DOMA_METRICS_TOKEN` is empty.
+- After Authelia, doma shows "Sign in first": the name or the secret did not arrive. The log says
+  which: the peer is outside `admin.proxy_cidrs`, `X-Auth-Proxy-Secret` differs from
+  `admin.proxy_secret` (Traefik and doma must read the same `DOMA_ADMIN_PROXY_SECRET`), or
+  `Remote-User` is missing from the `authelia` middleware's `authResponseHeaders`.
 - The admin is signed out on every request: `DOMA_SERVER_BASE_URL` is not https, so doma's
   session cookie is not marked Secure and the browser drops it on an https page.
 - Traefik logs a template error: `DOMA_HOST` or `AUTH_HOST` is missing from its environment; the

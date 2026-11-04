@@ -5,25 +5,31 @@
 # sign-in: invite links (/i/), guest links (/g/), the pages' assets
 # (/static/), the apps' API and sync paths, health and metrics. The other
 # carries the rest, which is the setup page and the admin pages, through
-# Authelia's forward auth. doma reads no identity header, so none is
-# passed on: behind Authelia the admin still signs in with doma's own
-# password, and on a host without Authelia that password is the whole
-# gate, so a dev or test setup needs nothing from this file.
+# Authelia's forward auth. Traefik passes Authelia's Remote-User on and
+# adds a shared secret; doma (admin.auth = proxy) believes the name only
+# from Traefik's address with that secret, and asks for no password of its
+# own. On a host without Authelia, leave admin.auth at password: doma's
+# own form is then the whole gate and nothing from this file is needed.
 #
 # /metrics is on the open router because Prometheus cannot sign in; set
 # metrics.token (DOMA_METRICS_TOKEN) so it asks for a bearer token.
 #
 # Traefik's file provider does not expand ${VAR}; it runs Go templates,
-# so the hostnames are written as {{ env "DOMA_HOST" }} and Traefik must
-# have DOMA_HOST and AUTH_HOST in its own environment (compose.yaml does
-# that from .env). Already running Traefik and Authelia? Take the two
-# doma routers and the authelia middleware only.
+# so the hostnames and the secret are written as {{ env "…" }} and Traefik
+# must have DOMA_HOST, AUTH_HOST and DOMA_ADMIN_PROXY_SECRET in its own
+# environment (compose.yaml does that from .env). Already running Traefik
+# and Authelia? Take the two doma routers and the doma-secret middleware,
+# and add Remote-User to your authelia middleware's authResponseHeaders.
 http:
   middlewares:
     authelia:
       forwardAuth:
         address: http://authelia:9091/api/authz/forward-auth
         trustForwardHeader: true
+        authResponseHeaders: [Remote-User]
+    doma-secret:   # doma believes Remote-User only with this; the open router never carries it
+      headers:
+        customRequestHeaders: { X-Auth-Proxy-Secret: '{{ env "DOMA_ADMIN_PROXY_SECRET" }}' }
 
   routers:
     doma-open:   # phones, guests, the apps, probes: no forward auth
@@ -36,7 +42,7 @@ http:
     doma-admin:  # /, /setup, /admin and everything under it: through Authelia
       rule: 'Host(`{{ env "DOMA_HOST" }}`)'
       entryPoints: [websecure]
-      middlewares: [authelia]
+      middlewares: [authelia, doma-secret]
       service: doma
       tls:
         certResolver: letsencrypt

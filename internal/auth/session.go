@@ -24,6 +24,9 @@ type Session struct {
 	ID      string
 	CSRF    string
 	Expires time.Time
+	// User is who the proxy named when it signed the admin in; empty for
+	// doma's own sign-in.
+	User string
 }
 
 // Sessions holds the admin's sessions.
@@ -41,7 +44,10 @@ func NewSessions(secure bool) *Sessions {
 }
 
 // Start creates a session and sets its cookie.
-func (s *Sessions) Start(w http.ResponseWriter) (*Session, error) {
+func (s *Sessions) Start(w http.ResponseWriter) (*Session, error) { return s.StartUser(w, "") }
+
+// StartUser is Start for a session the proxy signed in as user.
+func (s *Sessions) StartUser(w http.ResponseWriter, user string) (*Session, error) {
 	id, err := NewToken()
 	if err != nil {
 		return nil, err
@@ -50,7 +56,7 @@ func (s *Sessions) Start(w http.ResponseWriter) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	sess := &Session{ID: id, CSRF: csrf, Expires: s.Now().Add(SessionTTL)}
+	sess := &Session{ID: id, CSRF: csrf, Expires: s.Now().Add(SessionTTL), User: user}
 	s.mu.Lock()
 	s.byID[id] = sess
 	for k, v := range s.byID {

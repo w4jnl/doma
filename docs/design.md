@@ -399,7 +399,7 @@ The server renders three page sets with `html/template` and htmx on the same ser
 
 No household name beyond the list's title, no other homes, no members, no photos. The guest's events carry the guest person's id, so the family sees *added by guest (cleaner)* with the label the owner gave the link.
 
-**Admin pages** (`/admin`, admin login with password; TOTP optional)
+**Admin pages** (`/admin`; the admin signs in with the password, TOTP optional, or through the proxy in front when `admin.auth = "proxy"`)
 
 | Page | Content |
 | --- | --- |
@@ -462,7 +462,7 @@ The attack surface is small and named: invite and guest links, the sync signatur
 - **Personal lists.** Filtered in the sync layer by the fold's index of `owner_person_id` on every list event, tested by the cross-person suite: two members in one household never see each other's personal entries through sync, REST or export.
 - **Guests.** A guest scope is `(household, home, list)`; the sync filter and every query add those predicates; a guest cannot call `/sync/v1` at all, only the web routes.
 - **Photos.** Decoded and re-encoded server-side (JPEG only) to strip metadata and defuse malformed files; served with `Content-Type: image/jpeg`, `X-Content-Type-Options: nosniff`, from a signed URL valid 1 h. Quota is enforced before the body is read (`Content-Length`) and again after.
-- **Admin.** argon2id (`t=2, m=64MB, p=1`), session cookie `HttpOnly, Secure, SameSite=Lax`, CSRF double-submit on every form, 5 failed logins per minute per IP, optional TOTP in v1 since it is one screen. A reverse proxy's sign-in (Authelia) may sit in front of the admin pages only; the server never trusts a proxy header for identity.
+- **Admin.** argon2id (`t=2, m=64MB, p=1`), session cookie `HttpOnly, Secure, SameSite=Lax`, CSRF double-submit on every form, 5 failed logins per minute per IP, optional TOTP in v1 since it is one screen. Either that or the proxy's sign-in, never both: with `admin.auth = "proxy"` the reverse proxy in front (Authelia) signs the admin in and names them in `Remote-User`, which the server believes only from a peer in `admin.proxy_cidrs` that also sends `admin.proxy_secret` in `X-Auth-Proxy-Secret`, on every request; the password form is then not served. A proxy sign-in may stand in front of the admin pages only, never the family's links or the apps' paths.
 - **Headers on every page.** `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`.
 - **Outbound.** The server makes no outbound connection except APNs (`api.push.apple.com`) and nothing at all when `push.enabled = false`. No update check, no telemetry, no CDN.
 - **Secrets at rest.** The APNs `.p8` key and the admin TOTP secret are encrypted with XChaCha20-Poly1305 under `secrets.key_file` (32 bytes, created on first run). Back it up with the database: without it the APNs key must be re-uploaded, nothing else is lost.
@@ -509,6 +509,11 @@ format = "json"
 token = ""
 [secrets]
 key_file = "/var/lib/doma/secret.key"
+[admin]
+auth = "password"                       # or "proxy": the reverse proxy in front signs the admin in (Remote-User)
+proxy_cidrs = []                        # the proxy's addresses; its headers count from nowhere else
+proxy_secret = ""                       # what the proxy adds in X-Auth-Proxy-Secret; env:NAME keeps it out of the file
+proxy_logout_url = ""                   # the proxy's logout page, where Sign out goes; empty hides the button
 ```
 
 **Observability of the server itself**
@@ -520,7 +525,7 @@ key_file = "/var/lib/doma/secret.key"
 
 **Packaging**
 
-- Server: `goreleaser` builds `doma_{version}_linux_{amd64,arm64}` and a `FROM scratch` image `ghcr.io/w4jnl/doma` with `/doma` and CA certificates; `docs/deploy/` has `doma.service` (systemd, `DynamicUser=yes`, `StateDirectory=doma`), `compose.yaml`, `doma.nomad.hcl`, a Traefik snippet that terminates TLS and forwards everything, and under `docs/deploy/authelia/` a compose stack with Traefik and Authelia. The server authenticates every route itself; the proxy may add its own sign-in in front of the admin pages only (`/`, `/setup`, `/admin`), never in front of the invite and guest links, `/static/`, the API, sync or the probes, which phones on mobile data and the apps must reach without a browser. doma reads no identity header from the proxy, so its own admin password stays the gate behind it and the whole gate without it.
+- Server: `goreleaser` builds `doma_{version}_linux_{amd64,arm64}` and a `FROM scratch` image `ghcr.io/w4jnl/doma` with `/doma` and CA certificates; `docs/deploy/` has `doma.service` (systemd, `DynamicUser=yes`, `StateDirectory=doma`), `compose.yaml`, `doma.nomad.hcl`, a Traefik snippet that terminates TLS and forwards everything, and under `docs/deploy/authelia/` a compose stack with Traefik and Authelia. The server authenticates every route itself; the proxy may add its own sign-in in front of the admin pages only (`/`, `/setup`, `/admin`), never in front of the invite and guest links, `/static/`, the API, sync or the probes, which phones on mobile data and the apps must reach without a browser. With `admin.auth = "password"`, the default, the proxy's sign-in comes before doma's own; with `admin.auth = "proxy"` doma takes the admin from the proxy's `Remote-User` and asks for nothing more.
 - Backup = the DB file, the photos directory and `secret.key`; `/admin/server` has *Back up now*, which uses the SQLite online backup API and writes a dated zip next to the DB.
 - Apps: `make ios-build`, `make mac-build`, `make ios-testflight` as in nt; TestFlight for the family during phases 0–1, App Store from phase 2 so non-technical members install from the store. Bundle id `nl.w4j.doma`; the App Store listing name is a qualified form such as "Doma – lists, homes, trips" because "Doma" alone is taken (see open decisions); the listing opens on the Scan screen and includes a demo household so review can exercise the app without a server.
 

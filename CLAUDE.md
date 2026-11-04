@@ -25,7 +25,8 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
 - The server's phase 0 is in, steps 1 to 7: the module, `doma serve` with config and logging, the Makefile,
   CI, goreleaser and the gate scripts; the schema, sqlc queries, the fold with
   `docs/fixtures/fold.json`, the SQL store under `internal/foldsql` and the event schema with its
-  validator; identity in `internal/auth` (device-key signatures, admin sessions, argon2id),
+  validator; identity in `internal/auth` (device-key signatures, admin sessions, argon2id, the proxy's
+  sign-in behind `admin.auth = "proxy"`),
   `internal/service` (setup, households, members, devices, invites), the REST API under
   `internal/http/api` with `openapi.yaml`, and the first pages under `internal/http/web` (setup,
   admin login, households with the owner invite QR, the invite page); the sync path: `POST

@@ -51,6 +51,9 @@ type Web struct {
 	chMu       sync.Mutex
 	// InviteDays is shown on the invite panel.
 	InviteDays int
+	// proxy, when set, signs the admin in instead of the password form
+	// (admin.auth = proxy).
+	proxy *auth.Proxy
 }
 
 // New parses the templates. secure marks the admin cookie Secure.
@@ -112,6 +115,11 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 	return w, nil
 }
 
+// SetProxyAuth hands the admin's sign-in to the proxy in front: every
+// admin request must carry the identity p vouches for, and the password
+// form is not served.
+func (h *Web) SetProxyAuth(p *auth.Proxy) { h.proxy = p }
+
 // SetClock replaces the clock, for tests.
 func (h *Web) SetClock(now func() time.Time) {
 	h.now = now
@@ -126,9 +134,11 @@ func (h *Web) Mount(mux *http.ServeMux) {
 	mux.HandleFunc("GET /setup", h.setupForm)
 	mux.HandleFunc("POST /setup", h.setup)
 	mux.HandleFunc("GET /admin/login", h.loginForm)
-	mux.HandleFunc("POST /admin/login", h.login)
-	mux.HandleFunc("GET /admin/login/code", h.codeForm)
-	mux.HandleFunc("POST /admin/login/code", h.code)
+	if h.proxy == nil {
+		mux.HandleFunc("POST /admin/login", h.login)
+		mux.HandleFunc("GET /admin/login/code", h.codeForm)
+		mux.HandleFunc("POST /admin/login/code", h.code)
+	}
 	mux.HandleFunc("POST /admin/logout", h.admin(h.logout))
 	mux.HandleFunc("GET /admin", h.admin(h.households))
 	mux.HandleFunc("POST /admin/households", h.admin(h.createHousehold))
@@ -206,12 +216,19 @@ type page struct {
 	CSRF  string
 	Error string
 	Data  any
+	// ProxyAuth and LogoutURL tell the layout who signs the admin in and
+	// where Sign out goes; renderBytes fills them.
+	ProxyAuth bool
+	LogoutURL string
 }
 
 func (h *Web) renderBytes(name string, p page) ([]byte, error) {
 	t, ok := h.pages[name]
 	if !ok {
 		return nil, fmt.Errorf("no template %s", name)
+	}
+	if h.proxy != nil {
+		p.ProxyAuth, p.LogoutURL = true, h.proxy.LogoutURL
 	}
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, p); err != nil {
@@ -317,6 +334,14 @@ func safeNext(next string) string {
 }
 
 func (h *Web) loginForm(w http.ResponseWriter, r *http.Request) {
+	if h.proxy != nil {
+		if h.proxySession(w, r) == nil {
+			h.refused(w)
+			return
+		}
+		http.Redirect(w, r, safeNext(r.URL.Query().Get("next")), http.StatusSeeOther) //nolint:gosec // G710: safeNext allows /admin paths only
+		return
+	}
 	if h.sessions.From(r) != nil {
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
@@ -420,14 +445,53 @@ func (h *Web) code(w http.ResponseWriter, r *http.Request) {
 
 func (h *Web) logout(w http.ResponseWriter, r *http.Request, _ *auth.Session) {
 	h.sessions.End(w, r)
+	if h.proxy != nil && h.proxy.LogoutURL != "" {
+		http.Redirect(w, r, h.proxy.LogoutURL, http.StatusSeeOther)
+		return
+	}
 	http.Redirect(w, r, "/admin/login", http.StatusSeeOther)
+}
+
+// proxySession is the session of a request the proxy vouches for, started
+// when there is none or the last one was another user's; nil, with the
+// reason logged, when the proxy does not vouch. The session carries the
+// CSRF token only: the proxy's word is asked on every request.
+func (h *Web) proxySession(w http.ResponseWriter, r *http.Request) *auth.Session {
+	user, why := h.proxy.Identify(r)
+	if user == "" {
+		h.log.Info("proxy sign-in refused", "reason", why, "path", r.URL.Path)
+		return nil
+	}
+	if sess := h.sessions.From(r); sess != nil && sess.User == user {
+		return sess
+	}
+	sess, err := h.sessions.StartUser(w, user)
+	if err != nil {
+		h.log.Error("proxy sign-in", "err", err)
+		return nil
+	}
+	h.log.Info("admin signed in by the proxy", "user", user, "ip", middleware.ClientIP(r))
+	return sess
+}
+
+// refused is the page for a request the proxy did not sign in.
+func (h *Web) refused(w http.ResponseWriter) {
+	h.render(w, http.StatusForbidden, "refused", page{Title: "Sign in", Bare: true})
 }
 
 // admin wraps a page that needs the admin's session; a POST also needs the
 // CSRF token.
 func (h *Web) admin(fn func(http.ResponseWriter, *http.Request, *auth.Session)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sess := h.sessions.From(r)
+		var sess *auth.Session
+		if h.proxy != nil {
+			if sess = h.proxySession(w, r); sess == nil {
+				h.refused(w)
+				return
+			}
+		} else {
+			sess = h.sessions.From(r)
+		}
 		if sess == nil {
 			if r.Method == http.MethodGet {
 				http.Redirect(w, r, "/admin/login?next="+r.URL.Path, http.StatusSeeOther) //nolint:gosec // G710: our own login page; next is checked by safeNext on the way back

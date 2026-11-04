@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/w4jnl/doma/internal/auth"
 	"github.com/w4jnl/doma/internal/config"
 	"github.com/w4jnl/doma/internal/http/api"
 	"github.com/w4jnl/doma/internal/http/middleware"
@@ -68,6 +69,9 @@ func Handler(d Deps) (http.Handler, error) {
 			return nil, fmt.Errorf("web templates: %w", err)
 		}
 		pages.InviteDays = d.Cfg.Invites.DefaultDays
+		if d.Cfg.ProxyAuth() {
+			pages.SetProxyAuth(auth.NewProxy(d.Cfg.Admin.ProxyCIDRs, d.Cfg.Admin.ProxySecret, d.Cfg.Admin.ProxyLogoutURL))
+		}
 		if d.Facts != nil {
 			pages.SetServerFacts(*d.Facts)
 		}

@@ -47,3 +47,9 @@ token = ""                              # "env:DOMA_METRICS_TOKEN" keeps it out 
 
 [secrets]
 key_file = "/var/lib/doma/secret.key"
+
+[admin]
+auth = "password"                       # or "proxy": the reverse proxy in front (Authelia) signs the admin in
+# proxy_cidrs = ["172.16.0.0/12"]        # the proxy's addresses; Remote-User counts from nowhere else
+# proxy_secret = "env:DOMA_ADMIN_PROXY_SECRET"   # the proxy adds it in X-Auth-Proxy-Secret on every request
+# proxy_logout_url = "https://auth.example.com/logout?rd=https://doma.example.com"
