@@ -49,6 +49,12 @@
   </form>
 </section>
 
+{{if .ProxyAuth}}
+<section class="dm-panel">
+  <h2>Sign-in</h2>
+  <p class="dm-muted">The proxy in front signs the admin in; doma asks for no password and no second step.</p>
+</section>
+{{else}}
 <section class="dm-panel">
   <h2>Second step on sign-in</h2>
   {{if .Data.TOTPOn}}
@@ -69,6 +75,7 @@
   <form method="post" action="/admin/server/totp/setup"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Turn on</button></form>
   {{end}}
 </section>
+{{end}}
 
 <section class="dm-panel">
   <h2>Configuration</h2>

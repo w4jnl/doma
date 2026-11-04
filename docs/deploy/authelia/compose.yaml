@@ -9,7 +9,8 @@
 #
 # Authelia signs people in against an LLDAP server that already runs on
 # the external docker network named in .env; the LLDAP group doma-admin
-# is who may open the admin pages. For a trial without LLDAP, switch
+# is who may open the admin pages, and doma takes that sign-in as its own
+# (admin.auth = proxy), so there is no second password. For a trial without LLDAP, switch
 # authelia/configuration.yml to the file backend.
 services:
   traefik:
@@ -30,6 +31,7 @@ services:
     environment:
       DOMA_HOST: ${DOMA_HOST}
       AUTH_HOST: ${AUTH_HOST}
+      DOMA_ADMIN_PROXY_SECRET: ${DOMA_ADMIN_PROXY_SECRET}
     volumes:
       - ./traefik.yaml:/etc/traefik/dynamic/traefik.yaml:ro
       - traefik-acme:/letsencrypt
@@ -58,6 +60,10 @@ services:
     environment:
       DOMA_SERVER_BASE_URL: https://${DOMA_HOST}
       DOMA_SERVER_TRUSTED_PROXIES: "172.16.0.0/12"   # the compose networks
+      DOMA_ADMIN_AUTH: proxy                          # Authelia signs the admin in; no password form
+      DOMA_ADMIN_PROXY_CIDRS: "172.16.0.0/12"         # Remote-User counts from Traefik's address only
+      DOMA_ADMIN_PROXY_SECRET: ${DOMA_ADMIN_PROXY_SECRET}
+      DOMA_ADMIN_PROXY_LOGOUT_URL: https://${AUTH_HOST}/logout?rd=https://${DOMA_HOST}/admin
       DOMA_METRICS_TOKEN: ${DOMA_METRICS_TOKEN}
       DOMA_LOG_FORMAT: json
       # DOMA_PUSH_ENABLED: "true"        # after the APNs key is uploaded on /admin/server

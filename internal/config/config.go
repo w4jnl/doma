@@ -34,6 +34,7 @@ type Config struct {
 	Log       Log       `toml:"log"`
 	Metrics   Metrics   `toml:"metrics"`
 	Secrets   Secrets   `toml:"secrets"`
+	Admin     Admin     `toml:"admin"`
 }
 
 type Server struct {
@@ -99,6 +100,21 @@ type Metrics struct {
 	Token string `toml:"token" redact:"true"`
 }
 
+// Admin is who signs the admin in: doma's own form, or the proxy in front.
+type Admin struct {
+	// Auth is "password", doma's own sign-in with the optional TOTP step,
+	// or "proxy": the reverse proxy in front (Authelia) signs the admin in
+	// and names them in Remote-User; doma's form is then not served.
+	Auth string `toml:"auth"`
+	// ProxyCIDRs are the peers whose Remote-User counts, the proxy's own
+	// addresses; ProxySecret is what the proxy adds in X-Auth-Proxy-Secret
+	// on every request; ProxyLogoutURL is where Sign out goes, the proxy's
+	// logout page, empty for no button.
+	ProxyCIDRs     []string `toml:"proxy_cidrs"`
+	ProxySecret    string   `toml:"proxy_secret" redact:"true"`
+	ProxyLogoutURL string   `toml:"proxy_logout_url"`
+}
+
 type Secrets struct {
 	// KeyFile holds the 32-byte key that encrypts the APNs key and the
 	// admin TOTP secret; empty means secret.key next to the database.
@@ -119,6 +135,7 @@ func Default() *Config {
 		Retention: Retention{EventsDays: 365, PhotosPerSpot: 5, SnapshotHour: 3},
 		Defaults:  Defaults{StalenessDays: 60},
 		Log:       Log{Level: "info", Format: "json"},
+		Admin:     Admin{Auth: "password"},
 	}
 }
 
@@ -193,6 +210,9 @@ func (c *Config) PushKeyFile() string {
 	return filepath.Join(c.dataDir(), "apns.p8")
 }
 
+// ProxyAuth reports whether the proxy in front signs the admin in.
+func (c *Config) ProxyAuth() bool { return c.Admin.Auth == "proxy" }
+
 // BaseURL returns server.base_url without a trailing slash.
 func (c *Config) BaseURL() string {
 	return strings.TrimRight(c.Server.BaseURL, "/")
@@ -263,6 +283,28 @@ func (c *Config) Validate() error {
 	default:
 		fail("log.format must be json or text, got %q", c.Log.Format)
 	}
+	switch c.Admin.Auth {
+	case "password":
+	case "proxy":
+		if len(c.Admin.ProxyCIDRs) == 0 {
+			fail("admin.auth is proxy but admin.proxy_cidrs is empty; name the proxy's addresses")
+		}
+		for _, cidr := range c.Admin.ProxyCIDRs {
+			if _, _, err := net.ParseCIDR(cidr); err != nil {
+				fail("admin.proxy_cidrs: %q is not a CIDR", cidr)
+			}
+		}
+		if c.Admin.ProxySecret == "" {
+			fail("admin.auth is proxy but admin.proxy_secret is empty; the proxy must send one in X-Auth-Proxy-Secret")
+		}
+		if c.Admin.ProxyLogoutURL != "" {
+			if u, err := url.Parse(c.Admin.ProxyLogoutURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+				fail("admin.proxy_logout_url must be an absolute http or https URL, got %q", c.Admin.ProxyLogoutURL)
+			}
+		}
+	default:
+		fail("admin.auth must be password or proxy, got %q", c.Admin.Auth)
+	}
 	return errors.Join(errs...)
 }
 
@@ -272,6 +314,18 @@ func (c *Config) Warnings() []string {
 	var out []string
 	if u, err := url.Parse(c.Server.BaseURL); err == nil && u.Scheme == "http" && !isLoopback(u.Hostname()) {
 		out = append(out, "server.base_url is http on a non-local host; the admin cookie is only Secure over https")
+	}
+	if c.ProxyAuth() {
+		for _, cidr := range c.Admin.ProxyCIDRs {
+			if _, n, err := net.ParseCIDR(cidr); err == nil {
+				if ones, _ := n.Mask.Size(); ones == 0 {
+					out = append(out, "admin.proxy_cidrs trusts every peer ("+cidr+"); anyone who reaches the port with the secret is the admin")
+				}
+			}
+		}
+		if len(c.Server.TrustedProxies) == 0 {
+			out = append(out, "admin.auth is proxy but server.trusted_proxies is empty; rate limits and logs will see the proxy's address, not the client's")
+		}
 	}
 	return out
 }
@@ -288,6 +342,7 @@ func isLoopback(host string) bool {
 func (c *Config) Redacted() *Config {
 	cp := *c
 	cp.Server.TrustedProxies = append([]string(nil), c.Server.TrustedProxies...)
+	cp.Admin.ProxyCIDRs = append([]string(nil), c.Admin.ProxyCIDRs...)
 	redact(reflect.ValueOf(&cp).Elem())
 	return &cp
 }

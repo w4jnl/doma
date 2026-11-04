@@ -31,7 +31,7 @@
       <a href="/admin"{{if eq .Nav "households"}} aria-current="page"{{end}}>Households</a>
       <a href="/admin/server"{{if eq .Nav "server"}} aria-current="page"{{end}}>Server</a>
     </nav>
-    {{if .CSRF}}<form method="post" action="/admin/logout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Sign out</button></form>{{end}}
+    {{if and .CSRF (or (not .ProxyAuth) .LogoutURL)}}<form method="post" action="/admin/logout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Sign out</button></form>{{end}}
   </header>
   <main>
     {{template "content" .}}

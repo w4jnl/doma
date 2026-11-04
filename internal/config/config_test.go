@@ -170,3 +170,43 @@ func TestByteSizeString(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminProxyValidates(t *testing.T) {
+	bad := []struct{ name, file, want string }{
+		{"unknown mode", "[admin]\nauth = \"oidc\"\n", "admin.auth must be password or proxy"},
+		{"no peers", "[admin]\nauth = \"proxy\"\nproxy_secret = \"s\"\n", "admin.proxy_cidrs is empty"},
+		{"bad peer", "[admin]\nauth = \"proxy\"\nproxy_cidrs = [\"traefik\"]\nproxy_secret = \"s\"\n", "is not a CIDR"},
+		{"no secret", "[admin]\nauth = \"proxy\"\nproxy_cidrs = [\"172.16.0.0/12\"]\n", "admin.proxy_secret is empty"},
+		{"relative logout", "[admin]\nauth = \"proxy\"\nproxy_cidrs = [\"172.16.0.0/12\"]\nproxy_secret = \"s\"\nproxy_logout_url = \"/logout\"\n", "admin.proxy_logout_url must be an absolute"},
+	}
+	for _, c := range bad {
+		path := filepath.Join(t.TempDir(), "doma.toml")
+		if err := os.WriteFile(path, []byte(c.file), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		_, err := LoadWith(path, env(nil))
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: err = %v, want %q", c.name, err, c.want)
+		}
+	}
+	cfg, err := LoadWith("", env(map[string]string{
+		"DOMA_ADMIN_AUTH": "proxy", "DOMA_ADMIN_PROXY_CIDRS": "172.16.0.0/12, 0.0.0.0/0", "DOMA_ADMIN_PROXY_SECRET": "env:PROXY_SECRET", "PROXY_SECRET": "hush",
+		"DOMA_ADMIN_PROXY_LOGOUT_URL": "https://auth.example.com/logout?rd=https://doma.example.com",
+	}))
+	if err != nil {
+		t.Fatalf("proxy from the environment: %v", err)
+	}
+	if !cfg.ProxyAuth() || cfg.Admin.ProxySecret != "hush" || len(cfg.Admin.ProxyCIDRs) != 2 {
+		t.Errorf("unexpected admin config: %+v", cfg.Admin)
+	}
+	if got := cfg.Redacted().Admin.ProxySecret; got != "***" {
+		t.Errorf("Redacted secret = %q", got)
+	}
+	warns := strings.Join(cfg.Warnings(), "\n")
+	if !strings.Contains(warns, "trusts every peer") || !strings.Contains(warns, "server.trusted_proxies is empty") {
+		t.Errorf("warnings = %q", warns)
+	}
+	if def, _ := LoadWith("", env(nil)); def.ProxyAuth() || def.Admin.Auth != "password" {
+		t.Errorf("default admin.auth = %q", def.Admin.Auth)
+	}
+}

@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **One sign-in behind your proxy.** `admin.auth = "proxy"` hands the admin's sign-in to the
+  reverse proxy in front (Authelia): doma takes the name from `Remote-User`, believed only from the
+  proxy's addresses with a shared secret, and serves no password form. The default stays doma's
+  own password. `docs/deploy/authelia/` is set up that way.
 - **doma for Mac from Homebrew.** `brew install --cask w4jnl/tap/doma` installs the Mac app,
   signed with a Developer ID and notarized, on macOS 26 or later; every release updates the cask.
 
