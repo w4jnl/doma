@@ -132,7 +132,7 @@ struct TripsView: View {
         screen = Live(session.store, initial: TripsScreen()) { db in
             var out = TripsScreen(trips: try Queries.trips(db, scope))
             for trip in out.trips where TripPlan.carries(trip, among: out.trips) {
-                let p = try TripActions.plan(db, scope, from: trip.fromHomeID, to: trip.toHomeID, staleness: staleness)
+                let p = try TripActions.plan(db, scope, from: trip.fromHomeID, to: trip.toHomeID, list: trip.listID, staleness: staleness)
                 out.counts[trip.id] = (p.bring.count, p.buy.count)
             }
             return out
@@ -407,7 +407,7 @@ struct TripView: View {
             let trips = try Queries.trips(db, scope)
             guard let trip = trips.first(where: { $0.id == id }) else { return (nil, TripPlan(), true) }
             let carries = TripPlan.carries(trip, among: trips)
-            let plan = carries ? try TripActions.plan(db, scope, from: trip.fromHomeID, to: trip.toHomeID, staleness: staleness) : TripPlan()
+            let plan = carries ? try TripActions.plan(db, scope, from: trip.fromHomeID, to: trip.toHomeID, list: trip.listID, staleness: staleness) : TripPlan()
             return (trip, plan, carries)
         }
         take(state?.value.trip)
@@ -542,8 +542,7 @@ struct TripView: View {
                 .foregroundStyle(Tokens.ink)
             Spacer()
             if item.onList {
-                // names the list: the trip's, or another shared one that already has it
-                Text("on \(item.listName ?? "")")
+                Text("on the list")
                     .font(.footnote)
                     .foregroundStyle(Tokens.inkMuted)
             } else {

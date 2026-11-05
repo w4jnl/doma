@@ -162,7 +162,6 @@ final class HomeLogicTests: XCTestCase {
         XCTAssertEqual(plan.bring.map(\.name), ["melk"], "out at the hut and have in Gouda")
         XCTAssertEqual(plan.buy.map(\.name), ["brood", "eieren"], "low at the hut and not have in Gouda; and the open entry for the hut")
         XCTAssertEqual(plan.buy.map(\.onList), [false, true])
-        XCTAssertEqual(plan.buy.map(\.listName), [nil, "Shopping"], "the row names the list it is on")
         XCTAssertEqual(plan.check.map(\.itemID), [kaas], "an unknown staple of the hut")
         XCTAssertTrue(try TripActions.plan(for: laterTrip, among: all, in: s, staleness: staleness).isEmpty)
 
@@ -174,6 +173,12 @@ final class HomeLogicTests: XCTestCase {
         all = try trips()
         XCTAssertEqual(all.map(\.isOpen), [true, false])
         XCTAssertNotNil(all[1].cancelledAt)
+
+        // the regular groceries on another list are not the trip's business
+        let markt = try XCTUnwrap(ListActions.createList(named: "Markt", personal: false, colour: "list-1", in: s))
+        try TripActions.addToList(brood, forHome: hut, list: markt, in: s)
+        plan = try TripActions.plan(for: soonTrip, among: all, in: s, staleness: staleness)
+        XCTAssertEqual(plan.buy.map(\.onList), [false, true], "open on another list does not count for this trip")
 
         try TripActions.addToList(brood, forHome: hut, list: soonTrip.listID, in: s)
         try TripActions.addToList(brood, forHome: hut, list: nil, in: s)

@@ -3201,18 +3201,18 @@
         }
       }
     },
-    "on %@": {
+    "on the list": {
       "localizations": {
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "op %@"
+            "value": "op de lijst"
           }
         },
         "sk": {
           "stringUnit": {
             "state": "translated",
-            "value": "na %@"
+            "value": "na zozname"
           }
         }
       }

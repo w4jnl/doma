@@ -14,16 +14,8 @@ struct TripItem: Identifiable, Hashable, Sendable {
     /// The flag at the to-home, which says why it is on the trip.
     var toState: FlagState
     var fromState: FlagState
-    /// Already open on a shared list for the to-home.
+    /// Already open on the trip's list for the to-home.
     var onList: Bool
-    /// That list's name, so the row says where it is: the trip's list or another.
-    var listName: String?
-}
-
-/// An item open on a shared list for a home: its name and the list's.
-struct ListedItem: Hashable, Sendable {
-    var name: String
-    var listName: String
 }
 
 struct TripPlan: Hashable, Sendable {
@@ -34,15 +26,16 @@ struct TripPlan: Hashable, Sendable {
     var isEmpty: Bool { bring.isEmpty && buy.isEmpty && check.isEmpty }
 
     /// The plan from the tables, pure: the flags of both homes as they stand now, the to-home's
-    /// staples, and the open entries for the to-home on shared lists.
-    static func derive(from fromHome: String, to toHome: String, flags: [FlagRow], toFlags: [FlagRow], listed: [String: ListedItem]) -> TripPlan {
+    /// staples, and the open entries for the to-home on the trip's list. Other lists are the
+    /// regular groceries and not the trip's business.
+    static func derive(from fromHome: String, to toHome: String, flags: [FlagRow], toFlags: [FlagRow], listed: [String: String]) -> TripPlan {
         var plan = TripPlan()
         let fromByItem = Dictionary(uniqueKeysWithValues: flags.map { ($0.itemID, $0) })
         var seen = Set<String>()
         for row in toFlags {
             seen.insert(row.itemID)
             let fromState = fromByItem[row.itemID]?.state ?? .unknown
-            let item = TripItem(itemID: row.itemID, name: row.name, toState: row.state, fromState: fromState, onList: listed[row.itemID] != nil, listName: listed[row.itemID]?.listName)
+            let item = TripItem(itemID: row.itemID, name: row.name, toState: row.state, fromState: fromState, onList: listed[row.itemID] != nil)
             switch row.state {
             case .out, .low:
                 if fromState == .have { plan.bring.append(item) } else { plan.buy.append(item) }
@@ -52,8 +45,8 @@ struct TripPlan: Hashable, Sendable {
                 break
             }
         }
-        for (itemID, l) in listed where !seen.contains(itemID) {
-            plan.buy.append(TripItem(itemID: itemID, name: l.name, toState: .unknown, fromState: fromByItem[itemID]?.state ?? .unknown, onList: true, listName: l.listName))
+        for (itemID, name) in listed where !seen.contains(itemID) {
+            plan.buy.append(TripItem(itemID: itemID, name: name, toState: .unknown, fromState: fromByItem[itemID]?.state ?? .unknown, onList: true))
         }
         plan.buy.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         return plan
@@ -74,14 +67,16 @@ enum TripActions {
     /// home carries its needs.
     static func plan(for trip: TripRow, among trips: [TripRow], in session: Session, staleness: Staleness) throws -> TripPlan {
         guard let scope = session.scope, trip.fromHomeID != trip.toHomeID, TripPlan.carries(trip, among: trips) else { return TripPlan() }
-        return try session.store.read(scope) { db, s in try plan(db, s, from: trip.fromHomeID, to: trip.toHomeID, staleness: staleness) }
+        return try session.store.read(scope) { db, s in try plan(db, s, from: trip.fromHomeID, to: trip.toHomeID, list: trip.listID, staleness: staleness) }
     }
 
-    /// nonisolated: the screens' live queries read it off the main actor.
-    nonisolated static func plan(_ db: Database, _ s: Scope, from fromHome: String, to toHome: String, staleness: Staleness) throws -> TripPlan {
+    /// nonisolated: the screens' live queries read it off the main actor. A trip without a
+    /// list shops on the household's default.
+    nonisolated static func plan(_ db: Database, _ s: Scope, from fromHome: String, to toHome: String, list listID: String?, staleness: Staleness) throws -> TripPlan {
         let fromFlags = try Queries.flagRows(db, s, homeID: fromHome, staleness: staleness)
         let toFlags = try Queries.flagRows(db, s, homeID: toHome, staleness: staleness)
-        let listed = try Queries.openForHome(db, s, homeID: toHome)
+        let list = try listID ?? Queries.lists(db, s).first(where: \.isDefault)?.id ?? ""
+        let listed = try Queries.openForHome(db, s, homeID: toHome, listID: list)
         return TripPlan.derive(from: fromHome, to: toHome, flags: fromFlags, toFlags: toFlags, listed: listed)
     }
 
@@ -101,13 +96,12 @@ enum TripActions {
         try session.record(Kind.tripCancelled, TripPlanPayload(tripID: tripID))
     }
 
-    /// Adds an item to a list for the to-home; one already open on any shared list for that
-    /// home is left alone. Without a list, the household's default.
+    /// Adds an item to a list for the to-home; one already open on that list is left alone.
+    /// Without a list, the household's default.
     static func addToList(_ itemID: String, forHome homeID: String, list listID: String? = nil, in session: Session) throws {
         guard let scope = session.scope else { return }
         let lists = try session.store.read(scope) { db, s in try Queries.lists(db, s) }
         guard let list = listID.flatMap({ id in lists.first { $0.id == id }?.id }) ?? lists.first(where: \.isDefault)?.id else { return }
-        if try session.store.read(scope, { db, s in try Queries.openForHome(db, s, homeID: homeID) })[itemID] != nil { return }
         if let open = try session.store.read(scope, { db, s in try Queries.openEntry(db, s, listID: list, itemID: itemID) }), open.checkedHLC == nil { return }
         var p = EntryPayload(listID: list, itemID: itemID)
         p.forHomeID = homeID
@@ -125,15 +119,14 @@ enum TripActions {
 }
 
 extension Queries {
-    /// Items open on a shared list for a home: item id to its name and the list's name.
-    static func openForHome(_ db: Database, _ s: Scope, homeID: String) throws -> [String: ListedItem] {
+    /// Items open on one list for a home: item id to name.
+    static func openForHome(_ db: Database, _ s: Scope, homeID: String, listID: String) throws -> [String: String] {
         let rows = try Row.fetchAll(db, sql: """
-            SELECT DISTINCT i.id, i.name, l.name AS list_name FROM entries e
-            JOIN lists l ON l.server_id = e.server_id AND l.household_id = e.household_id AND l.id = e.list_id
+            SELECT DISTINCT i.id, i.name FROM entries e
             JOIN items i ON i.server_id = e.server_id AND i.household_id = e.household_id AND i.id = e.item_id
-            WHERE e.server_id = ? AND e.household_id = ? AND e.for_home_id = ? AND e.cleared_hlc IS NULL
-              AND l.owner_person_id IS NULL AND l.archived_at IS NULL AND i.merged_into IS NULL
-            """, arguments: [s.serverID, s.householdID, homeID])
-        return Dictionary(rows.map { ($0["id"] as String, ListedItem(name: $0["name"], listName: $0["list_name"])) }, uniquingKeysWith: { a, _ in a })
+            WHERE e.server_id = ? AND e.household_id = ? AND e.for_home_id = ? AND e.list_id = ? AND e.cleared_hlc IS NULL
+              AND i.merged_into IS NULL
+            """, arguments: [s.serverID, s.householdID, homeID, listID])
+        return Dictionary(rows.map { ($0["id"] as String, $0["name"] as String) }, uniquingKeysWith: { a, _ in a })
     }
 }

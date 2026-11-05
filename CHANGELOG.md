@@ -10,9 +10,10 @@ updates this file first. Dates are the tag dates.
   ones under History; `+` plans one: from, to, a date and the list it shops on, kept in the
   household's log like everything else, so every phone sees the same itinerary. A to-home's
   needs show on the nearest upcoming trip to that home and nowhere else; Add to list goes to
-  the trip's list, a long-press offers the others; a trip is cancelled from its row, armed in
-  place, and Arrived moves it to History. A trip nobody planned, arrived from an older app,
-  keeps the arrival as its date.
+  the trip's list, a long-press offers the others, and only the trip's list says what is on
+  it, so the regular groceries on another list stay out of the trip; a trip is cancelled from
+  its row, armed in place, and Arrived moves it to History. A trip nobody planned, arrived from
+  an older app, keeps the arrival as its date.
 - **The apps' store gets every migration.** A migration registered in a `defer` after the
   migrator was already copied out never ran; the entries index it carried arrives now, with the
   trips table's new columns.
