@@ -172,6 +172,9 @@ func TestSmoke(t *testing.T) {
 	resp, _ = in.form("/admin/households", url.Values{"_csrf": {csrf}, "name": {"De Vries"}, "timezone": {"Europe/Amsterdam"}, "home": {"Gouda"}}, session)
 	hhPath := resp.Header.Get("Location")
 	household := strings.TrimPrefix(hhPath, "/admin/h/")
+	if code, page := in.page("/admin", session); code != http.StatusOK || !strings.Contains(page, "De Vries") || !strings.Contains(page, "no photos") {
+		t.Fatalf("households page with a household: %d", code)
+	}
 	_, body = in.form(hhPath+"/invite", url.Values{"_csrf": {csrf}}, session)
 	token := regexp.MustCompile(`/i/([A-Za-z0-9_-]+)`).FindStringSubmatch(body)
 	if token == nil || !strings.Contains(body, "<svg") {
