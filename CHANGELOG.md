@@ -6,6 +6,11 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+## 0.4.0 (2026-11-05)
+
+Phase 1: homes, flags, photos and trips. The gate is one trip between two homes with nothing
+bought twice and nothing missing.
+
 - **Homes, flags and trips in the apps.** Two new tabs. Homes shows each home with what it
   misses and its spots' pictures, and makes a home. A home lists its staples with the flag as
   glyph and word, the age once it passes half the staleness, three small buttons on a staple

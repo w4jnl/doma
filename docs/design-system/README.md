@@ -173,7 +173,7 @@ row, not a new screen.
   at the foot in `ink-muted`. A list with nothing on it shows the mark small and one line of
   help under the title; the title's subtitle says how many are still to get. There is no shop
   mode: one layout, the screen awake while a list is in front.
-- **A home.** Staples first, grouped by spot where an item is pinned to one, each row the flag
+- **A home.** Staples first, in their order, each row the flag
   glyph and word at the right, the item at the left, and the flag's age in mono `ink-muted` once it
   passes half the staleness threshold. An unknown staple shows three small buttons, have / low /
   out, in that row. Spot thumbnails at `thumb` (72pt) and `radius-md` in a horizontal strip above
