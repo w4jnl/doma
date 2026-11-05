@@ -6,6 +6,8 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Items said with a breath between them come apart.** The words are timed, so a short
+  silence between two of them parts them like a comma; names said in one go stay whole.
 - **Two families' domas on one device.** An invite from another doma no longer bounces: the app
   joins it next to the first, with the same device key, and the household switcher groups
   households under each doma's address. A bare invite code goes to the doma of the household in

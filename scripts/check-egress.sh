@@ -12,6 +12,7 @@ pattern='http\.Client{|http\.Get\(|http\.Post\(|http\.Head\(|http\.DefaultClient
 allow='
 internal/push/apns.go:the APNs client, built only when push.enabled is true
 internal/client/client.go:the Go client of a doma server, used by tests and the e2e smoke
+cmd/domaload/main.go:the load check, many Go clients of the doma under test
 '
 
 status=0

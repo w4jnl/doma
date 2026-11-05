@@ -137,7 +137,8 @@ the fold can rebuild from the log, and a test proves it.
   (dbmate up and schema dump). One package or one test: `go test ./internal/<pkg> -run <Name>`.
 - `make e2e`: the end-to-end smoke in `scripts/e2e/`: start the server, create a household,
   accept two invites with the Go test client, sync both ways, flip a flag, derive and commit a
-  trip.
+  trip. `make load`: `cmd/domaload` against a throwaway server, 200 devices syncing every 5 s
+  for two minutes; p99 under 50 ms and nothing lost (`LOAD_FLAGS='-devices 50 -for 1m'`).
 - `make brand`: regenerate `assets/brand` and `assets/icons` from their generators and `tokens.css`
   from `tokens.json`, and write the flattened app icon into `app/ios` (needs Python with fontTools,
   brotli, cairosvg and Playwright's Chromium).

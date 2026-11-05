@@ -9,6 +9,7 @@
 import AVFoundation
 import Foundation
 import Observation
+import CoreMedia
 import Speech
 
 /// Language is what the person speaks, chosen under the mic, since speech is not told its
@@ -130,6 +131,7 @@ final class Listener {
         let me = run
         state = .preparing("")
         heard = Heard()
+        lastEnd = nil
         do {
             guard let module = await Self.module(language) else {
                 throw Problem(String(localized: "\(language.name) speech is not available on this device"))
@@ -211,14 +213,44 @@ final class Listener {
         levels = levels.map { _ in 0 }
     }
 
+    /// gap is the silence between two words that parts them into two items, in seconds: longer
+    /// than the breath inside one name, shorter than the pause that ends what was said. The
+    /// model times each word, so "apples [gap] oranges" comes as "apples, oranges" and the
+    /// splitter takes the comma as a separator said.
+    static let gap: TimeInterval = 0.35
+    /// The end of the last settled word of this run, to time the gap before the next result.
+    private var lastEnd: CMTime?
+
+    /// parted writes a comma before each word that comes a gap after the one before it, from the
+    /// model's word timings; `after` is where the words before this result ended, so a gap
+    /// across two results counts too, and the comma then opens the new result. Returns the text
+    /// and where its last timed word ends.
+    nonisolated static func parted(_ text: AttributedString, gap: TimeInterval, after: CMTime?) -> (String, CMTime?) {
+        var out = ""
+        var end = after
+        for run in text.runs {
+            let piece = String(text[run.range].characters)
+            if let range = run.audioTimeRange, piece.contains(where: { $0.isLetter || $0.isNumber }) {
+                if let end, range.start.isNumeric, end.isNumeric, (range.start - end).seconds >= gap,
+                   out.last(where: { !$0.isWhitespace }).map({ !",;".contains($0) }) ?? true {
+                    // at the start of a result the comma opens it; the words before ended a gap ago
+                    out += piece.first?.isWhitespace == true ? "," : ", "
+                }
+                end = range.end
+            }
+            out += piece
+        }
+        return (out, end)
+    }
+
     /// module is the model for language: SpeechTranscriber where it has the language, else the
     /// keyboard's DictationTranscriber.
     static func module(_ language: Language) async -> (any SpeechModule)? {
         if SpeechTranscriber.isAvailable, let l = pick(language.locales, from: await SpeechTranscriber.supportedLocales) {
-            return SpeechTranscriber(locale: l, transcriptionOptions: [], reportingOptions: [.volatileResults, .fastResults], attributeOptions: [])
+            return SpeechTranscriber(locale: l, transcriptionOptions: [], reportingOptions: [.volatileResults, .fastResults], attributeOptions: [.audioTimeRange])
         }
         if let l = pick(language.locales, from: await DictationTranscriber.supportedLocales) {
-            return DictationTranscriber(locale: l, contentHints: [], transcriptionOptions: [.punctuation], reportingOptions: [.volatileResults, .frequentFinalization], attributeOptions: [])
+            return DictationTranscriber(locale: l, contentHints: [], transcriptionOptions: [.punctuation], reportingOptions: [.volatileResults, .frequentFinalization], attributeOptions: [.audioTimeRange])
         }
         return nil
     }
@@ -231,9 +263,9 @@ final class Listener {
     private func read(_ module: any SpeechModule, _ me: Int) async {
         do {
             if let t = module as? SpeechTranscriber {
-                for try await r in t.results { got(String(r.text.characters), final: r.isFinal, me) }
+                for try await r in t.results { got(r.text, final: r.isFinal, me) }
             } else if let t = module as? DictationTranscriber {
-                for try await r in t.results { got(String(r.text.characters), final: r.isFinal, me) }
+                for try await r in t.results { got(r.text, final: r.isFinal, me) }
             }
         } catch {
             guard me == run, !Task.isCancelled else { return }
@@ -242,8 +274,10 @@ final class Listener {
         }
     }
 
-    private func got(_ text: String, final: Bool, _ me: Int) {
+    private func got(_ attributed: AttributedString, final: Bool, _ me: Int) {
         guard me == run else { return }
+        let (text, end) = Self.parted(attributed, gap: Self.gap, after: lastEnd)
+        if final { lastEnd = end }
         heard.got(text, final: final, at: .now)
         if !lines, final, case let piece = heard.take(), !piece.isEmpty {
             words?(piece)

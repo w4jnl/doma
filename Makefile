@@ -18,7 +18,7 @@ SQLC       := $(call tool,sqlc)
 GOLANGCI   := $(call tool,golangci-lint)
 GORELEASER := $(call tool,goreleaser)
 
-.PHONY: build run test vet lint fmt generate generate-check migrate e2e check-tenancy check-egress release-check tools brand clean \
+.PHONY: load build run test vet lint fmt generate generate-check migrate e2e check-tenancy check-egress release-check tools brand clean \
 	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight mac-release ui-test snapshots voice sim-boot
 
 build:
@@ -65,6 +65,12 @@ migrate:
 # to a committed trip with the Go client.
 e2e:
 	go test -race -count=1 -tags e2e -v ./scripts/e2e/...
+
+# The load check (docs/design.md, Testing): a throwaway server from scripts/ui-test.sh and
+# cmd/domaload against it, 200 devices syncing every 5 s for two minutes; p99 under 50 ms and
+# nothing lost. LOAD_FLAGS='-devices 50 -for 1m' for a shorter run.
+load:
+	DOMA_SERVER_TRUSTED_PROXIES=127.0.0.1/32 scripts/ui-test.sh sh -c 'go run ./cmd/domaload -server "$$(python3 -c "import json; print(json.load(open(\"tmp/live.json\"))[\"base_url\"])")" -invite "$$(python3 -c "import json; print(json.load(open(\"tmp/live.json\"))[\"invite\"])")" $(LOAD_FLAGS)'
 
 check-tenancy:
 	@scripts/check-tenancy.sh
@@ -160,6 +166,7 @@ voice:
 	say -v Samantha -o $(VOICE)/en.aiff "Two litres of milk and a loaf of bread."
 	say -v Xander -o $(VOICE)/nl.aiff "Twee liter melk en een brood."
 	say -v Laura -o $(VOICE)/sk.aiff "Dva litre mlieka a jeden chlieb."
+	say -v Samantha -o $(VOICE)/en-list.aiff "apples [[slnc 500]] oranges [[slnc 500]] bread"
 	swiftc -parse-as-library -target $(shell uname -m)-apple-macos26.0 -swift-version 6 -o $(VOICE)/check app/shared/Voice/Listener.swift scripts/voice.swift
 	$(VOICE)/check $(VOICE)
 

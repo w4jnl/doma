@@ -72,8 +72,61 @@ PR for each; stop after step 5 and report what the gate needs from me. Do not bu
 Ask before deviating from the spec or the design system.
 ```
 
+## 2. Homes and trips, phase 1
+
+Written 2026-11-05, to be pasted once phase 0's gate is met: the family's shared list has run on
+doma for two weeks and ShopShop is deleted.
+
+```
+Phase 0 is in, reviewed and in the family's hands: the server released, the apps on TestFlight
+and the Mac app on the Homebrew tap. Now phase 1, homes and trips. Re-read CLAUDE.md, then in
+docs/design.md the sections "Homes, stock flags and trips", "Event log and sync" (home.*,
+spot.*, staple.*, flag.set, photo.added and trip.arrived with their fold rules), "Shopping
+lists" (the default list rule), "iPhone and Mac apps" (the Homes, Home and Trip screens,
+photos), "Web" (the guest view's missing items) and "Security checklist" (photos); then
+docs/design-system/README.md for the flag glyphs and the pictograms. docs/fixtures/fold.json
+already holds flag and trip cases; a change to the fold is a change to the fixture first, on
+both sides.
+
+Build phase 1 in the order of its task list under "Testing, milestones, open decisions", taking
+every default in the open-decisions table (photos 1600 px long edge, JPEG 0.8; staleness 60
+days; five photos per spot), server first, then the apps:
+
+1. Server: homes, spots, staples and flags with staleness in the fold and the materialised
+   tables; "flag.set out" adds the item to the default list for that home when no entry is
+   open; trip.arrived moves the flags; sqlc queries with household_id first; the fixture cases
+   still open; the cross-tenant suite extended to every new route.
+2. Server: photos. photo.added through sync, then the JPEG to POST /photos/v1/{household}/{photo_id}
+   with the device-key signature; decoded and re-encoded (JPEG only, metadata stripped), a
+   320 px thumbnail, the quota checked before and after the body (413), GET signed and cacheable
+   1 h, the departure sweep and photos_per_spot retention; the admin's household page shows
+   bytes used.
+3. Server: the guest view's missing items for its home (staples flagged out, low or unknown,
+   with age) above the list it already shows; make e2e flips a flag, derives a trip, commits it
+   and checks the flags moved.
+4. Apps: the Swift fold's new rules against the fixture; Homes and Home screens (spots, staples
+   grouped by spot, the three flags as glyph and word, never colour alone, staleness fading to
+   unknown, Take photos through the camera, nothing else modal, Edit for staples and spots); the
+   "out" flag adding to the default list; the upload after photo.added is accepted, retried
+   with the outbox; Dutch and Slovak for every new string.
+5. Apps: Trip. Derived on the device from the two homes' flags: from and to pickers, a date,
+   Bring, Buy and Check-on-arrival groups, Buy adding entries for the trip; Arrived commits one
+   trip.arrived with what was packed; history under the home. The Mac has the same screens in
+   the split view with the keyboard rules.
+6. UI tests for a flag flip, a photo, a trip derived and arrived; snapshot tests for Homes, Home
+   and Trip in light and dark at two sizes on both platforms; a TestFlight build and the Mac app
+   through scripts/release.sh.
+
+Run against make run of the server in this repository. Work on a branch per step and open a PR
+for each; stop after step 6 and report what the gate needs from me: one trip between two homes
+with nothing bought twice and nothing missing. Do not start phase 2. Ask before deviating from
+the spec or the design system; if something in it cannot be built as written, say what and
+propose the smallest change.
+```
+
 ## Later phases
 
-Phase 1 (homes, flags, photos, trips, guest links), phase 2 (public install) and phase 3 (one
-designed-for feature at a time) each get a prompt of the same shape when their predecessor's gate
-is met: the phase's task list, the defaults, a branch and PR per step, stop at the gate.
+Phase 2 (public install) and phase 3 (one designed-for feature at a time; multiple server
+contexts were pulled forward on 2026-11-04) each get a prompt of the same shape when their
+predecessor's gate is met: the phase's task list, the defaults, a branch and PR per step, stop at
+the gate.
