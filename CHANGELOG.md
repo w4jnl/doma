@@ -6,6 +6,11 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+## 0.4.1 (2026-11-05)
+
+Planned trips, for the phase-1 gate: a trip is from, to, a date and a list, shared with the
+household, and reads only its own list.
+
 - **Trips are planned and shared.** The Trip tab lists the upcoming trips by date and the past
   ones under History; `+` plans one: from, to, a date and the list it shops on, kept in the
   household's log like everything else, so every phone sees the same itinerary. A to-home's
