@@ -188,8 +188,10 @@ final class MemStore: FoldStore {
     func putPhoto(_ photo: Photo) throws {
         if photoRows[photo.id] == nil { photoRows[photo.id] = photo }
     }
+    func trip(_ id: String) throws -> Trip? { tripRows[id] }
+
     func putTrip(_ trip: Trip) throws {
-        if tripRows[trip.id] == nil { tripRows[trip.id] = trip }
+        tripRows[trip.id] = trip
     }
 
     /// Every materialised table, sorted.

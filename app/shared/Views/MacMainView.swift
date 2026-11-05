@@ -85,7 +85,7 @@ struct MacMainView: View {
                 NavigationStack { HomeView(homeID: id) }
                     .id(id)
             case .trip:
-                NavigationStack { TripView() }
+                NavigationStack { TripsView() }
             case .family:
                 NavigationStack { FamilyView() }
             default:

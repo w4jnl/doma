@@ -140,16 +140,23 @@ struct Photo: Hashable, Sendable, Codable {
     }
 }
 
+/// A planned trip (trip.planned, last-writer-wins on updatedHLC for from, to, date, list and
+/// planner), arrived (arrivedAt), cancelled (cancelledAt), or arrived without a plan (the
+/// arrival's wall as its date).
 struct Trip: Hashable, Sendable, Codable {
     var id: String
-    var fromHomeID: String
-    var toHomeID: String
-    var date: Int64
-    var createdBy: String
-    var arrivedAt: Int64
+    var fromHomeID: String = ""
+    var toHomeID: String = ""
+    var date: Int64 = 0
+    var createdBy: String = ""
+    var listID: String?
+    var updatedHLC: HLC?
+    var arrivedAt: Int64?
+    var cancelledAt: Int64?
     enum CodingKeys: String, CodingKey {
         case id, date
-        case fromHomeID = "from_home_id", toHomeID = "to_home_id", createdBy = "created_by", arrivedAt = "arrived_at"
+        case fromHomeID = "from_home_id", toHomeID = "to_home_id", createdBy = "created_by", listID = "list_id"
+        case updatedHLC = "updated_hlc", arrivedAt = "arrived_at", cancelledAt = "cancelled_at"
     }
 }
 

@@ -35,6 +35,8 @@ final class EventSchemaTests: XCTestCase {
         (Kind.spotRenamed, SpotPayload(spotID: "S1", name: "Larder")),
         (Kind.spotArchived, SpotPayload(spotID: "S1")),
         (Kind.photoAdded, PhotoPayload(photoID: "PH1", spotID: "S1", bytes: 1200, width: 1600, height: 1200)),
+        (Kind.tripPlanned, TripPlanPayload(tripID: "T1", fromHomeID: "H1", toHomeID: "H2", date: 1_800_000_000_000, listID: "L1")),
+        (Kind.tripCancelled, TripPlanPayload(tripID: "T1")),
         (Kind.tripArrived, TripPayload(tripID: "T1", fromHomeID: "H1", toHomeID: "H2", moved: ["I1", "I2"])),
     ]
 

@@ -117,7 +117,14 @@ struct TripRow: Identifiable, Hashable, Sendable {
     var toName: String
     var date: Int64
     var createdBy: String
+    var listID: String?
+    var listName: String?
+    var arrivedAt: Int64?
+    var cancelledAt: Int64?
     var moved: [String]
+
+    /// Planned and neither arrived nor cancelled.
+    var isOpen: Bool { arrivedAt == nil && cancelledAt == nil }
 }
 
 extension Queries {
@@ -172,22 +179,27 @@ extension Queries {
         }
     }
 
-    /// The trips from or to a home, newest first, with the names of what moved.
+    /// The household's trips, or those from or to a home: the open ones by date, nearest first,
+    /// then the arrived and cancelled ones, newest first, with the names of what moved.
     static func trips(_ db: Database, _ s: Scope, homeID: String? = nil) throws -> [TripRow] {
         try Row.fetchAll(db, sql: """
-            SELECT t.id, t.from_home_id, t.to_home_id, t.date, t.created_by,
+            SELECT t.id, t.from_home_id, t.to_home_id, t.date, t.created_by, t.list_id, t.arrived_at, t.cancelled_at,
               COALESCE((SELECT name FROM homes h WHERE h.server_id = t.server_id AND h.household_id = t.household_id AND h.id = t.from_home_id), '') AS from_name,
               COALESCE((SELECT name FROM homes h WHERE h.server_id = t.server_id AND h.household_id = t.household_id AND h.id = t.to_home_id), '') AS to_name,
+              (SELECT name FROM lists l WHERE l.server_id = t.server_id AND l.household_id = t.household_id AND l.id = t.list_id) AS list_name,
               (SELECT group_concat(i.name, char(31)) FROM events e
                  JOIN event_items ei ON ei.server_id = e.server_id AND ei.household_id = e.household_id AND ei.event_id = e.id
                  JOIN items i ON i.server_id = e.server_id AND i.household_id = e.household_id AND i.id = ei.item_id
                WHERE e.server_id = t.server_id AND e.household_id = t.household_id AND e.kind = 'trip.arrived' AND json_extract(e.payload, '$.trip_id') = t.id) AS moved
             FROM trips t
-            WHERE t.server_id = ? AND t.household_id = ? AND (? IS NULL OR t.from_home_id = ? OR t.to_home_id = ?)
-            ORDER BY t.date DESC, t.id DESC
+            WHERE t.server_id = ? AND t.household_id = ? AND t.from_home_id != '' AND (? IS NULL OR t.from_home_id = ? OR t.to_home_id = ?)
+            ORDER BY (t.arrived_at IS NULL AND t.cancelled_at IS NULL) DESC,
+              CASE WHEN t.arrived_at IS NULL AND t.cancelled_at IS NULL THEN t.date END ASC,
+              CASE WHEN t.arrived_at IS NULL AND t.cancelled_at IS NULL THEN NULL ELSE COALESCE(t.arrived_at, t.cancelled_at) END DESC,
+              t.id
             """, arguments: [s.serverID, s.householdID, homeID, homeID, homeID]).map { r in
             let moved: String? = r["moved"]
-            return TripRow(id: r["id"], fromHomeID: r["from_home_id"], toHomeID: r["to_home_id"], fromName: r["from_name"], toName: r["to_name"], date: r["date"], createdBy: r["created_by"], moved: moved.map { $0.split(separator: "\u{1f}").map(String.init).sorted() } ?? [])
+            return TripRow(id: r["id"], fromHomeID: r["from_home_id"], toHomeID: r["to_home_id"], fromName: r["from_name"], toName: r["to_name"], date: r["date"], createdBy: r["created_by"], listID: r["list_id"], listName: r["list_name"], arrivedAt: r["arrived_at"], cancelledAt: r["cancelled_at"], moved: moved.map { $0.split(separator: "\u{1f}").map(String.init).sorted() } ?? [])
         }
     }
 }

@@ -6,10 +6,16 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
-- **Trips are planned and shared.** A trip is from, to, a date and the list it shops on, kept
-  in the household's log like everything else, so every phone sees the same itinerary; it
-  arrives or is cancelled. A trip nobody planned, arrived from an older app, keeps the arrival
-  as its date.
+- **Trips are planned and shared.** The Trip tab lists the upcoming trips by date and the past
+  ones under History; `+` plans one: from, to, a date and the list it shops on, kept in the
+  household's log like everything else, so every phone sees the same itinerary. A to-home's
+  needs show on the nearest upcoming trip to that home and nowhere else; Add to list goes to
+  the trip's list, a long-press offers the others; a trip is cancelled from its row, armed in
+  place, and Arrived moves it to History. A trip nobody planned, arrived from an older app,
+  keeps the arrival as its date.
+- **The apps' store gets every migration.** A migration registered in a `defer` after the
+  migrator was already copied out never ran; the entries index it carried arrives now, with the
+  trips table's new columns.
 - **An item's use count stays right when a name changes hands.** Two items that swapped an
   entry during a rename could leave one of them counted a purchase too many, depending on the
   order the changes arrived in; both are counted again once every row is where it belongs.

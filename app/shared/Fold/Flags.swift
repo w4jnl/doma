@@ -108,12 +108,53 @@ enum Flags {
 
     /// Records the trip and moves every item: out at the from-home, have at the to-home, with
     /// the trip's stamp. The out flags add the items to the default list through its replay.
+    /// Keeps the latest plan: from, to, date, the list it shops on and who planned it are
+    /// last-writer-wins on the stamp; an arrival or a cancel that came first stays on the row.
+    static func applyTripPlanned(_ s: some FoldStore, _ e: Event) throws {
+        let p = try e.decode(TripPlanPayload.self)
+        try Fold.need(e, "trip_id", p.tripID)
+        try Fold.need(e, "from_home_id", p.fromHomeID)
+        try Fold.need(e, "to_home_id", p.toHomeID)
+        var cur = try s.trip(p.tripID) ?? Trip(id: p.tripID)
+        if cur.updatedHLC == nil || cur.updatedHLC! < e.hlc {
+            cur.fromHomeID = p.fromHomeID!
+            cur.toHomeID = p.toHomeID!
+            cur.date = p.date ?? 0
+            cur.createdBy = e.personID
+            cur.listID = (p.listID?.isEmpty ?? true) ? nil : p.listID
+            cur.updatedHLC = e.hlc
+        }
+        try s.putTrip(cur)
+    }
+
+    /// Marks the trip cancelled at the earliest cancel; a cancel that lands before its plan
+    /// makes the row the plan then fills.
+    static func applyTripCancelled(_ s: some FoldStore, _ e: Event) throws {
+        let p = try e.decode(TripPlanPayload.self)
+        try Fold.need(e, "trip_id", p.tripID)
+        var cur = try s.trip(p.tripID) ?? Trip(id: p.tripID)
+        if cur.cancelledAt == nil || e.hlc.wall < cur.cancelledAt! {
+            cur.cancelledAt = e.hlc.wall
+        }
+        try s.putTrip(cur)
+    }
+
     static func applyTripArrived(_ s: some FoldStore, _ e: Event) throws {
         let p = try e.decode(TripPayload.self)
         try Fold.need(e, "trip_id", p.tripID)
         try Fold.need(e, "from_home_id", p.fromHomeID)
         try Fold.need(e, "to_home_id", p.toHomeID)
-        try s.putTrip(Trip(id: p.tripID, fromHomeID: p.fromHomeID, toHomeID: p.toHomeID, date: e.hlc.wall, createdBy: e.personID, arrivedAt: e.hlc.wall))
+        var cur = try s.trip(p.tripID) ?? Trip(id: p.tripID)
+        let first = cur.arrivedAt == nil || e.hlc.wall < cur.arrivedAt!
+        if cur.updatedHLC == nil, first {
+            // no plan: the earliest arrival names the homes and the date
+            cur.fromHomeID = p.fromHomeID
+            cur.toHomeID = p.toHomeID
+            cur.date = e.hlc.wall
+            cur.createdBy = e.personID
+        }
+        if first { cur.arrivedAt = e.hlc.wall }
+        try s.putTrip(cur)
         let def = try s.defaultListID()
         for raw in p.moved {
             let item = try Fold.resolveItem(s, raw)

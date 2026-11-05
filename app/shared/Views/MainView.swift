@@ -40,7 +40,7 @@ struct MainView: View {
             }
             SwiftUI.Tab("Trip", systemImage: "suitcase", value: Tab.trip) {
                 NavigationStack {
-                    TripView()
+                    TripsView()
                 }
             }
             SwiftUI.Tab("Family", systemImage: "person.2", value: Tab.family) {

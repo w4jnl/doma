@@ -118,14 +118,18 @@ final class SnapshotTests: XCTestCase {
             flag("f5", "H", "I3", "have", daysAgo: 3),
             flag("f6", "H", "I4", "low", daysAgo: 3),
         ], scope: session.scope!, clock: nil)
+        // two trips planned: to the hut in three days on the shopping list, back in ten
+        let day: Int64 = 86_400_000
+        try store.applyRemote([
+            SyncEvent(seq: seq + 1, id: "p1", personID: "pa", hlc: "\(millis(Self.now) - 1000):0:a", kind: Kind.tripPlanned, payload: TripPlanPayload(tripID: "T1", fromHomeID: "G", toHomeID: "H", date: millis(Self.now) + 3 * day, listID: "L1").jsonValue),
+            SyncEvent(seq: seq + 2, id: "p2", personID: "pb", hlc: "\(millis(Self.now) - 900):0:b", kind: Kind.tripPlanned, payload: TripPlanPayload(tripID: "T2", fromHomeID: "H", toHomeID: "G", date: millis(Self.now) + 10 * day, listID: "L1").jsonValue),
+        ], scope: session.scope!, clock: nil)
     }
 
     override func tearDown() {
         RelativeText.now = { Date() }
         UITestHooks.noCamera = false
         UserDefaults.standard.removeObject(forKey: "shop." + shopping)
-        UserDefaults.standard.removeObject(forKey: "trip.S1/H1.from")
-        UserDefaults.standard.removeObject(forKey: "trip.S1/H1.to")
     }
 
     func family() -> FamilyModel {
@@ -161,8 +165,12 @@ final class SnapshotTests: XCTestCase {
         try await check("home") { NavigationStack { HomeView(homeID: "G") } }
     }
 
+    func testTrips() async throws {
+        try await check("trips") { NavigationStack { TripsView() } }
+    }
+
     func testTrip() async throws {
-        try await check("trip") { NavigationStack { TripView() } }
+        try await check("trip") { NavigationStack { TripView(tripID: "T1") } }
     }
 
     func testFamily() async throws {

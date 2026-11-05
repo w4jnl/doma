@@ -323,7 +323,7 @@ struct FlagMark: View {
     }
 }
 
-/// One past trip: from and to, when, and what moved.
+/// One trip that is over: from and to, when it arrived or was cancelled, and what moved.
 struct TripHistoryRow: View {
     var trip: TripRow
     @Environment(Session.self) private var session
@@ -334,7 +334,13 @@ struct TripHistoryRow: View {
                 Text(verbatim: trip.fromName + " → " + trip.toName)
                     .foregroundStyle(Tokens.ink)
                 Spacer()
-                RelativeText(millis: trip.date)
+                if trip.cancelledAt != nil {
+                    Text("cancelled")
+                        .font(.footnote)
+                        .foregroundStyle(Tokens.inkMuted)
+                } else {
+                    RelativeText(millis: trip.arrivedAt ?? trip.date)
+                }
             }
             if !trip.moved.isEmpty {
                 Text(trip.moved.joined(separator: ", "))
