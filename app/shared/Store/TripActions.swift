@@ -16,6 +16,14 @@ struct TripItem: Identifiable, Hashable, Sendable {
     var fromState: FlagState
     /// Already open on a shared list for the to-home.
     var onList: Bool
+    /// That list's name, so the row says where it is: the trip's list or another.
+    var listName: String?
+}
+
+/// An item open on a shared list for a home: its name and the list's.
+struct ListedItem: Hashable, Sendable {
+    var name: String
+    var listName: String
 }
 
 struct TripPlan: Hashable, Sendable {
@@ -27,14 +35,14 @@ struct TripPlan: Hashable, Sendable {
 
     /// The plan from the tables, pure: the flags of both homes as they stand now, the to-home's
     /// staples, and the open entries for the to-home on shared lists.
-    static func derive(from fromHome: String, to toHome: String, flags: [FlagRow], toFlags: [FlagRow], listed: [String: String]) -> TripPlan {
+    static func derive(from fromHome: String, to toHome: String, flags: [FlagRow], toFlags: [FlagRow], listed: [String: ListedItem]) -> TripPlan {
         var plan = TripPlan()
         let fromByItem = Dictionary(uniqueKeysWithValues: flags.map { ($0.itemID, $0) })
         var seen = Set<String>()
         for row in toFlags {
             seen.insert(row.itemID)
             let fromState = fromByItem[row.itemID]?.state ?? .unknown
-            let item = TripItem(itemID: row.itemID, name: row.name, toState: row.state, fromState: fromState, onList: listed[row.itemID] != nil)
+            let item = TripItem(itemID: row.itemID, name: row.name, toState: row.state, fromState: fromState, onList: listed[row.itemID] != nil, listName: listed[row.itemID]?.listName)
             switch row.state {
             case .out, .low:
                 if fromState == .have { plan.bring.append(item) } else { plan.buy.append(item) }
@@ -44,8 +52,8 @@ struct TripPlan: Hashable, Sendable {
                 break
             }
         }
-        for (itemID, name) in listed where !seen.contains(itemID) {
-            plan.buy.append(TripItem(itemID: itemID, name: name, toState: .unknown, fromState: fromByItem[itemID]?.state ?? .unknown, onList: true))
+        for (itemID, l) in listed where !seen.contains(itemID) {
+            plan.buy.append(TripItem(itemID: itemID, name: l.name, toState: .unknown, fromState: fromByItem[itemID]?.state ?? .unknown, onList: true, listName: l.listName))
         }
         plan.buy.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         return plan
@@ -117,15 +125,15 @@ enum TripActions {
 }
 
 extension Queries {
-    /// Items open on a shared list for a home: item id to name.
-    static func openForHome(_ db: Database, _ s: Scope, homeID: String) throws -> [String: String] {
+    /// Items open on a shared list for a home: item id to its name and the list's name.
+    static func openForHome(_ db: Database, _ s: Scope, homeID: String) throws -> [String: ListedItem] {
         let rows = try Row.fetchAll(db, sql: """
-            SELECT DISTINCT i.id, i.name FROM entries e
+            SELECT DISTINCT i.id, i.name, l.name AS list_name FROM entries e
             JOIN lists l ON l.server_id = e.server_id AND l.household_id = e.household_id AND l.id = e.list_id
             JOIN items i ON i.server_id = e.server_id AND i.household_id = e.household_id AND i.id = e.item_id
             WHERE e.server_id = ? AND e.household_id = ? AND e.for_home_id = ? AND e.cleared_hlc IS NULL
               AND l.owner_person_id IS NULL AND l.archived_at IS NULL AND i.merged_into IS NULL
             """, arguments: [s.serverID, s.householdID, homeID])
-        return Dictionary(rows.map { ($0["id"] as String, $0["name"] as String) }, uniquingKeysWith: { a, _ in a })
+        return Dictionary(rows.map { ($0["id"] as String, ListedItem(name: $0["name"], listName: $0["list_name"])) }, uniquingKeysWith: { a, _ in a })
     }
 }

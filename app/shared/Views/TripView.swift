@@ -542,7 +542,8 @@ struct TripView: View {
                 .foregroundStyle(Tokens.ink)
             Spacer()
             if item.onList {
-                Text("on the list")
+                // names the list: the trip's, or another shared one that already has it
+                Text("on \(item.listName ?? "")")
                     .font(.footnote)
                     .foregroundStyle(Tokens.inkMuted)
             } else {

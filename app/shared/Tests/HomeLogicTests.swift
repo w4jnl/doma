@@ -162,6 +162,7 @@ final class HomeLogicTests: XCTestCase {
         XCTAssertEqual(plan.bring.map(\.name), ["melk"], "out at the hut and have in Gouda")
         XCTAssertEqual(plan.buy.map(\.name), ["brood", "eieren"], "low at the hut and not have in Gouda; and the open entry for the hut")
         XCTAssertEqual(plan.buy.map(\.onList), [false, true])
+        XCTAssertEqual(plan.buy.map(\.listName), [nil, "Shopping"], "the row names the list it is on")
         XCTAssertEqual(plan.check.map(\.itemID), [kaas], "an unknown staple of the hut")
         XCTAssertTrue(try TripActions.plan(for: laterTrip, among: all, in: s, staleness: staleness).isEmpty)
 
