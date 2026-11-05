@@ -40,6 +40,32 @@ paths:
       summary: The tables at seq as gzip JSON, without other people's personal lists
       responses:
         "200": {description: gzip JSON}
+  /photos/v1/{household}/{photo_id}:
+    post:
+      summary: The JPEG for an accepted photo.added; members, ten a minute per device
+      description: >-
+        The body is the picture, at most photos.max_bytes_per_upload. The
+        server decodes it, keeps a JPEG with the metadata gone and at most
+        1600 px on the long side, and a 320 px thumbnail; a spot keeps
+        retention.photos_per_spot pictures, older ones go. Answers with
+        id, spot_id, bytes kept, width and height.
+      responses:
+        "200": {description: stored}
+        "400": {description: not a JPEG}
+        "404": {description: no photo.added with this id in this household}
+        "413": {description: over the upload cap or the household's photo quota, before and after the body}
+        "429": {description: more than ten uploads a minute from this device}
+    get:
+      summary: The picture; a member's signed request, or a link signed by the server for an hour (exp and sig); cacheable 1 h
+      responses:
+        "200": {description: image/jpeg}
+        "404": {description: pending, pruned or not this household's}
+  /photos/v1/{household}/{photo_id}/thumb:
+    get:
+      summary: The 320 px thumbnail, as the picture
+      responses:
+        "200": {description: image/jpeg}
+        "404": {description: pending, pruned or not this household's}
   /i/{token}:
     post:
       summary: Accept an invite with a new or known device key
@@ -127,6 +153,6 @@ paths:
         "204": {description: ended}
   /api/v1/h/{household}/export:
     get:
-      summary: A zip with household.json, events.ndjson, purchases.csv, lists/*.md and homes/*.md; members
+      summary: A zip with household.json, events.ndjson, purchases.csv, lists/*.md, homes/*.md and photos/; members
       responses:
         "200": {description: zip}

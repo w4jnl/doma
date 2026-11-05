@@ -52,7 +52,8 @@ func TestOpenAPIMatchesRouter(t *testing.T) {
 	a.Mount(http.NewServeMux())
 	got := append([]string(nil), a.Routes...)
 	// routes other packages mount on the API; keep in step with server.go
-	got = append(got, "POST /sync/v1", "GET /sync/v1/snapshot/{household}/{seq}")
+	got = append(got, "POST /sync/v1", "GET /sync/v1/snapshot/{household}/{seq}",
+		"POST /photos/v1/{household}/{photo_id}", "GET /photos/v1/{household}/{photo_id}", "GET /photos/v1/{household}/{photo_id}/thumb")
 	want := specRoutes(t)
 	sort.Strings(got)
 	sort.Strings(want)

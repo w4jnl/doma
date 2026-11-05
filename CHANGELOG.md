@@ -6,6 +6,12 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Photos of a spot reach the server.** A picture taken for a spot is kept by the server once
+  its photo.added is accepted: decoded and written again as a JPEG with nothing but the pixels,
+  at most 1600 px on the long side, with a 320 px thumbnail; a spot keeps the newest five and
+  the household's photo quota holds before and after the upload. Members fetch a picture with
+  their device's signature or through a link the server signs for an hour; the export carries
+  the pictures under photos/ and the admin's pages show what a household's photos take.
 - **Settings speaks for the doma in front.** With two domas on one device, Last refreshed and
   any trouble line in Settings are those of the household in front's doma, not the last doma the
   app happened to reach.

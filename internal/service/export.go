@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,8 +20,8 @@ import (
 )
 
 // Export writes the household as a zip: household.json, events.ndjson,
-// purchases.csv, lists/*.md and homes/*.md, without other people's
-// personal lists. Photos join in phase 1. Members only.
+// purchases.csv, lists/*.md, homes/*.md and photos/, without other
+// people's personal lists. Members only.
 func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) error {
 	if err := requireMember(sc); err != nil {
 		return err
@@ -31,6 +32,7 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 		tables  fold.Tables
 		evs     []db.Event
 		owners  map[string]string
+		stored  []db.Photo
 	)
 	err := s.db.ReadTx(ctx, func(q *db.Queries) error {
 		row, err := q.GetHousehold(ctx, sc.HouseholdID)
@@ -49,6 +51,9 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 			return err
 		}
 		if evs, err = q.AllEvents(ctx, sc.HouseholdID); err != nil {
+			return err
+		}
+		if stored, err = q.ListStoredPhotos(ctx, sc.HouseholdID); err != nil {
 			return err
 		}
 		owners, err = listOwners(ctx, q, sc.HouseholdID)
@@ -129,6 +134,7 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 		return enc.Encode(map[string]any{
 			"exported_at": s.now().UTC().Format(time.RFC3339), "household": h, "members": ms,
 			"homes": tables.Homes, "spots": tables.Spots, "lists": lists, "items": tables.Items, "aliases": tables.Aliases,
+			"photos": tables.Photos,
 		})
 	}); err != nil {
 		return err
@@ -275,6 +281,17 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 			}
 			return nil
 		}); err != nil {
+			return err
+		}
+	}
+
+	// photos/: the stored pictures by photo id; household.json maps them to spots
+	for _, p := range stored {
+		data, err := os.ReadFile(s.photoFile(*p.Path))
+		if err != nil {
+			continue
+		}
+		if err := add("photos/"+p.ID+".jpg", func(f io.Writer) error { _, err := f.Write(data); return err }); err != nil {
 			return err
 		}
 	}

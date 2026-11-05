@@ -93,6 +93,10 @@ const (
 	ModeDevice
 	// ModeHousehold takes a signed request from a member of {household}.
 	ModeHousehold
+	// ModeHouseholdOrLink takes a signed request from a member of
+	// {household}, or a link the server signed (exp and sig in the query)
+	// that opens the path as a member for an hour.
+	ModeHouseholdOrLink
 )
 
 const (
@@ -131,10 +135,20 @@ func (a *API) Handle(mux *http.ServeMux, pattern string, m Mode, fn HandlerFunc)
 	a.handle(mux, pattern, m, fn)
 }
 
+// HandleUpload registers a route whose body may be maxBytes long; a longer
+// one is refused as over quota before it is read.
+func (a *API) HandleUpload(mux *http.ServeMux, pattern string, m Mode, maxBytes int64, fn HandlerFunc) {
+	a.handleWith(mux, pattern, m, maxBytes, fn)
+}
+
 func (a *API) handle(mux *http.ServeMux, pattern string, m Mode, fn HandlerFunc) {
+	a.handleWith(mux, pattern, m, 0, fn)
+}
+
+func (a *API) handleWith(mux *http.ServeMux, pattern string, m Mode, maxBytes int64, fn HandlerFunc) {
 	a.Routes = append(a.Routes, pattern)
 	mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-		c, err := a.caller(r, m)
+		c, err := a.caller(r, m, maxBytes)
 		if err != nil {
 			writeError(w, r, a.log, err)
 			return
@@ -149,13 +163,22 @@ func (a *API) handle(mux *http.ServeMux, pattern string, m Mode, fn HandlerFunc)
 // caller reads the body, checks the signature and, on household routes,
 // the membership. The signature is checked before the rate limit is
 // consulted, so a stranger cannot spend a device's budget.
-func (a *API) caller(r *http.Request, m Mode) (*Caller, error) {
-	body, err := readBody(r)
+func (a *API) caller(r *http.Request, m Mode, maxBytes int64) (*Caller, error) {
+	body, err := readBody(r, maxBytes)
 	if err != nil {
 		return nil, err
 	}
 	c := &Caller{Body: body}
 	if m == modePublic {
+		return c, nil
+	}
+	if m == ModeHouseholdOrLink && r.Header.Get(auth.HeaderCredential) == "" {
+		if !a.svc.CheckLink(r.URL.Path, r.URL.Query()) {
+			return nil, auth.ErrBadSignature
+		}
+		hh := r.PathValue("household")
+		c.Scope = domain.Scope{HouseholdID: hh, Role: domain.RoleMember}
+		middleware.AddLogFields(r.Context(), slog.String("household", hh))
 		return c, nil
 	}
 	signed, err := auth.ReadSignature(r)
@@ -181,7 +204,7 @@ func (a *API) caller(r *http.Request, m Mode) (*Caller, error) {
 	}
 	c.Credential = cred
 	middleware.AddLogFields(r.Context(), slog.String("person", cred.PersonID))
-	if m == modeHousehold {
+	if m == modeHousehold || m == ModeHouseholdOrLink {
 		hh := r.PathValue("household")
 		ms, err := a.svc.MembershipFor(r.Context(), cred.PersonID, hh)
 		if err != nil {

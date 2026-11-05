@@ -56,7 +56,12 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   `scripts/ui-test.sh` starts, the snapshot tests in `app/shared/Tests/SnapshotTests.swift` with
   their pictures under `Snapshots/`, and the hooks they use in `Identity/UITestHooks.swift`; the
   TestFlight path (`make ios-testflight`, the push entitlement, `app/ios/README.md`), which
-  waits for the team id and the App Store Connect record. Not yet: Homes and Trip (phase 1).
+  waits for the team id and the App Store Connect record. Phase 1 on the server: photos under
+  `internal/photo` (decode, re-encode, scale, thumbnail) and `internal/http/photos` (the upload
+  for an accepted `photo.added`, the picture and its thumbnail for a member's signed request or
+  a link the server signs for an hour), retention per spot, the quota before and after the
+  body, the nightly reconcile from disk, photos in the export and the bytes on the admin pages.
+  Not yet: Homes, Home and Trip in the apps, and the photo capture (phase 1, steps 4 to 6).
   Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;

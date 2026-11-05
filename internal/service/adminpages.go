@@ -29,6 +29,18 @@ type HouseholdOverview struct {
 	LastEventAt int64
 }
 
+// PhotoSize is PhotoBytes for a page: "none", "340 kB", "12.5 MB".
+func (o HouseholdOverview) PhotoSize() string {
+	switch {
+	case o.PhotoBytes == 0:
+		return "no photos"
+	case o.PhotoBytes < 1<<20:
+		return fmt.Sprintf("%d kB of photos", o.PhotoBytes>>10)
+	default:
+		return fmt.Sprintf("%.1f MB of photos", float64(o.PhotoBytes)/(1<<20))
+	}
+}
+
 // Overview lists every household with its counts.
 func (s *Service) Overview(ctx context.Context) ([]HouseholdOverview, error) {
 	hs, err := s.Households(ctx)
@@ -44,6 +56,7 @@ func (s *Service) Overview(ctx context.Context) ([]HouseholdOverview, error) {
 		d, _ := q.CountDevices(ctx, h.ID)
 		o.Devices = int(d)
 		o.LastEventAt, _ = q.LastEventAt(ctx, h.ID)
+		o.PhotoBytes, _ = q.PhotoBytes(ctx, h.ID)
 		out = append(out, o)
 	}
 	return out, nil
@@ -98,6 +111,7 @@ func (s *Service) HouseholdDetail(ctx context.Context, id string) (*HouseholdDet
 		}
 	}
 	d.Devices = len(d.DevicesList)
+	d.PhotoBytes, _ = q.PhotoBytes(ctx, id)
 	if d.Invites, err = s.Invites(ctx, admin); err != nil {
 		return nil, err
 	}

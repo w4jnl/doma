@@ -9,6 +9,48 @@ import (
 	"context"
 )
 
+const clearPhotoFile = `-- name: ClearPhotoFile :exec
+UPDATE photos SET path = NULL, thumb_path = NULL, bytes = 0
+WHERE household_id = ? AND id = ?
+`
+
+type ClearPhotoFileParams struct {
+	HouseholdID string
+	ID          string
+}
+
+func (q *Queries) ClearPhotoFile(ctx context.Context, arg ClearPhotoFileParams) error {
+	_, err := q.db.ExecContext(ctx, clearPhotoFile, arg.HouseholdID, arg.ID)
+	return err
+}
+
+const getPhoto = `-- name: GetPhoto :one
+SELECT id, household_id, spot_id, taken_hlc, taken_by, path, thumb_path, bytes, width, height FROM photos WHERE household_id = ? AND id = ?
+`
+
+type GetPhotoParams struct {
+	HouseholdID string
+	ID          string
+}
+
+func (q *Queries) GetPhoto(ctx context.Context, arg GetPhotoParams) (Photo, error) {
+	row := q.db.QueryRowContext(ctx, getPhoto, arg.HouseholdID, arg.ID)
+	var i Photo
+	err := row.Scan(
+		&i.ID,
+		&i.HouseholdID,
+		&i.SpotID,
+		&i.TakenHlc,
+		&i.TakenBy,
+		&i.Path,
+		&i.ThumbPath,
+		&i.Bytes,
+		&i.Width,
+		&i.Height,
+	)
+	return i, err
+}
+
 const insertPhoto = `-- name: InsertPhoto :exec
 INSERT INTO photos (id, household_id, spot_id, taken_hlc, taken_by, bytes, width, height)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -76,4 +118,124 @@ func (q *Queries) ListPhotos(ctx context.Context, householdID string) ([]Photo, 
 		return nil, err
 	}
 	return items, nil
+}
+
+const listSpotPhotos = `-- name: ListSpotPhotos :many
+SELECT id, household_id, spot_id, taken_hlc, taken_by, path, thumb_path, bytes, width, height FROM photos WHERE household_id = ? AND spot_id = ? ORDER BY taken_hlc DESC, id DESC
+`
+
+type ListSpotPhotosParams struct {
+	HouseholdID string
+	SpotID      string
+}
+
+func (q *Queries) ListSpotPhotos(ctx context.Context, arg ListSpotPhotosParams) ([]Photo, error) {
+	rows, err := q.db.QueryContext(ctx, listSpotPhotos, arg.HouseholdID, arg.SpotID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Photo
+	for rows.Next() {
+		var i Photo
+		if err := rows.Scan(
+			&i.ID,
+			&i.HouseholdID,
+			&i.SpotID,
+			&i.TakenHlc,
+			&i.TakenBy,
+			&i.Path,
+			&i.ThumbPath,
+			&i.Bytes,
+			&i.Width,
+			&i.Height,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStoredPhotos = `-- name: ListStoredPhotos :many
+SELECT id, household_id, spot_id, taken_hlc, taken_by, path, thumb_path, bytes, width, height FROM photos WHERE household_id = ? AND path IS NOT NULL ORDER BY id
+`
+
+func (q *Queries) ListStoredPhotos(ctx context.Context, householdID string) ([]Photo, error) {
+	rows, err := q.db.QueryContext(ctx, listStoredPhotos, householdID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Photo
+	for rows.Next() {
+		var i Photo
+		if err := rows.Scan(
+			&i.ID,
+			&i.HouseholdID,
+			&i.SpotID,
+			&i.TakenHlc,
+			&i.TakenBy,
+			&i.Path,
+			&i.ThumbPath,
+			&i.Bytes,
+			&i.Width,
+			&i.Height,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const photoBytes = `-- name: PhotoBytes :one
+SELECT CAST(COALESCE(SUM(bytes), 0) AS INTEGER) FROM photos WHERE household_id = ? AND path IS NOT NULL
+`
+
+func (q *Queries) PhotoBytes(ctx context.Context, householdID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, photoBytes, householdID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const setPhotoFile = `-- name: SetPhotoFile :exec
+UPDATE photos SET path = ?, thumb_path = ?, bytes = ?, width = ?, height = ?
+WHERE household_id = ? AND id = ?
+`
+
+type SetPhotoFileParams struct {
+	Path        *string
+	ThumbPath   *string
+	Bytes       int64
+	Width       int64
+	Height      int64
+	HouseholdID string
+	ID          string
+}
+
+func (q *Queries) SetPhotoFile(ctx context.Context, arg SetPhotoFileParams) error {
+	_, err := q.db.ExecContext(ctx, setPhotoFile,
+		arg.Path,
+		arg.ThumbPath,
+		arg.Bytes,
+		arg.Width,
+		arg.Height,
+		arg.HouseholdID,
+		arg.ID,
+	)
+	return err
 }

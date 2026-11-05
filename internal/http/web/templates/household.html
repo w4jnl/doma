@@ -1,6 +1,6 @@
 {{define "content"}}
 <h1>{{.Data.Detail.Name}}</h1>
-<p class="dm-muted">{{.Data.Detail.Timezone}} · flags fade to unknown after {{.Data.Detail.StalenessDays}} days · {{if .Data.Detail.SnapshotAt}}last snapshot {{ago .Data.Detail.SnapshotAt}}{{else}}no snapshot yet{{end}}</p>
+<p class="dm-muted">{{.Data.Detail.Timezone}} · flags fade to unknown after {{.Data.Detail.StalenessDays}} days · {{.Data.Detail.PhotoSize}} · {{if .Data.Detail.SnapshotAt}}last snapshot {{ago .Data.Detail.SnapshotAt}}{{else}}no snapshot yet{{end}}</p>
 {{if .Error}}<p class="dm-error">{{.Error}}</p>{{end}}
 {{if .Data.Notice}}<p class="dm-notice">{{.Data.Notice}}</p>{{end}}
 

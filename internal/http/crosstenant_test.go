@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"image"
+	"image/color"
+	"image/jpeg"
 	"io"
 	"log/slog"
 	"net/http"
@@ -22,7 +25,7 @@ import (
 
 // The cross-tenant and cross-person suites: two households with an owner
 // and a member each, plus a guest, and 404 across every boundary for sync,
-// the snapshot, REST and export. Photos join in phase 1.
+// the snapshot, REST, photos and export.
 
 type tenant struct {
 	id, home, list string
@@ -41,7 +44,7 @@ func newSuite(t *testing.T) *suite {
 	t.Helper()
 	auth.FastParamsForTests()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := service.New(dbtest.Open(t), service.Config{BaseURL: "http://doma.test", SnapshotsDir: t.TempDir()}, log)
+	svc := service.New(dbtest.Open(t), service.Config{BaseURL: "http://doma.test", SnapshotsDir: t.TempDir(), PhotosDir: t.TempDir(), MaxUploadBytes: 200 << 10}, log)
 	h, err := dhttp.Handler(dhttp.Deps{Cfg: config.Default(), Log: log, Svc: svc})
 	if err != nil {
 		t.Fatal(err)
@@ -135,6 +138,14 @@ func TestCrossTenantIs404Everywhere(t *testing.T) {
 			return s.a.owner.Do(ctx, http.MethodPut, "/api/v1/h/"+other+"/members/"+s.b.member.PersonID+"/role", map[string]string{"role": "owner"}, nil)
 		},
 		"export": func() error { _, _, err := s.a.owner.Download(ctx, "/api/v1/h/"+other+"/export"); return err },
+		"photo upload": func() error {
+			return s.a.owner.Upload(ctx, "/photos/v1/"+other+"/"+domain.NewID(), jpegBytes(t, 8, 8), "image/jpeg", nil)
+		},
+		"photo get": func() error { _, _, err := s.a.owner.Download(ctx, "/photos/v1/"+other+"/"+domain.NewID()); return err },
+		"photo thumb": func() error {
+			_, _, err := s.a.owner.Download(ctx, "/photos/v1/"+other+"/"+domain.NewID()+"/thumb")
+			return err
+		},
 		"revoke device": func() error {
 			return s.a.owner.Do(ctx, http.MethodDelete, "/api/v1/credentials/"+s.b.member.CredentialID, nil, nil)
 		},
@@ -256,5 +267,111 @@ func TestCrossPersonPersonalLists(t *testing.T) {
 	memberZip, _, err := s.a.member.Download(ctx, "/api/v1/h/"+s.a.id+"/export")
 	if err != nil || !bytes.Contains(memberZip, []byte("mine")) {
 		t.Errorf("member's export lacks their list: %v", err)
+	}
+}
+
+// jpegBytes is a w by h JPEG.
+func jpegBytes(t *testing.T, w, h int) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	for x := range w {
+		for y := range h {
+			img.Set(x, y, color.RGBA{uint8(x * 9), uint8(y * 5), uint8(x ^ y), 255})
+		}
+	}
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, nil); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+// TestPhotosOverHTTP: an upload for an accepted photo.added, the picture
+// and its thumbnail back for members and for a signed link, and the
+// refusals: not a JPEG, over the cap, too many, a stranger.
+func TestPhotosOverHTTP(t *testing.T) {
+	s := newSuite(t)
+	ctx := context.Background()
+	clock, _ := domain.NewClock("a", nil)
+	spot, photoID := domain.NewID(), domain.NewID()
+	if err := s.a.owner.Sync(ctx, service.SyncRequest{Households: []service.SyncHousehold{{ID: s.a.id, Events: []json.RawMessage{
+		event(clock, "spot.created", map[string]any{"spot_id": spot, "home_id": s.a.home, "name": "Pantry"}),
+		event(clock, "photo.added", map[string]any{"photo_id": photoID, "spot_id": spot}),
+	}}}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	path := "/photos/v1/" + s.a.id + "/" + photoID
+	// pending: nothing to get yet
+	if _, _, err := s.a.member.Download(ctx, path); status(err) != http.StatusNotFound {
+		t.Errorf("pending photo: %v", err)
+	}
+	// not a JPEG, then over the cap by Content-Length, then the real thing
+	if err := s.a.member.Upload(ctx, path, []byte("hello"), "image/jpeg", nil); status(err) != http.StatusBadRequest {
+		t.Errorf("text upload: %v", err)
+	}
+	if err := s.a.member.Upload(ctx, path, make([]byte, 300<<10), "image/jpeg", nil); status(err) != http.StatusRequestEntityTooLarge {
+		t.Errorf("huge upload: %v", err)
+	}
+	var stored map[string]any
+	if err := s.a.member.Upload(ctx, path, jpegBytes(t, 640, 480), "image/jpeg", &stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored["spot_id"] != spot || stored["width"] != float64(640) {
+		t.Errorf("stored %v", stored)
+	}
+	// members of the household get it, with a thumbnail; the other household does not
+	for _, p := range []string{path, path + "/thumb"} {
+		raw, ctype, err := s.a.owner.Download(ctx, p)
+		if err != nil || ctype != "image/jpeg" || !bytes.HasPrefix(raw, []byte{0xFF, 0xD8}) {
+			t.Errorf("%s: %v %q", p, err, ctype)
+		}
+		if _, _, err := s.b.owner.Download(ctx, p); status(err) != http.StatusNotFound {
+			t.Errorf("%s from the other household: %v", p, err)
+		}
+	}
+	// a signed link opens without a device; a bare URL and a tampered link do not
+	get := func(u string) int {
+		r, err := s.srv.Client().Get(u)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = r.Body.Close()
+		if r.StatusCode == http.StatusOK && r.Header.Get("Cache-Control") != "private, max-age=3600" {
+			t.Errorf("cache control %q", r.Header.Get("Cache-Control"))
+		}
+		return r.StatusCode
+	}
+	if got := get(s.srv.URL + path); got != http.StatusUnauthorized {
+		t.Errorf("bare url: %d", got)
+	}
+	link := strings.Replace(s.svc.SignLink(path+"/thumb"), "http://doma.test", s.srv.URL, 1)
+	if got := get(link); got != http.StatusOK {
+		t.Errorf("signed link: %d", got)
+	}
+	if got := get(link + "x"); got != http.StatusUnauthorized {
+		t.Errorf("tampered link: %d", got)
+	}
+	if got := get(strings.Replace(link, photoID, domain.NewID(), 1)); got != http.StatusUnauthorized {
+		t.Errorf("link moved to another photo: %d", got)
+	}
+	// ten uploads a minute per device; the bodies differ so no two requests
+	// are the one-millisecond replay the signature check refuses
+	limited := false
+	for i := range 12 {
+		err := s.a.member.Upload(ctx, path, jpegBytes(t, 8+i, 8), "image/jpeg", nil)
+		if status(err) == http.StatusTooManyRequests {
+			limited = true
+		}
+		if i >= 10 && err == nil {
+			t.Errorf("upload %d passed the limit", i+1)
+		}
+	}
+	if !limited {
+		t.Error("no upload was rate limited")
+	}
+	// the export carries it
+	raw, _, err := s.a.owner.Download(ctx, "/api/v1/h/"+s.a.id+"/export")
+	if err != nil || !bytes.Contains(raw, []byte("photos/"+photoID+".jpg")) {
+		t.Errorf("export without the photo: %v", err)
 	}
 }

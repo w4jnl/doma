@@ -158,8 +158,8 @@ func (s *Service) UpdateHousehold(ctx context.Context, sc domain.Scope, u Househ
 	if err != nil {
 		return nil, err
 	}
-	if u.StalenessDays != nil && (*u.StalenessDays < 1 || *u.StalenessDays > 3650) {
-		return nil, domain.Invalid("staleness_days", "use between 1 and 3650 days")
+	if u.StalenessDays != nil && (*u.StalenessDays < 14 || *u.StalenessDays > 365) {
+		return nil, domain.Invalid("staleness_days", "use between 14 and 365 days")
 	}
 	err = s.db.Tx(ctx, func(q *db.Queries) error {
 		if _, err := q.GetHousehold(ctx, sc.HouseholdID); err != nil {
@@ -174,9 +174,9 @@ func (s *Service) UpdateHousehold(ctx context.Context, sc domain.Scope, u Househ
 }
 
 // DeleteHousehold removes a household with no members left; the admin
-// only. Rows cascade; the photo directory is the caller's to remove.
+// only. Rows cascade and the photo directory goes with them.
 func (s *Service) DeleteHousehold(ctx context.Context, id string) error {
-	return s.db.Tx(ctx, func(q *db.Queries) error {
+	err := s.db.Tx(ctx, func(q *db.Queries) error {
 		if _, err := q.GetHousehold(ctx, id); err != nil {
 			return notFound(err)
 		}
@@ -189,6 +189,10 @@ func (s *Service) DeleteHousehold(ctx context.Context, id string) error {
 		}
 		return q.DeleteHousehold(ctx, id)
 	})
+	if err == nil {
+		s.removePhotoDir(id)
+	}
+	return err
 }
 
 // StalenessDays is the household's threshold, or the server default.

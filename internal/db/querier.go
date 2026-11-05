@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	AllEvents(ctx context.Context, householdID string) ([]Event, error)
 	ClearAPNSToken(ctx context.Context, id string) error
+	ClearPhotoFile(ctx context.Context, arg ClearPhotoFileParams) error
 	ClearedEntriesForHome(ctx context.Context, arg ClearedEntriesForHomeParams) ([]Entry, error)
 	// what a device missed while it was away: entries others added after it last spoke to us,
 	// the number on the icon until the app is open and counts for itself
@@ -58,6 +59,7 @@ type Querier interface {
 	GetList(ctx context.Context, arg GetListParams) (List, error)
 	GetMembership(ctx context.Context, arg GetMembershipParams) (Membership, error)
 	GetPerson(ctx context.Context, id string) (Person, error)
+	GetPhoto(ctx context.Context, arg GetPhotoParams) (Photo, error)
 	GetSnapshot(ctx context.Context, arg GetSnapshotParams) (Snapshot, error)
 	GetSpot(ctx context.Context, arg GetSpotParams) (Spot, error)
 	GetStaple(ctx context.Context, arg GetStapleParams) (Staple, error)
@@ -91,14 +93,17 @@ type Querier interface {
 	ListLists(ctx context.Context, householdID string) ([]List, error)
 	ListPhotos(ctx context.Context, householdID string) ([]Photo, error)
 	ListSnapshots(ctx context.Context, householdID string) ([]Snapshot, error)
+	ListSpotPhotos(ctx context.Context, arg ListSpotPhotosParams) ([]Photo, error)
 	ListSpots(ctx context.Context, householdID string) ([]Spot, error)
 	ListStaples(ctx context.Context, householdID string) ([]Staple, error)
+	ListStoredPhotos(ctx context.Context, householdID string) ([]Photo, error)
 	ListTrips(ctx context.Context, householdID string) ([]Trip, error)
 	MembersOfHousehold(ctx context.Context, householdID string) ([]MembersOfHouseholdRow, error)
 	// tenancy: root -- a person's memberships across households, to build their scopes
 	MembershipsForPerson(ctx context.Context, personID string) ([]Membership, error)
 	NewestSnapshot(ctx context.Context, householdID string) (Snapshot, error)
 	NextSeq(ctx context.Context, householdID string) (int64, error)
+	PhotoBytes(ctx context.Context, householdID string) (int64, error)
 	// The household's devices with a push token that were not pushed since the
 	// cutoff: one push per device per 30 s.
 	PushTargets(ctx context.Context, arg PushTargetsParams) ([]PushTargetsRow, error)
@@ -111,6 +116,7 @@ type Querier interface {
 	SetAPNSToken(ctx context.Context, arg SetAPNSTokenParams) error
 	SetAdminTOTP(ctx context.Context, totpSecret []byte) error
 	SetNotifyPrefs(ctx context.Context, arg SetNotifyPrefsParams) error
+	SetPhotoFile(ctx context.Context, arg SetPhotoFileParams) error
 	TouchCredential(ctx context.Context, arg TouchCredentialParams) error
 	TouchPerson(ctx context.Context, arg TouchPersonParams) error
 	UpdateHousehold(ctx context.Context, arg UpdateHouseholdParams) error
