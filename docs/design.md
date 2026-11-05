@@ -321,7 +321,7 @@ Any tap sets any flag directly; the drawn arrows are the paths the app takes on 
 | unknown | no flag, or the flag is older than `staleness` | computed, never stored |
 
 - `staleness` is per household, default 60 days, settable by an owner between 14 and 365 days. The home screen shows the flag with a muted age label ("3 wk") past half the threshold, and as unknown past it.
-- Staples define which items a home is expected to have. The home screen lists staples first, grouped by spot if the item is pinned to one, then any other item that has a flag at this home. A staple with an unknown flag is the question the app asks: *Still there?* with have / low / out buttons.
+- Staples define which items a home is expected to have. The home screen lists staples first, in their order, then any other item that has a flag at this home (nothing pins an item to a spot; a later `spot_id` on `staple.added` could, if the family wants it). A staple with an unknown flag is the question the app asks: *Still there?* with have / low / out buttons.
 - Setting `out` on a staple adds it to the household's default list with `for_home_id` set, so the next shop covers it; clearing that entry flags it `have` again. No other automation.
 
 **Spots and photos**
@@ -351,8 +351,8 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join | registers the device, accepts the invite |
 | Lists | opens into the last-used list; the Lists button or a second tab tap leads to the overview: household lists, then personal, colour dot, name, how many to get; `+` to create | `list.created` |
 | List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it, and the mic at its end; swipe left for Edit, long-press to drag | `item.named`, `entry.*` |
-| Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails | — |
-| Home | staples grouped by spot with flag buttons; other flagged items; *Take photos*; manage staples and spots behind Edit | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
+| Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails; `+` makes a home, Rename and Archive on the row (a trip needs a second home and nothing else makes one) | `home.*` |
+| Home | staples with flag buttons; other flagged items; the trips through the home; *Take photos*; manage staples and spots behind Edit | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
 | Trip | the upcoming trips by date, then the past ones; `+` plans one (from, to, date, list); a trip opens into Bring, Buy, Check on arrival and *Arrived*; Edit and Cancel on the row | `trip.planned`, `trip.cancelled`, `entry.added`, `trip.arrived` |
 | Family | household name, members with role and last seen, pending invites, guest links, Invite (prominent), Guest link, Settings, Leave; Remove and Revoke behind a swipe, armed in the row; household switcher at the top when the person is in more than one | invites and guests through the REST API, not events |
 | Settings | this device's name, notifications (on, or a way to allow them; a switch per shared list and one for clears), the lock with Face ID or Touch ID, staleness (owners), the person's devices with Revoke and *Add a device* (a QR the new device scans to join as the same person), About with the lockup, server name and version | REST |
