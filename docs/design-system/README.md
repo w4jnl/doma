@@ -178,9 +178,12 @@ row, not a new screen.
   passes half the staleness threshold. An unknown staple shows three small buttons, have / low /
   out, in that row. Spot thumbnails at `thumb` (72pt) and `radius-md` in a horizontal strip above
   the staples; *Take photos* is one button in the toolbar.
-- **Trip.** Two pickers in one row, from and to, with the swap control between them; then three
-  groups, Bring, Buy, Check on arrival, each a plain list; *Arrived* is the one primary button, at
-  the bottom, enabled only while something is packed.
+- **Trip.** The tab is the trips: upcoming by date, nearest first, each row "Gouda → Hut", the
+  date and how many to bring and to buy; the past ones under History with what moved; `+` plans
+  one. A trip opens into two pickers in one row, from and to, with the swap control between
+  them, the date and the list; then three groups, Bring, Buy, Check on arrival, each a plain
+  list; *Arrived* is the one primary button, at the bottom, enabled only while something is
+  packed.
 - **Family.** Members as rows with name, role word and last seen; invites and guest links as
   rows with their expiry; *Invite* prominent and *Guest link* plain in the toolbar. An invite
   opens one level down on the phone and a sheet on the Mac, with the QR on `surface-sunk` at

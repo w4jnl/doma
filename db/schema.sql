@@ -184,16 +184,6 @@ CREATE TABLE photos (
   height        INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX photos_spot ON photos(household_id, spot_id);
-CREATE TABLE trips (
-  id            TEXT PRIMARY KEY,
-  household_id  TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
-  from_home_id  TEXT NOT NULL,
-  to_home_id    TEXT NOT NULL,
-  date          INTEGER NOT NULL,
-  created_by    TEXT NOT NULL,
-  arrived_at    INTEGER NOT NULL
-);
-CREATE INDEX trips_household ON trips(household_id);
 CREATE TABLE push_log (
   household_id   TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   credential_id  TEXT NOT NULL,
@@ -201,9 +191,23 @@ CREATE TABLE push_log (
   seq            INTEGER NOT NULL, spoken_at INTEGER, spoken_seq INTEGER,
   PRIMARY KEY (household_id, credential_id)
 );
+CREATE TABLE "trips" (
+  id            TEXT PRIMARY KEY,
+  household_id  TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  from_home_id  TEXT NOT NULL DEFAULT '',
+  to_home_id    TEXT NOT NULL DEFAULT '',
+  date          INTEGER NOT NULL DEFAULT 0,
+  created_by    TEXT NOT NULL DEFAULT '',
+  list_id       TEXT,
+  updated_hlc   TEXT,
+  arrived_at    INTEGER,
+  cancelled_at  INTEGER
+);
+CREATE INDEX trips_household ON trips(household_id);
 -- Dbmate schema migrations
 INSERT INTO "schema_migrations" (version) VALUES
   ('20261101000000'),
   ('20261103000000'),
   ('20261104000000'),
-  ('20261104010000');
+  ('20261104010000'),
+  ('20261105000000');

@@ -333,10 +333,15 @@ func (m *MemStore) PutPhoto(p Photo) error {
 	return nil
 }
 
-func (m *MemStore) PutTrip(t Trip) error {
-	if _, ok := m.trips[t.ID]; !ok {
-		m.trips[t.ID] = t
+func (m *MemStore) Trip(id string) (*Trip, error) {
+	if t, ok := m.trips[id]; ok {
+		return &t, nil
 	}
+	return nil, nil
+}
+
+func (m *MemStore) PutTrip(t Trip) error {
+	m.trips[t.ID] = t
 	return nil
 }
 

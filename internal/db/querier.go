@@ -63,6 +63,7 @@ type Querier interface {
 	GetSnapshot(ctx context.Context, arg GetSnapshotParams) (Snapshot, error)
 	GetSpot(ctx context.Context, arg GetSpotParams) (Spot, error)
 	GetStaple(ctx context.Context, arg GetStapleParams) (Staple, error)
+	GetTrip(ctx context.Context, arg GetTripParams) (Trip, error)
 	GuestsForHousehold(ctx context.Context, householdID string) ([]GuestsForHouseholdRow, error)
 	InsertAdmin(ctx context.Context, arg InsertAdminParams) error
 	InsertAlias(ctx context.Context, arg InsertAliasParams) error
@@ -75,7 +76,6 @@ type Querier interface {
 	InsertPerson(ctx context.Context, arg InsertPersonParams) error
 	InsertPhoto(ctx context.Context, arg InsertPhotoParams) error
 	InsertSnapshot(ctx context.Context, arg InsertSnapshotParams) error
-	InsertTrip(ctx context.Context, arg InsertTripParams) error
 	// the household's pending invites; a device invite is its person's and is not among them
 	InvitesForHousehold(ctx context.Context, arg InvitesForHouseholdParams) ([]Invite, error)
 	ItemEvents(ctx context.Context, householdID string) ([]Event, error)
@@ -129,6 +129,7 @@ type Querier interface {
 	UpsertList(ctx context.Context, arg UpsertListParams) error
 	UpsertSpot(ctx context.Context, arg UpsertSpotParams) error
 	UpsertStaple(ctx context.Context, arg UpsertStapleParams) error
+	UpsertTrip(ctx context.Context, arg UpsertTripParams) error
 	UseInvite(ctx context.Context, arg UseInviteParams) (int64, error)
 }
 

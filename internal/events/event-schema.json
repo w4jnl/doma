@@ -46,6 +46,8 @@
     "spot.renamed": {"type": "object", "required": ["spot_id", "name"], "properties": {"spot_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
     "spot.archived": {"type": "object", "required": ["spot_id"], "properties": {"spot_id": {"$ref": "#/$defs/id"}}},
     "photo.added": {"type": "object", "required": ["photo_id", "spot_id"], "properties": {"photo_id": {"$ref": "#/$defs/id"}, "spot_id": {"$ref": "#/$defs/id"}, "bytes": {"type": "integer", "minimum": 0}, "width": {"type": "integer", "minimum": 0}, "height": {"type": "integer", "minimum": 0}}},
+    "trip.planned": {"type": "object", "required": ["trip_id", "from_home_id", "to_home_id", "date"], "properties": {"trip_id": {"$ref": "#/$defs/id"}, "from_home_id": {"$ref": "#/$defs/id"}, "to_home_id": {"$ref": "#/$defs/id"}, "date": {"type": "integer", "minimum": 0}, "list_id": {"$ref": "#/$defs/id"}}},
+    "trip.cancelled": {"type": "object", "required": ["trip_id"], "properties": {"trip_id": {"$ref": "#/$defs/id"}}},
     "trip.arrived": {"type": "object", "required": ["trip_id", "from_home_id", "to_home_id", "moved"], "properties": {"trip_id": {"$ref": "#/$defs/id"}, "from_home_id": {"$ref": "#/$defs/id"}, "to_home_id": {"$ref": "#/$defs/id"}, "moved": {"type": "array", "items": {"$ref": "#/$defs/id"}, "maxItems": 500}}},
     "member.removed": {"type": "object", "required": ["person_id"], "properties": {"person_id": {"$ref": "#/$defs/id"}}},
     "device.revoked": {"type": "object", "required": ["credential_id"], "properties": {"credential_id": {"$ref": "#/$defs/id"}}}

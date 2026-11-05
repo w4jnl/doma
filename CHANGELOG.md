@@ -6,6 +6,14 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Trips are planned and shared.** A trip is from, to, a date and the list it shops on, kept
+  in the household's log like everything else, so every phone sees the same itinerary; it
+  arrives or is cancelled. A trip nobody planned, arrived from an older app, keeps the arrival
+  as its date.
+- **An item's use count stays right when a name changes hands.** Two items that swapped an
+  entry during a rename could leave one of them counted a purchase too many, depending on the
+  order the changes arrived in; both are counted again once every row is where it belongs.
+
 - **Homes, flags and trips in the apps.** Two new tabs. Homes shows each home with what it
   misses and its spots' pictures, and makes a home. A home lists its staples with the flag as
   glyph and word, the age once it passes half the staleness, three small buttons on a staple

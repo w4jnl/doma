@@ -134,7 +134,7 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 		return enc.Encode(map[string]any{
 			"exported_at": s.now().UTC().Format(time.RFC3339), "household": h, "members": ms,
 			"homes": tables.Homes, "spots": tables.Spots, "lists": lists, "items": tables.Items, "aliases": tables.Aliases,
-			"photos": tables.Photos,
+			"photos": tables.Photos, "trips": tables.Trips,
 		})
 	}); err != nil {
 		return err

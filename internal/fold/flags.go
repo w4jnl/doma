@@ -177,9 +177,76 @@ func applyPhotoAdded(s Store, e Event) error {
 	return s.PutPhoto(Photo{ID: p.PhotoID, SpotID: p.SpotID, TakenAt: e.HLC, TakenBy: e.PersonID, Bytes: p.Bytes, Width: p.Width, Height: p.Height})
 }
 
-// applyTripArrived records the trip and moves every item: out at the
+type tripPlanPayload struct {
+	TripID     string `json:"trip_id"`
+	FromHomeID string `json:"from_home_id"`
+	ToHomeID   string `json:"to_home_id"`
+	Date       int64  `json:"date"`
+	ListID     string `json:"list_id"`
+}
+
+// applyTripPlanned keeps the latest plan: from, to, date, the list it shops
+// on and who planned it are last-writer-wins on the stamp; an arrival or a
+// cancel that came first stays on the row.
+func applyTripPlanned(s Store, e Event) error {
+	var p tripPlanPayload
+	if err := decode(e, &p); err != nil {
+		return err
+	}
+	if err := need(e, "trip_id", p.TripID); err != nil {
+		return err
+	}
+	if err := need(e, "from_home_id", p.FromHomeID); err != nil {
+		return err
+	}
+	if err := need(e, "to_home_id", p.ToHomeID); err != nil {
+		return err
+	}
+	cur, err := s.Trip(p.TripID)
+	if err != nil {
+		return err
+	}
+	if cur == nil {
+		cur = &Trip{ID: p.TripID}
+	}
+	if cur.UpdatedHLC == nil || cur.UpdatedHLC.Less(e.HLC) {
+		cur.FromHomeID, cur.ToHomeID, cur.Date, cur.CreatedBy = p.FromHomeID, p.ToHomeID, p.Date, e.PersonID
+		cur.ListID = nil
+		if p.ListID != "" {
+			cur.ListID = ptr(p.ListID)
+		}
+		cur.UpdatedHLC = ptr(e.HLC)
+	}
+	return s.PutTrip(*cur)
+}
+
+// applyTripCancelled marks the trip cancelled at the earliest cancel; a
+// cancel that lands before its plan makes the row the plan then fills.
+func applyTripCancelled(s Store, e Event) error {
+	var p tripPlanPayload
+	if err := decode(e, &p); err != nil {
+		return err
+	}
+	if err := need(e, "trip_id", p.TripID); err != nil {
+		return err
+	}
+	cur, err := s.Trip(p.TripID)
+	if err != nil {
+		return err
+	}
+	if cur == nil {
+		cur = &Trip{ID: p.TripID}
+	}
+	if cur.CancelledAt == nil || e.HLC.Wall < *cur.CancelledAt {
+		cur.CancelledAt = ptr(e.HLC.Wall)
+	}
+	return s.PutTrip(*cur)
+}
+
+// applyTripArrived records the arrival and moves every item: out at the
 // from-home, have at the to-home, with the trip's stamp. The out flags add
-// the items to the default list through its replay.
+// the items to the default list through its replay. A trip nobody planned
+// takes the arrival's homes and wall; a planned one keeps its plan.
 func applyTripArrived(s Store, e Event) error {
 	var p tripPayload
 	if err := decode(e, &p); err != nil {
@@ -194,7 +261,22 @@ func applyTripArrived(s Store, e Event) error {
 	if err := need(e, "to_home_id", p.ToHomeID); err != nil {
 		return err
 	}
-	if err := s.PutTrip(Trip{ID: p.TripID, FromHomeID: p.FromHomeID, ToHomeID: p.ToHomeID, Date: e.HLC.Wall, CreatedBy: e.PersonID, ArrivedAt: e.HLC.Wall}); err != nil {
+	cur, err := s.Trip(p.TripID)
+	if err != nil {
+		return err
+	}
+	if cur == nil {
+		cur = &Trip{ID: p.TripID}
+	}
+	first := cur.ArrivedAt == nil || e.HLC.Wall < *cur.ArrivedAt
+	if cur.UpdatedHLC == nil && first {
+		// no plan: the earliest arrival names the homes and the date
+		cur.FromHomeID, cur.ToHomeID, cur.Date, cur.CreatedBy = p.FromHomeID, p.ToHomeID, e.HLC.Wall, e.PersonID
+	}
+	if first {
+		cur.ArrivedAt = ptr(e.HLC.Wall)
+	}
+	if err := s.PutTrip(*cur); err != nil {
 		return err
 	}
 	def, err := s.DefaultListID()

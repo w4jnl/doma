@@ -250,7 +250,15 @@ func TestSmoke(t *testing.T) {
 	// 6. the trip, derived on the phone as the spec says: out at to-home and
 	//    have at from-home is the bring list; arriving commits it
 	bring := []string{olie}
-	a.sync(t, household, a.event("trip.arrived", map[string]any{"trip_id": domain.NewID(), "from_home_id": homeID, "to_home_id": hut, "moved": bring}))
+	trip := domain.NewID()
+	a.sync(t, household, a.event("trip.planned", map[string]any{"trip_id": trip, "from_home_id": homeID, "to_home_id": hut, "date": 1_800_000_000_000, "list_id": listID}))
+	if planned := b.sync(t, household); len(planned.Events) != 1 || planned.Events[0].Kind != "trip.planned" {
+		t.Fatalf("b did not see the plan: %+v", planned)
+	}
+	a.sync(t, household, a.event("trip.arrived", map[string]any{"trip_id": trip, "from_home_id": homeID, "to_home_id": hut, "moved": bring}))
+	if hj := exportFile(t, b, household, "household.json"); !strings.Contains(hj, `"id": "`+trip+`"`) || !strings.Contains(hj, `"date": 1800000000000`) || !strings.Contains(hj, `"arrived_at"`) {
+		t.Fatalf("the trip in household.json:\n%s", hj)
+	}
 	homes = exportHomes(t, b, household)
 	if !strings.Contains(homes["homes/hut.md"], "olijfolie: have") || !strings.Contains(homes["homes/gouda.md"], "olijfolie: out") {
 		t.Fatalf("flags after the trip:\nhut:\n%s\ngouda:\n%s", homes["homes/hut.md"], homes["homes/gouda.md"])
@@ -318,6 +326,23 @@ func jpegBytes(t *testing.T, w, h int) []byte {
 // exportHomes downloads the export and returns the homes/*.md files.
 func exportHomes(t *testing.T, p *phone, household string) map[string]string {
 	t.Helper()
+	out := map[string]string{}
+	for name, body := range exportFiles(t, p, household) {
+		if strings.HasPrefix(name, "homes/") {
+			out[name] = body
+		}
+	}
+	return out
+}
+
+// exportFile downloads the export and returns one file of it.
+func exportFile(t *testing.T, p *phone, household, name string) string {
+	t.Helper()
+	return exportFiles(t, p, household)[name]
+}
+
+func exportFiles(t *testing.T, p *phone, household string) map[string]string {
+	t.Helper()
 	raw, _, err := p.Download(context.Background(), "/api/v1/h/"+household+"/export")
 	if err != nil {
 		t.Fatal(err)
@@ -328,9 +353,6 @@ func exportHomes(t *testing.T, p *phone, household string) map[string]string {
 	}
 	out := map[string]string{}
 	for _, f := range zr.File {
-		if !strings.HasPrefix(f.Name, "homes/") {
-			continue
-		}
 		rc, _ := f.Open()
 		b, _ := io.ReadAll(rc)
 		_ = rc.Close()

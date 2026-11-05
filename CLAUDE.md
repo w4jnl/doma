@@ -68,7 +68,9 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   Arrived), `Sync/Photos.swift` (the uploads after each exchange, `PhotoLoader` for the screens),
   the screens `HomesView`, `HomeView`, `PhotoView` with `SweepView` and `Camera`, `TripView`, the
   four tabs and the Mac's sidebar sections, with their pictures, logic tests
-  (`Tests/HomeLogicTests.swift`) and UI tests (a flag, a picture, a trip).
+  (`Tests/HomeLogicTests.swift`) and UI tests (a flag, a picture, a trip). Trips are planned and
+  shared: `trip.planned` and `trip.cancelled` in the fold (last-writer-wins plan, earliest cancel),
+  `trips` with `list_id`, `updated_hlc`, nullable `arrived_at` and `cancelled_at`.
   Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;

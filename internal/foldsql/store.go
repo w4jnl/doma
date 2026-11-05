@@ -460,8 +460,31 @@ func (s *Store) PutPhoto(p fold.Photo) error {
 	return s.q.InsertPhoto(s.ctx, db.InsertPhotoParams{ID: p.ID, HouseholdID: s.HouseholdID, SpotID: p.SpotID, TakenHlc: p.TakenAt.String(), TakenBy: p.TakenBy, Bytes: p.Bytes, Width: p.Width, Height: p.Height})
 }
 
+func (s *Store) Trip(id string) (*fold.Trip, error) {
+	r, err := s.q.GetTrip(s.ctx, db.GetTripParams{HouseholdID: s.HouseholdID, ID: id})
+	if noRows(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	t, err := tripOf(r)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+func tripOf(r db.Trip) (fold.Trip, error) {
+	u, err := hlcPtr(r.UpdatedHlc)
+	if err != nil {
+		return fold.Trip{}, err
+	}
+	return fold.Trip{ID: r.ID, FromHomeID: r.FromHomeID, ToHomeID: r.ToHomeID, Date: r.Date, CreatedBy: r.CreatedBy, ListID: r.ListID, UpdatedHLC: u, ArrivedAt: r.ArrivedAt, CancelledAt: r.CancelledAt}, nil
+}
+
 func (s *Store) PutTrip(t fold.Trip) error {
-	return s.q.InsertTrip(s.ctx, db.InsertTripParams{ID: t.ID, HouseholdID: s.HouseholdID, FromHomeID: t.FromHomeID, ToHomeID: t.ToHomeID, Date: t.Date, CreatedBy: t.CreatedBy, ArrivedAt: t.ArrivedAt})
+	return s.q.UpsertTrip(s.ctx, db.UpsertTripParams{ID: t.ID, HouseholdID: s.HouseholdID, FromHomeID: t.FromHomeID, ToHomeID: t.ToHomeID, Date: t.Date, CreatedBy: t.CreatedBy, ListID: t.ListID, UpdatedHlc: strPtr(t.UpdatedHLC), ArrivedAt: t.ArrivedAt, CancelledAt: t.CancelledAt})
 }
 
 // Tables reads every materialised table of the household, for tests and
@@ -558,7 +581,11 @@ func (s *Store) Tables() (fold.Tables, error) {
 		return t, err
 	}
 	for _, r := range trips {
-		t.Trips = append(t.Trips, fold.Trip{ID: r.ID, FromHomeID: r.FromHomeID, ToHomeID: r.ToHomeID, Date: r.Date, CreatedBy: r.CreatedBy, ArrivedAt: r.ArrivedAt})
+		tr, err := tripOf(r)
+		if err != nil {
+			return t, err
+		}
+		t.Trips = append(t.Trips, tr)
 	}
 	t.Sort()
 	return t, nil
