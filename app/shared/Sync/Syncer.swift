@@ -30,6 +30,9 @@ final class Syncer {
 
     /// One server's last word, for the Settings of a household on it; the fields above are
     /// every server's together, for the badge.
+    /// What the server said to the last picture it refused, for Settings.
+    var uploadError: String?
+
     struct ServerStatus: Equatable {
         var lastSyncedAt: Date?
         var lastError: String?
@@ -126,6 +129,7 @@ final class Syncer {
             var status = byServer[server.serverID] ?? ServerStatus()
             do {
                 if try await exchange(server) { sentAny = true }
+                await uploadPending(server)
                 status = ServerStatus(lastSyncedAt: Date())
             } catch ClientError.unauthorized {
                 // this device is revoked there: that server's store goes; with no other, the

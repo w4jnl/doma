@@ -1,6 +1,7 @@
 // The phone driven from outside against a real doma (scripts/ui-test.sh starts one and writes
 // tmp/live.json): join from a QR picture, add, strike and clear, add while offline and then
-// sync. Each test mints its own invite through the admin pages, so it starts from nothing.
+// sync, a flag, a picture, a trip. Each test mints its own invite through the admin pages, so
+// it starts from nothing.
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import XCTest
@@ -188,6 +189,113 @@ final class DomaUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["waiting"].exists, "everything went up")
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertFalse(app.descendants(matching: .any)["offline"].exists, "the badge is gone")
+    }
+
+    /// Homes: the first home is there from the household; a staple typed under Edit, flagged
+    /// out in the row, is on the shopping list.
+    func testFlagOutPutsItOnTheList() throws {
+        let live = try live()
+        let app = launch(join: try mintInvite(live))
+        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15))
+        app.tabBars.buttons["Homes"].tap()
+        let gouda = app.descendants(matching: .any)["home-Gouda"].firstMatch
+        XCTAssertTrue(gouda.waitForExistence(timeout: 10), "the household's first home is a card")
+        gouda.tap()
+        let edit = app.buttons["edit-home"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 10), "the home is open")
+        edit.tap()
+        let field = app.textFields["new-staple"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("olijfolie\n")
+        app.buttons["edit-home"].tap()
+        let out = app.buttons["flag-out-olijfolie"]
+        XCTAssertTrue(out.waitForExistence(timeout: 5), "an unanswered staple offers the three flags")
+        out.tap()
+        let flag = app.descendants(matching: .any)["flag-olijfolie"]
+        XCTAssertTrue(flag.waitForExistence(timeout: 5))
+        XCTAssertTrue(flag.label.contains("out"), "the row shows the flag as a word: \(flag.label)")
+        app.tabBars.buttons["Lists"].tap()
+        XCTAssertTrue(app.buttons["entry-olijfolie"].waitForExistence(timeout: 10), "out put it on the default list")
+    }
+
+    /// A spot made under Edit, a picture taken for it (a stand-in without a camera), shown as
+    /// the spot's picture.
+    func testAPictureOfASpot() throws {
+        let live = try live()
+        let app = launch(join: try mintInvite(live))
+        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15))
+        app.tabBars.buttons["Homes"].tap()
+        let gouda = app.descendants(matching: .any)["home-Gouda"].firstMatch
+        XCTAssertTrue(gouda.waitForExistence(timeout: 10))
+        gouda.tap()
+        let edit = app.buttons["edit-home"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 10), "the home is open")
+        edit.tap()
+        app.buttons["Spot"].tap()
+        let field = app.textFields["new-spot"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("Pantry\n")
+        app.buttons["edit-home"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["spot-Pantry"].waitForExistence(timeout: 5), "the spot is in the strip")
+        app.buttons["take-photos"].tap()
+        let shutter = app.buttons["shutter"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10), "the camera screen is up")
+        shutter.tap()
+        // one spot: the picture leaves the camera screen by itself
+        let spot = app.descendants(matching: .any)["spot-Pantry"]
+        XCTAssertTrue(spot.waitForExistence(timeout: 10), "back on the home")
+        spot.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["photo"].waitForExistence(timeout: 10), "the spot's picture is shown")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'taken'")).firstMatch.waitForExistence(timeout: 5), "with when it was taken")
+    }
+
+    /// Two homes, melk have here and out there: the trip says bring it; Arrived moves the flag.
+    func testTripDerivedAndArrived() throws {
+        let live = try live()
+        let app = launch(join: try mintInvite(live))
+        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15))
+        app.tabBars.buttons["Homes"].tap()
+        app.buttons["new-home"].tap()
+        let name = app.textFields["new-home-name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Hut\n")
+        // melk is a staple of both; have in Gouda, out at the hut
+        for (home, flag) in [("home-Gouda", "flag-have-melk"), ("home-Hut", "flag-out-melk")] {
+            let card = app.descendants(matching: .any)[home].firstMatch
+            XCTAssertTrue(card.waitForExistence(timeout: 10), home)
+            card.tap()
+            let edit = app.buttons["edit-home"]
+            XCTAssertTrue(edit.waitForExistence(timeout: 10), "the home is open")
+            edit.tap()
+            let field = app.textFields["new-staple"]
+            XCTAssertTrue(field.waitForExistence(timeout: 5))
+            field.tap()
+            field.typeText("melk\n")
+            app.buttons["edit-home"].tap()
+            let button = app.buttons[flag]
+            XCTAssertTrue(button.waitForExistence(timeout: 5), flag)
+            button.tap()
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+        }
+        app.tabBars.buttons["Trip"].tap()
+        let bring = app.descendants(matching: .any)["bring-melk"].firstMatch
+        XCTAssertTrue(bring.waitForExistence(timeout: 10), "melk is on the bring list")
+        let arrived = app.descendants(matching: .any)["arrived"].firstMatch
+        XCTAssertFalse(arrived.isEnabled, "nothing packed yet")
+        bring.tap()
+        XCTAssertTrue(arrived.isEnabled)
+        arrived.tap()
+        XCTAssertFalse(bring.waitForExistence(timeout: 5), "melk is at the hut now")
+        app.tabBars.buttons["Homes"].tap()
+        let hut = app.descendants(matching: .any)["home-Hut"].firstMatch
+        XCTAssertTrue(hut.waitForExistence(timeout: 10))
+        hut.tap()
+        let flag = app.descendants(matching: .any)["flag-melk"]
+        XCTAssertTrue(flag.waitForExistence(timeout: 10))
+        XCTAssertTrue(flag.label.contains("have"), "the trip moved the flag: \(flag.label)")
     }
 
     func testInviteShowsAQR() throws {

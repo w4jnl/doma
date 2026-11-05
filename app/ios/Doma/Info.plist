@@ -40,7 +40,7 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.lifestyle</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan your family's invite.</string>
+	<string>Scan your family's invite and take a picture of a spot before you leave.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock doma with Face ID.</string>
 	<key>NSMicrophoneUsageDescription</key>

@@ -68,8 +68,12 @@ What doma does about it:
   personal lists that nobody else can see, even through the log.
 - **History** from day one: every cleared entry keeps item, quantity, who and when, for the
   export now and for overviews later.
-- **Homes, spots, flags, trips**: in phase 1; the log, the fold and the tables are built for
-  them already, and the guest page shows a home's missing staples.
+- **Homes, spots, flags, trips**: a flag per item per home, have, low or out, fading to unknown
+  when nobody has looked for a while; staples a home should always have; out puts the item on
+  the list for that home. A spot keeps a picture, taken before leaving, scaled and stripped on
+  the server, five per spot within the household's quota. A trip from one home to the other is
+  derived from the two homes' flags: bring, buy, check on arrival; Arrived moves the flags in
+  one go. The guest page shows a home's missing staples.
 - **Guest links**: an owner gives the cleaner or a visiting relative a link to one home and one
   list, valid a week, revocable, with add, strike and clear and nothing else about the family.
 - **Admin pages** for the operator: households as counts and metadata, the owner invite,
@@ -81,10 +85,10 @@ What doma does about it:
 
 ## Scope and status
 
-doma is one family's app, published in the shape of its siblings. Phase 0 is the server:
-identity, the fold, sync, snapshots, export, push, the admin pages and the guest view. The
-iPhone and Mac apps under `app/` are next, then homes and trips, then a second family from the
-App Store. The roadmap and every design decision are in [`docs/design.md`](docs/design.md); the
+doma is one family's app, published in the shape of its siblings. Phase 0, the server and the
+lists in the iPhone and Mac apps under `app/`, is in the family's hands; phase 1, homes, flags,
+photos and trips, is built and waits for its gate, one trip between two homes with nothing
+bought twice and nothing missing. Then a second family from the App Store. The roadmap and every design decision are in [`docs/design.md`](docs/design.md); the
 brand and UI rules in [`docs/design-system/`](docs/design-system/README.md).
 
 ## How it works

@@ -29,7 +29,7 @@ struct SettingsView: View {
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
     /// Phase 1 brings the Homes tab and with it the flags setting.
-    static let homesArrived = false
+    static let homesArrived = true
 
     var body: some View {
         List {
@@ -128,11 +128,9 @@ struct SettingsView: View {
             .listRowBackground(FamilyView.rowGround)
             .listRowSeparatorTint(Tokens.line)
             #endif
-            // the flags' staleness belongs to Homes and arrives with the Homes tab in phase 1;
-            // until then Settings shows only what works
             if Self.homesArrived, isOwner, !(homes?.value ?? []).isEmpty {
                 Section {
-                    Stepper(value: $staleness, in: 1...365, step: 1) {
+                    Stepper(value: $staleness, in: 14...365, step: 1) {
                         LabeledContent("Ask again after") {
                             Text("\(Int(staleness)) days")
                                 .font(Tokens.mono(.body))
@@ -270,7 +268,7 @@ struct SettingsView: View {
             InviteSheet(invite: inv)
         }
         .onAppear {
-            staleness = Double(session.current?.stalenessDays ?? 14)
+            staleness = Double(session.current?.stalenessDays ?? Int64(Staleness.defaultDays))
             #if os(iOS)
             Task { notifications = await PushDelegate.notificationsAllowed() }
             #endif

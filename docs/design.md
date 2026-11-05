@@ -561,11 +561,11 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 
 **Phase 1 — homes and trips** (gate: one trip between two homes with nothing bought twice and nothing missing)
 
-- [ ] Homes, spots, staples, flags with staleness; `flag.set out` → default list rule
-- [ ] Trip derivation on the client, `trip.arrived`, history
-- [ ] Photos: capture, upload, thumbnails, quota, departure sweep
-- [ ] Guest links and the guest view
-- [ ] Home and Trip screens, Dutch and Slovak strings
+- [x] Homes, spots, staples, flags with staleness; `flag.set out` → default list rule
+- [x] Trip derivation on the client, `trip.arrived`, history
+- [x] Photos: capture, upload, thumbnails, quota, departure sweep
+- [x] Guest links and the guest view
+- [x] Home and Trip screens, Dutch and Slovak strings
 
 **Phase 2 — public install** (gate: a second family onboards from the App Store with no help beyond the QR)
 

@@ -1,5 +1,5 @@
 // RootView is the first screen before any household, Scan, and the household's screens after:
-// two tabs on the phone (Lists, Family; Homes and Trip come in phase 1), a sidebar on the Mac.
+// four tabs on the phone (Lists, Homes, Trip, Family), a sidebar on the Mac.
 import SwiftUI
 
 struct RootView: View {

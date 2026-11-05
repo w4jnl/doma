@@ -61,7 +61,14 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   for an accepted `photo.added`, the picture and its thumbnail for a member's signed request or
   a link the server signs for an hour), retention per spot, the quota before and after the
   body, the nightly reconcile from disk, photos in the export and the bytes on the admin pages.
-  Not yet: Homes, Home and Trip in the apps, and the photo capture (phase 1, steps 4 to 6).
+  Phase 1 in the apps: `Store/HomeQueries.swift` (flag rows with staleness, home cards, spots
+  with their newest picture, a spot's photos, trips with what moved), `Store/HomeActions.swift`
+  (flags, staples, homes, spots, a picture: `Pictures` scales and encodes, `PhotoFiles` keeps it
+  pending on disk until it goes up), `Store/TripActions.swift` (`TripPlan.derive`, Add to list,
+  Arrived), `Sync/Photos.swift` (the uploads after each exchange, `PhotoLoader` for the screens),
+  the screens `HomesView`, `HomeView`, `PhotoView` with `SweepView` and `Camera`, `TripView`, the
+  four tabs and the Mac's sidebar sections, with their pictures, logic tests
+  (`Tests/HomeLogicTests.swift`) and UI tests (a flag, a picture, a trip).
   Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;

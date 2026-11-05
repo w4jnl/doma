@@ -1,9 +1,8 @@
-// The Mac: a sidebar with the lists and Family, the list in the main pane. New list sits at the
-// foot of the sidebar and opens into a small form there, no sheet; a right-click on a list
-// offers Rename, Colour, Share with the family on a personal list, and Archive, armed in place
-// like everywhere. Keyboard: ⌘N new list,
-// return adds, space or ⌫ strikes the selected row, ⌘⌫ clears, ⌘1 and ⌘4 the sections (⌘2 and
-// ⌘3 arrive with Homes and Trip).
+// The Mac: a sidebar with the lists, the homes, Trip and Family, the screen in the main pane.
+// New list sits at the foot of the sidebar and opens into a small form there, no sheet; a
+// right-click on a list offers Rename, Colour, Share with the family on a personal list, and
+// Archive, armed in place like everywhere. Keyboard: ⌘N new list, return adds, space or ⌫
+// strikes the selected row, ⌘⌫ clears, ⌘1 to ⌘4 the sections.
 #if os(macOS)
 import SwiftUI
 
@@ -12,6 +11,7 @@ struct MacMainView: View {
     @Environment(MacNav.self) private var nav
     @State private var lists: Live<[ListSummary]>?
     @State private var marks: Live<[OpenMark]>?
+    @State private var homes: Live<[HomeRow]>?
     @State private var selection: Selection? = .lists
     @State private var adding = false
     @State private var newName = ""
@@ -26,6 +26,9 @@ struct MacMainView: View {
     enum Selection: Hashable {
         case lists
         case list(String)
+        case homes
+        case home(String)
+        case trip
         case family
     }
 
@@ -48,6 +51,18 @@ struct MacMainView: View {
                     }
                 }
                 Section {
+                    ForEach(homes?.value ?? []) { h in
+                        Label { Text(h.name) } icon: { Symbol.home.image }
+                            .tag(Selection.home(h.id))
+                    }
+                    Label("All homes", systemImage: "plus")
+                        .tag(Selection.homes)
+                } header: {
+                    Text("Homes")
+                }
+                Section {
+                    Label("Trip", systemImage: "suitcase")
+                        .tag(Selection.trip)
                     Label("Family", systemImage: "person.2")
                         .tag(Selection.family)
                 }
@@ -64,6 +79,13 @@ struct MacMainView: View {
             case .list(let id):
                 NavigationStack { ListView(listID: id) }
                     .id(id)
+            case .homes:
+                NavigationStack { HomesView(pick: { selection = .home($0) }) }
+            case .home(let id):
+                NavigationStack { HomeView(homeID: id) }
+                    .id(id)
+            case .trip:
+                NavigationStack { TripView() }
             case .family:
                 NavigationStack { FamilyView() }
             default:
@@ -80,11 +102,18 @@ struct MacMainView: View {
             guard let scope = session.scope else { return }
             lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
             marks = Live(session.store, initial: []) { db in try Queries.openMarks(db, scope) }
+            homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }
             if case .lists = selection {
                 // the list or screen last in front in this household, else the first list
                 let remembered = UITestHooks.testing ? nil : UserDefaults.standard.string(forKey: "mac.selection." + scope.serverID + "/" + scope.householdID)
                 if remembered == "family" {
                     selection = .family
+                } else if remembered == "trip" {
+                    selection = .trip
+                } else if remembered == "homes" {
+                    selection = .homes
+                } else if let r = remembered, r.hasPrefix("home:"), homes?.value.contains(where: { $0.id == String(r.dropFirst(5)) }) == true {
+                    selection = .home(String(r.dropFirst(5)))
                 } else if let id = remembered, lists?.value.contains(where: { $0.id == id }) == true {
                     selection = .list(id)
                 } else if let first = lists?.value.first {
@@ -96,6 +125,9 @@ struct MacMainView: View {
             guard let h = session.currentRef?.key else { return }
             switch now {
             case .list(let id): UserDefaults.standard.set(id, forKey: "mac.selection." + h)
+            case .home(let id): UserDefaults.standard.set("home:" + id, forKey: "mac.selection." + h)
+            case .homes: UserDefaults.standard.set("homes", forKey: "mac.selection." + h)
+            case .trip: UserDefaults.standard.set("trip", forKey: "mac.selection." + h)
             case .family: UserDefaults.standard.set("family", forKey: "mac.selection." + h)
             default: break
             }
@@ -106,11 +138,22 @@ struct MacMainView: View {
                 selection = now.first.map { .list($0.id) }
             }
         }
+        .onChange(of: homes?.value) { _, now in
+            if case .home(let id) = selection, let now, !now.contains(where: { $0.id == id }) {
+                selection = .homes
+            }
+        }
         .navigationSplitViewStyle(.balanced)
         .background {
-            // ⌘1 the lists, ⌘4 Family (⌘2 and ⌘3 arrive with Homes and Trip)
+            // ⌘1 the lists, ⌘2 the homes, ⌘3 Trip, ⌘4 Family
             Button("") { if let first = lists?.value.first { selection = .list(first.id) } }
                 .keyboardShortcut("1", modifiers: .command)
+                .hidden()
+            Button("") { selection = (homes?.value.first).map { .home($0.id) } ?? .homes }
+                .keyboardShortcut("2", modifiers: .command)
+                .hidden()
+            Button("") { selection = .trip }
+                .keyboardShortcut("3", modifiers: .command)
                 .hidden()
             Button("") { selection = .family }
                 .keyboardShortcut("4", modifiers: .command)

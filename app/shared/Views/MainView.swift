@@ -1,4 +1,4 @@
-// The phone's tabs: Lists and Family in phase 0, Homes and Trip between them from phase 1. The
+// The phone's four tabs: Lists, Homes, Trip and Family. The
 // Lists tab opens into the last-used list, the default list the first time, with the overview
 // behind a Lists button at the top left and a second tap on the tab; a switcher over households
 // takes the title's place when the person is in more than one. The badge on the icon is what
@@ -15,7 +15,7 @@ struct MainView: View {
     @State private var tab = UITestHooks.testing ? Tab.lists : (Tab(rawValue: UserDefaults.standard.string(forKey: "tab.current") ?? "") ?? .lists)
     @State private var listsAgain = 0
 
-    enum Tab: String, Hashable { case lists, family }
+    enum Tab: String, Hashable { case lists, homes, trip, family }
 
     /// The tab on screen; tapping Lists while it is already up steps between the list and the
     /// overview, the way a tab's second tap goes to its root.
@@ -32,6 +32,16 @@ struct MainView: View {
         TabView(selection: selection) {
             SwiftUI.Tab("Lists", systemImage: "list.bullet", value: Tab.lists) {
                 ListsHome(again: listsAgain)
+            }
+            SwiftUI.Tab("Homes", image: Symbol.home.name, value: Tab.homes) {
+                NavigationStack {
+                    HomesView()
+                }
+            }
+            SwiftUI.Tab("Trip", systemImage: "suitcase", value: Tab.trip) {
+                NavigationStack {
+                    TripView()
+                }
             }
             SwiftUI.Tab("Family", systemImage: "person.2", value: Tab.family) {
                 NavigationStack {

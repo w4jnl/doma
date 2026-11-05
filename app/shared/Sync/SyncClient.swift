@@ -172,6 +172,22 @@ struct SyncClient: Sendable {
         let _: Empty = try await send("DELETE", path, body: Optional<Int>.none, signed: true)
     }
 
+    /// A picture up, by its photo id's path, as image/jpeg; the answer is what the server kept.
+    func upload(_ path: String, jpeg: Data) async throws -> Data {
+        var r = try request(method: "POST", url: baseURL.appendingPathComponent(path), body: jpeg, signed: true)
+        r.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+        let (data, response) = try await perform(r)
+        try check(response, data)
+        return data
+    }
+
+    /// A picture down, by its path, with the device's signature.
+    func download(_ path: String) async throws -> Data {
+        let (data, response) = try await perform(try request(method: "GET", url: baseURL.appendingPathComponent(path), body: nil, signed: true))
+        try check(response, data)
+        return data
+    }
+
     struct Empty: Decodable {
         init() {}
         init(from decoder: Decoder) throws {}

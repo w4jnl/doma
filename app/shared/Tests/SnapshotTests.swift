@@ -91,6 +91,32 @@ final class SnapshotTests: XCTestCase {
             ev("e4", Kind.entryAdded, EntryPayload(listID: "L1", itemID: "I4", qty: 500, unit: "g")),
             ev("c4", Kind.entryChecked, EntryPayload(listID: "L1", itemID: "I4")),
             ev("e6", Kind.entryAdded, EntryPayload(listID: "L2", itemID: "I1")),
+            // homes and trips: a second home, staples at both, flags of every age, two spots
+            ev("h2", Kind.homeCreated, HomePayload(homeID: "H", name: "Hut")),
+            ev("s1", Kind.spotCreated, SpotPayload(spotID: "P", homeID: "G", name: "Pantry")),
+            ev("s2", Kind.spotCreated, SpotPayload(spotID: "F", homeID: "G", name: "Fridge")),
+            ev("t1", Kind.stapleAdded, StaplePayload(homeID: "G", itemID: "I1")),
+            ev("t2", Kind.stapleAdded, StaplePayload(homeID: "G", itemID: "I2")),
+            ev("t3", Kind.stapleAdded, StaplePayload(homeID: "G", itemID: "I4")),
+            ev("t4", Kind.stapleAdded, StaplePayload(homeID: "G", itemID: "I5")),
+            ev("t5", Kind.stapleAdded, StaplePayload(homeID: "H", itemID: "I1")),
+            ev("t6", Kind.stapleAdded, StaplePayload(homeID: "H", itemID: "I2")),
+            ev("t7", Kind.stapleAdded, StaplePayload(homeID: "H", itemID: "I3")),
+            ev("t8", Kind.stapleAdded, StaplePayload(homeID: "H", itemID: "I4")),
+        ], scope: session.scope!, clock: nil)
+        // flags carry their own stamps: fresh, past half the staleness (14 days here), and stale
+        var seq = Int64(wall / 1000)
+        func flag(_ id: String, _ home: String, _ item: String, _ state: String, daysAgo: Int64) -> SyncEvent {
+            seq += 1
+            return SyncEvent(seq: seq, id: id, personID: "pb", hlc: "\(millis(Self.now) - daysAgo * 86_400_000):0:b", kind: Kind.flagSet, payload: FlagPayload(homeID: home, itemID: item, state: state).jsonValue)
+        }
+        try store.applyRemote([
+            flag("f1", "G", "I1", "have", daysAgo: 1),
+            flag("f2", "G", "I2", "low", daysAgo: 9),
+            flag("f3", "G", "I4", "out", daysAgo: 2),
+            flag("f4", "H", "I1", "out", daysAgo: 1),
+            flag("f5", "H", "I3", "have", daysAgo: 3),
+            flag("f6", "H", "I4", "low", daysAgo: 3),
         ], scope: session.scope!, clock: nil)
     }
 
@@ -98,6 +124,8 @@ final class SnapshotTests: XCTestCase {
         RelativeText.now = { Date() }
         UITestHooks.noCamera = false
         UserDefaults.standard.removeObject(forKey: "shop." + shopping)
+        UserDefaults.standard.removeObject(forKey: "trip.S1/H1.from")
+        UserDefaults.standard.removeObject(forKey: "trip.S1/H1.to")
     }
 
     func family() -> FamilyModel {
@@ -123,6 +151,18 @@ final class SnapshotTests: XCTestCase {
     func testList() async throws {
         let id = shopping
         try await check("list") { NavigationStack { ListView(listID: id, overview: {}) } }
+    }
+
+    func testHomes() async throws {
+        try await check("homes") { NavigationStack { HomesView() } }
+    }
+
+    func testHome() async throws {
+        try await check("home") { NavigationStack { HomeView(homeID: "G") } }
+    }
+
+    func testTrip() async throws {
+        try await check("trip") { NavigationStack { TripView() } }
     }
 
     func testFamily() async throws {
