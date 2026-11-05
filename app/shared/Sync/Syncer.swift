@@ -28,6 +28,19 @@ final class Syncer {
     /// Events the server refused, kept for Settings and the log.
     private(set) var rejected: [(id: String, reason: String)] = []
 
+    /// One server's last word, for the Settings of a household on it; the fields above are
+    /// every server's together, for the badge.
+    struct ServerStatus: Equatable {
+        var lastSyncedAt: Date?
+        var lastError: String?
+        var offline = false
+        var failures = 0
+    }
+    private(set) var byServer: [String: ServerStatus] = [:]
+
+    /// The last word of one server.
+    func status(for serverID: String) -> ServerStatus { byServer[serverID] ?? ServerStatus() }
+
     /// One family's doma: its client, the clock that stamps events there and the households.
     struct Server {
         var serverID: String
@@ -110,20 +123,30 @@ final class Syncer {
         var lost = false
         var problem: String?
         for server in servers {
+            var status = byServer[server.serverID] ?? ServerStatus()
             do {
                 if try await exchange(server) { sentAny = true }
+                status = ServerStatus(lastSyncedAt: Date())
             } catch ClientError.unauthorized {
                 // this device is revoked there: that server's store goes; with no other, the
                 // app returns to Scan
+                byServer[server.serverID] = nil
                 revoked(server.serverID)
+                continue
             } catch ClientError.rateLimited(let wait) {
                 ok = false
-                problem = problem ?? "Too many requests; waiting \(Int(wait)) s"
+                status.lastError = "Too many requests; waiting \(Int(wait)) s"
+                problem = problem ?? status.lastError
             } catch let e as ClientError {
                 ok = false
-                if e.isOffline { lost = true }
-                if case .problem(let p) = e { problem = problem ?? p.message }
-                if case .badResponse(let code) = e { problem = problem ?? "Unexpected answer (\(code))" }
+                if e.isOffline {
+                    lost = true
+                    status.failures += 1
+                }
+                status.offline = status.failures >= 2
+                if case .problem(let p) = e { status.lastError = p.message }
+                if case .badResponse(let code) = e { status.lastError = "Unexpected answer (\(code))" }
+                problem = problem ?? status.lastError
                 let limit = Self.eventsPerRequest
                 try? await store.db.write { db in
                     for scope in server.scopes {
@@ -133,8 +156,12 @@ final class Syncer {
             } catch {
                 ok = false
                 lost = true
-                problem = problem ?? error.localizedDescription
+                status.failures += 1
+                status.offline = status.failures >= 2
+                status.lastError = error.localizedDescription
+                problem = problem ?? status.lastError
             }
+            byServer[server.serverID] = status
         }
         if ok {
             if offline, sentAny { caughtUpAt = Date() }

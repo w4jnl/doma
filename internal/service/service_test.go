@@ -307,6 +307,21 @@ func TestDevices(t *testing.T) {
 	if me.Person.LastSeenAt == nil {
 		t.Error("Touch did not set last_seen_at")
 	}
+	// the write is once a minute per credential: a device syncing every five seconds is not
+	// two writes per request on the one writer
+	first := *me.Person.LastSeenAt
+	s.SetClock(func() time.Time { return time.Now().Add(30 * time.Second) })
+	s.Touch(ctx, stranger.CredentialID, stranger.PersonID)
+	me, _ = s.Me(ctx, stranger.PersonID)
+	if *me.Person.LastSeenAt != first {
+		t.Error("Touch wrote again inside a minute")
+	}
+	s.SetClock(func() time.Time { return time.Now().Add(service.TouchEvery + time.Second) })
+	s.Touch(ctx, stranger.CredentialID, stranger.PersonID)
+	me, _ = s.Me(ctx, stranger.PersonID)
+	if *me.Person.LastSeenAt == first {
+		t.Error("Touch did not write again after a minute")
+	}
 	s.SetClock(func() time.Time { return time.Now().Add(8 * 24 * time.Hour) })
 	inv4, _ := s.CreateInvite(ctx, domain.Scope{HouseholdID: other.ID, Role: domain.RoleOwner}, domain.RoleMember)
 	s.SetClock(func() time.Time { return time.Now().Add(16 * 24 * time.Hour) })

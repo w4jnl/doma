@@ -12,6 +12,11 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var staleness: Double = 14
     @State private var waiting: Live<Int>?
+
+    /// The household in front's doma, as the syncer last found it.
+    private var status: Syncer.ServerStatus {
+        session.scope.map { session.syncer.status(for: $0.serverID) } ?? Syncer.ServerStatus()
+    }
     @State private var homes: Live<[HomeRow]>?
     @State private var deviceInvite: Invite?
     @State private var makingDevice = false
@@ -230,7 +235,7 @@ struct SettingsView: View {
                     Text(session.context?.baseURL.host ?? "")
                         .font(Tokens.mono(.body))
                 }
-                if let at = session.syncer.lastSyncedAt {
+                if let at = status.lastSyncedAt ?? session.syncer.lastSyncedAt {
                     LabeledContent("Last refreshed") {
                         RelativeText(millis: millis(at))
                     }
@@ -242,7 +247,8 @@ struct SettingsView: View {
                     }
                     .accessibilityIdentifier("waiting")
                 }
-                ProblemLine(text: session.syncer.lastError)
+                // this doma's word; the one line every doma shares is the missing key
+                ProblemLine(text: status.lastError ?? (session.key == nil ? session.syncer.lastError : nil))
             } header: {
                 SectionHeader("About")
             }

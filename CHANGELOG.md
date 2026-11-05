@@ -6,6 +6,12 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Settings speaks for the doma in front.** With two domas on one device, Last refreshed and
+  any trouble line in Settings are those of the household in front's doma, not the last doma the
+  app happened to reach.
+- **Lighter on the server.** A device that only pulls no longer waits in the writer's queue,
+  and its last-seen is written once a minute instead of on every request; with many devices
+  those two were most of the writes the server made and the slow tail of a sync.
 ## 0.3.0 (2026-11-05)
 
 Two families' domas on one device, and items said with a breath between them.
