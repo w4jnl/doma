@@ -64,7 +64,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.lifestyle
         NSHumanReadableCopyright: w4j.nl
-        NSCameraUsageDescription: Scan your family's invite.
+        NSCameraUsageDescription: Scan your family's invite and take a picture of a spot before you leave.
         NSMicrophoneUsageDescription: Say an item onto a list. The words are made on this Mac; the sound is never kept.
         NSSpeechRecognitionUsageDescription: Your speech is turned into words on this Mac, for the list. The sound is never kept.
         CFBundleURLTypes:

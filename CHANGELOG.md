@@ -6,6 +6,15 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Homes, flags and trips in the apps.** Two new tabs. Homes shows each home with what it
+  misses and its spots' pictures, and makes a home. A home lists its staples with the flag as
+  glyph and word, the age once it passes half the staleness, three small buttons on a staple
+  nobody has answered for, then the other items flagged there and the trips through it; Edit
+  adds staples and spots and removes them; Take photos walks the spots with the camera and the
+  pictures go up once their event is accepted. Trip derives Bring, Buy and Check on arrival
+  from two homes' flags, adds what to buy to the list, and Arrived moves the packed items'
+  flags in one go. The Mac has the same screens in its sidebar, with ⌘2 and ⌘3. Settings'
+  staleness is 14 to 365 days. Every new word in Dutch and Slovak.
 - **Photos of a spot reach the server.** A picture taken for a spot is kept by the server once
   its photo.added is accepted: decoded and written again as a JPEG with nothing but the pixels,
   at most 1600 px on the long side, with a 320 px thumbnail; a spot keeps the newest five and

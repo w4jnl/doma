@@ -34,7 +34,7 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.lifestyle</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan your family's invite.</string>
+	<string>Scan your family's invite and take a picture of a spot before you leave.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>w4j.nl</string>
 	<key>NSMicrophoneUsageDescription</key>

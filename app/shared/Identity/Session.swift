@@ -44,6 +44,9 @@ final class Session {
         var key: String { serverID + "/" + householdID }
     }
 
+    /// The pictures the screens show, by photo id.
+    @ObservationIgnored private(set) lazy var photos = PhotoLoader(session: self)
+
     init(store: DomaStore) {
         self.store = store
         syncer = Syncer(store: store,
@@ -150,6 +153,7 @@ final class Session {
             if hs.isEmpty {
                 // the last household there is gone: the server goes with it, the key stays
                 try? store.wipe(serverID: c.serverID)
+                PhotoFiles.wipe(server: c.serverID)
                 continue
             }
             kept.append(c)
@@ -361,6 +365,7 @@ final class Session {
     func forgetServer(_ serverID: String? = nil) {
         if let id = serverID ?? context?.serverID {
             try? store.wipe(serverID: id)
+            PhotoFiles.wipe(server: id)
         }
         reload()
     }

@@ -33,6 +33,38 @@
         }
       }
     },
+    "%@, %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%@, %@, %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$@, %3$@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$@, %3$@"
+          }
+        }
+      }
+    },
     "%@, %lld to get": {
       "localizations": {
         "nl": {
@@ -45,6 +77,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@, %2$lld na kúpu"
+          }
+        }
+      }
+    },
+    "%@, no picture yet": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, nog geen foto"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, zatiaľ bez fotky"
           }
         }
       }
@@ -77,6 +125,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld máme"
+          }
+        }
+      }
+    },
+    "%lld missing": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld niet in huis"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld chýba"
+          }
+        }
+      }
+    },
+    "%lld of %lld": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld van %2$lld"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld z %2$lld"
           }
         }
       }
@@ -209,6 +289,22 @@
         }
       }
     },
+    "A home is a place the family keeps things: the house, the hut, the boat. Tap + to add one.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een huis is een plek waar het gezin spullen heeft: het huis, de hut, de boot. Tik op + om er een toe te voegen."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domov je miesto, kde má rodina veci: dom, chata, loď. Ťukni na + a pridaj jeden."
+          }
+        }
+      }
+    },
     "A list only you see. Tap + and choose Just me.": {
       "localizations": {
         "nl": {
@@ -221,6 +317,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zoznam, ktorý vidíš len ty. Ťukni na + a vyber Len ja."
+          }
+        }
+      }
+    },
+    "A trip goes from one home to another. Add a second home under Homes and this tab says what to bring and what to buy.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een reis gaat van het ene huis naar het andere. Voeg onder Huizen een tweede huis toe en dit tabblad zegt wat mee moet en wat gekocht moet worden."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cesta vedie z jedného domova do druhého. Pridaj druhý domov v Domovoch a táto karta povie, čo vziať a čo kúpiť."
           }
         }
       }
@@ -289,6 +401,54 @@
         }
       }
     },
+    "Add a second home and the Trip tab says what to bring from one to the other.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg een tweede huis toe en het tabblad Reis zegt wat van het ene naar het andere mee moet."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridaj druhý domov a karta Cesta povie, čo vziať z jedného do druhého."
+          }
+        }
+      }
+    },
+    "Add a staple": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basisartikel toevoegen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridať zásobu"
+          }
+        }
+      }
+    },
+    "Add all": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles toevoegen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridať všetko"
+          }
+        }
+      }
+    },
     "Add an item": {
       "localizations": {
         "nl": {
@@ -301,6 +461,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pridať položku"
+          }
+        }
+      }
+    },
+    "Add to list": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Op de lijst"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na zoznam"
           }
         }
       }
@@ -321,6 +497,38 @@
         }
       }
     },
+    "All homes": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle huizen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Všetky domovy"
+          }
+        }
+      }
+    },
+    "All there": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles er"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Všetko je"
+          }
+        }
+      }
+    },
     "Allow": {
       "localizations": {
         "nl": {
@@ -333,6 +541,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Povoliť"
+          }
+        }
+      }
+    },
+    "Also here": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ook hier"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aj tu"
           }
         }
       }
@@ -353,6 +577,38 @@
         }
       }
     },
+    "Arrived": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aangekomen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prišli sme"
+          }
+        }
+      }
+    },
+    "Arrived with %lld": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aangekomen met %lld"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prišli sme s %lld"
+          }
+        }
+      }
+    },
     "Ask again after": {
       "localizations": {
         "nl": {
@@ -365,6 +621,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spýtať sa znova po"
+          }
+        }
+      }
+    },
+    "At %@ and wanted at %@. Tick what you pack.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In %1$@ en gewenst in %2$@. Vink aan wat je inpakt."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je v %1$@ a treba v %2$@. Odškrtni, čo balíš."
+          }
+        }
+      }
+    },
+    "Bring": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meenemen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vziať"
+          }
+        }
+      }
+    },
+    "Buy": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kúpiť"
           }
         }
       }
@@ -397,6 +701,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zrušiť"
+          }
+        }
+      }
+    },
+    "Check on arrival": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bij aankomst nakijken"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skontrolovať po príchode"
           }
         }
       }
@@ -497,6 +817,22 @@
         }
       }
     },
+    "Create home": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Huis maken"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vytvoriť domov"
+          }
+        }
+      }
+    },
     "Create list": {
       "localizations": {
         "nl": {
@@ -509,6 +845,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vytvoriť zoznam"
+          }
+        }
+      }
+    },
+    "Date": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dátum"
           }
         }
       }
@@ -625,6 +977,22 @@
         }
       }
     },
+    "From": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Van"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odkiaľ"
+          }
+        }
+      }
+    },
     "Getting the %@ speech model, once": {
       "localizations": {
         "nl": {
@@ -733,6 +1101,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Domov"
+          }
+        }
+      }
+    },
+    "Home name": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naam van het huis"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Názov domova"
+          }
+        }
+      }
+    },
+    "Homes": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Huizen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domovy"
           }
         }
       }
@@ -1041,6 +1441,22 @@
         }
       }
     },
+    "Make a staple": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maak basisartikel"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Urobiť zásobou"
+          }
+        }
+      }
+    },
     "Make the link": {
       "localizations": {
         "nl": {
@@ -1121,6 +1537,22 @@
         }
       }
     },
+    "New home": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuw huis"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nový domov"
+          }
+        }
+      }
+    },
     "New list": {
       "localizations": {
         "nl": {
@@ -1133,6 +1565,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nový zoznam"
+          }
+        }
+      }
+    },
+    "New spot, like pantry or fridge": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuwe plek, zoals voorraadkast of koelkast"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nové miesto, napríklad špajza alebo chladnička"
+          }
+        }
+      }
+    },
+    "No camera here": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen camera hier"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu nie je kamera"
           }
         }
       }
@@ -1153,6 +1617,38 @@
         }
       }
     },
+    "No picture of this spot yet. Take one before you leave.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog geen foto van deze plek. Maak er een voor je vertrekt."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toto miesto ešte nemá fotku. Odfoť ho, kým odídeš."
+          }
+        }
+      }
+    },
+    "No staples yet": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog geen basisartikelen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zatiaľ žiadne zásoby"
+          }
+        }
+      }
+    },
     "Not accepted": {
       "localizations": {
         "nl": {
@@ -1165,6 +1661,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Neprijaté"
+          }
+        }
+      }
+    },
+    "Nothing to bring or buy, as far as the flags say.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niets mee te nemen of te kopen, voor zover de vlaggen weten."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie je čo vziať ani kúpiť, aspoň podľa značiek."
           }
         }
       }
@@ -1569,6 +2081,22 @@
         }
       }
     },
+    "Skip": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overslaan"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preskočiť"
+          }
+        }
+      }
+    },
     "Sky": {
       "localizations": {
         "nl": {
@@ -1601,6 +2129,102 @@
         }
       }
     },
+    "Spot": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plek"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Miesto"
+          }
+        }
+      }
+    },
+    "Staple": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basisartikel"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zásoba"
+          }
+        }
+      }
+    },
+    "Staples": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basisartikelen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zásoby"
+          }
+        }
+      }
+    },
+    "Staples are what this home should always have. Tap Edit to add them; when one runs out, flag it and it goes on the list.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basisartikelen horen altijd in dit huis te zijn. Tik op Bewerken om ze toe te voegen; is er een op, zet de vlag en het komt op de lijst."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zásoby sú to, čo má tento domov vždy mať. Ťukni na Upraviť a pridaj ich; keď niečo dôjde, označ to a pôjde na zoznam."
+          }
+        }
+      }
+    },
+    "Staples of %@ nobody has flagged lately.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basisartikelen van %@ die niemand onlangs heeft gevlagd."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zásoby domova %@, ktoré nikto nedávno neoznačil."
+          }
+        }
+      }
+    },
+    "Still there?": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog steeds aanwezig?"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ešte je?"
+          }
+        }
+      }
+    },
     "Stop listening": {
       "localizations": {
         "nl": {
@@ -1613,6 +2237,70 @@
           "stringUnit": {
             "state": "translated",
             "value": "Prestať počúvať"
+          }
+        }
+      }
+    },
+    "Swap from and to": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Van en naar wisselen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vymeniť odkiaľ a kam"
+          }
+        }
+      }
+    },
+    "Take a picture": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maak een foto"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odfotiť miesto"
+          }
+        }
+      }
+    },
+    "Take photos": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto's maken"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odfotiť miesta"
+          }
+        }
+      }
+    },
+    "Take the picture": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maak de foto"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odfotiť"
           }
         }
       }
@@ -1761,6 +2449,22 @@
         }
       }
     },
+    "To": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naar"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kam"
+          }
+        }
+      }
+    },
     "Too many requests. Try again in a moment.": {
       "localizations": {
         "nl": {
@@ -1773,6 +2477,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Priveľa požiadaviek. Skús to o chvíľu."
+          }
+        }
+      }
+    },
+    "Trip": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reis"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cesta"
+          }
+        }
+      }
+    },
+    "Trips": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reizen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cesty"
           }
         }
       }
@@ -1933,6 +2669,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Čaká na odoslanie"
+          }
+        }
+      }
+    },
+    "Wanted at %@ and not at %@.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gewenst in %1$@ en niet in %2$@."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treba v %1$@ a nie je v %2$@."
           }
         }
       }
@@ -2129,6 +2881,22 @@
         }
       }
     },
+    "have": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aanwezig"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "máme"
+          }
+        }
+      }
+    },
     "last bought": {
       "localizations": {
         "nl": {
@@ -2157,6 +2925,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "naposledy videné"
+          }
+        }
+      }
+    },
+    "low": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bijna op"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dochádza"
           }
         }
       }
@@ -2209,6 +2993,22 @@
         }
       }
     },
+    "on the list": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "op de lijst"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "na zozname"
+          }
+        }
+      }
+    },
     "open": {
       "localizations": {
         "nl": {
@@ -2221,6 +3021,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "otvorené"
+          }
+        }
+      }
+    },
+    "out": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "op"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "došlo"
           }
         }
       }
@@ -2241,6 +3057,70 @@
         }
       }
     },
+    "packed, %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ingepakt, %@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zbalené, %@"
+          }
+        }
+      }
+    },
+    "picture from %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "foto van %@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fotka z %@"
+          }
+        }
+      }
+    },
+    "taken": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gemaakt"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "odfotené"
+          }
+        }
+      }
+    },
+    "taken by %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gemaakt door %@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "odfotil %@"
+          }
+        }
+      }
+    },
     "this one": {
       "localizations": {
         "nl": {
@@ -2253,6 +3133,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "toto"
+          }
+        }
+      }
+    },
+    "unknown": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "onbekend"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nevieme"
           }
         }
       }
