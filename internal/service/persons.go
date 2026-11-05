@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/w4jnl/doma/internal/db"
 	"github.com/w4jnl/doma/internal/domain"
@@ -105,6 +106,16 @@ func (s *Service) MembershipFor(ctx context.Context, personID, householdID strin
 // returned: nothing a caller can do about them.
 func (s *Service) Touch(ctx context.Context, credentialID, personID string) {
 	now := s.nowMs()
+	s.touchMu.Lock()
+	if s.touched == nil {
+		s.touched = map[string]int64{}
+	}
+	if last, ok := s.touched[credentialID]; ok && now-last < TouchEvery.Milliseconds() {
+		s.touchMu.Unlock()
+		return
+	}
+	s.touched[credentialID] = now
+	s.touchMu.Unlock()
 	q := s.db.Write()
 	if err := q.TouchCredential(ctx, db.TouchCredentialParams{LastUsedAt: &now, ID: credentialID}); err != nil {
 		s.log.Warn("touch credential", "err", err)
@@ -113,6 +124,10 @@ func (s *Service) Touch(ctx context.Context, credentialID, personID string) {
 		s.log.Warn("touch person", "err", err)
 	}
 }
+
+// TouchEvery is how often a device's last-seen is written: a sync every five seconds from
+// two hundred devices would otherwise be two writes each on the one writer.
+const TouchEvery = time.Minute
 
 // Members lists the household's members and owners with their names.
 func (s *Service) Members(ctx context.Context, sc domain.Scope) ([]domain.Member, error) {

@@ -50,6 +50,11 @@ type Service struct {
 	keyring *secrets.Keyring
 	snapMu  sync.Mutex
 	lastRun time.Time
+	// touched is when each credential was last written as seen, so the
+	// bookkeeping of a device that syncs every few seconds is one write a
+	// minute, not one per request on the single writer.
+	touchMu sync.Mutex
+	touched map[string]int64
 }
 
 // New builds the service. The server's own events carry the device id

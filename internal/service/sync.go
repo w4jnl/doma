@@ -167,7 +167,7 @@ func visible(kind string, payload []byte, owners map[string]string, personID str
 func (s *Service) syncHousehold(ctx context.Context, v *events.Validator, personID, credentialID string, hh SyncHousehold) (*SyncHouseholdResult, error) {
 	res := &SyncHouseholdResult{ID: hh.ID, Accepted: []string{}, Rejected: []Rejected{}, Events: []SyncEvent{}, Next: hh.Since}
 	var lastSeq int64
-	err := s.db.Tx(ctx, func(q *db.Queries) error {
+	exchange := func(q *db.Queries) error {
 		owners, err := listOwners(ctx, q, hh.ID)
 		if err != nil {
 			return err
@@ -246,7 +246,15 @@ func (s *Service) syncHousehold(ctx context.Context, v *events.Validator, person
 			res.Events = append(res.Events, SyncEvent{Seq: r.Seq, ID: r.ID, PersonID: r.PersonID, HLC: r.Hlc, Kind: r.Kind, Payload: json.RawMessage(r.Payload)})
 		}
 		return nil
-	})
+	}
+	// a device with nothing to send only reads: on the reader pool, not queued behind every
+	// other device on the one writer, which is where a sync's slow tail came from
+	var err error
+	if len(hh.Events) == 0 {
+		err = s.db.ReadTx(ctx, exchange)
+	} else {
+		err = s.db.Tx(ctx, exchange)
+	}
 	if err != nil {
 		return nil, err
 	}
