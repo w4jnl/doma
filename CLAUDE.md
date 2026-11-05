@@ -144,8 +144,8 @@ the fold can rebuild from the log, and a test proves it.
   brotli, cairosvg and Playwright's Chromium).
 - `make mac-project`, `make mac-build`, `make mac-test`, `make mac-run`: the Mac app (Xcode 26+,
   XcodeGen); `make ios-project`, `make ios-build`, `make ios-test`, `make ios-device`,
-  `make ios-testflight`: the iOS app in the simulator, its tests, on a connected iPhone, or uploaded
-  for TestFlight. `make ui-test` runs the UI tests and the live test against a throwaway server;
+  `make ios-testflight` (`V=0.3.0` stamps the version): the iOS app in the simulator, its tests, on
+  a connected iPhone, or uploaded for TestFlight. `make ui-test` runs the UI tests and the live test against a throwaway server;
   `make snapshots` records the screen pictures the test suites compare against, after a change
   to a screen.
 - `make mac-release V=<version>`: doma for Mac signed with the Developer ID, notarized and

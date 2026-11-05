@@ -182,11 +182,12 @@ ios-device: ios-project
 
 # TestFlight: a Release archive, exported for App Store Connect and uploaded (ExportOptions.plist;
 # Xcode raises the build number when the one in project.yml is taken). The app's record for
-# nl.w4j.doma must exist in App Store Connect.
+# nl.w4j.doma must exist in App Store Connect. V=0.3.0 stamps the release's version on the
+# build, as the Mac release does; without it project.yml's version stands.
 ios-testflight: ios-project
-	@echo "ios-testflight: archiving and uploading $(IOS) (the key's ids stay out of the log)"
+	@echo "ios-testflight: archiving and uploading $(IOS)$(if $(V), as $(V)) (the key's ids stay out of the log)"
 	@cd $(IOS) && rm -rf build/Doma.xcarchive build/export && \
-	xcodebuild -project Doma.xcodeproj -scheme Doma -configuration Release -destination 'generic/platform=iOS' -derivedDataPath build/DerivedData -archivePath build/Doma.xcarchive -allowProvisioningUpdates $(IOS_ASC_AUTH) archive -quiet && \
+	xcodebuild -project Doma.xcodeproj -scheme Doma -configuration Release -destination 'generic/platform=iOS' -derivedDataPath build/DerivedData -archivePath build/Doma.xcarchive -allowProvisioningUpdates $(IOS_ASC_AUTH) $(if $(V),MARKETING_VERSION=$(V) CURRENT_PROJECT_VERSION=$(shell echo $(V) | awk -F. '{print $$1 * 10000 + $$2 * 100 + $$3}')) archive -quiet && \
 	xcodebuild -exportArchive -archivePath build/Doma.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath build/export -allowProvisioningUpdates $(IOS_ASC_AUTH)
 
 brand: ## regenerate tokens.css, assets/brand and assets/icons (needs fontTools, brotli, cairosvg, playwright)

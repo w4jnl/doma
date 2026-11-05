@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+## 0.3.0 (2026-11-05)
+
+Two families' domas on one device, and items said with a breath between them.
+
 - **Items said with a breath between them come apart.** The words are timed, so a short
   silence between two of them parts them like a comma; names said in one go stay whole.
 - **Two families' domas on one device.** An invite from another doma no longer bounces: the app
