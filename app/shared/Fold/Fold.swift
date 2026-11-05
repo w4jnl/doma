@@ -38,6 +38,10 @@ enum Fold {
             try Lists.applySpot(s, e)
         case Kind.photoAdded:
             try Flags.applyPhotoAdded(s, e)
+        case Kind.tripPlanned:
+            try Flags.applyTripPlanned(s, e)
+        case Kind.tripCancelled:
+            try Flags.applyTripCancelled(s, e)
         case Kind.tripArrived:
             try Flags.applyTripArrived(s, e)
         default:

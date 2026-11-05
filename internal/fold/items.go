@@ -232,6 +232,14 @@ func replayCatalog(s Store) error {
 			return err
 		}
 	}
+	// an entry that changed hands between two of these items was counted
+	// for the one re-derived first while it still held it; count again now
+	// that every row is where it belongs
+	for _, id := range owners {
+		if err := s.RecountItemUsage(id); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

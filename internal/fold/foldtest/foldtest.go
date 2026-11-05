@@ -201,7 +201,7 @@ func Generate(rnd *rand.Rand, n int) []fold.Event {
 	}
 	for len(out) < n {
 		dev := rnd.IntN(2)
-		switch rnd.IntN(20) {
+		switch rnd.IntN(21) {
 		case 0, 1, 2:
 			add(dev, "item.named", map[string]any{"item_id": pick(itemIDs), "name": pick(names)})
 		case 3:
@@ -240,6 +240,17 @@ func Generate(rnd *rand.Rand, n int) []fold.Event {
 			add(dev, "list.renamed", map[string]any{"list_id": pick(listIDs), "name": pick([]string{"Weekend", "Hut", "Cabin"}), "colour": "teal"})
 		case 19:
 			add(dev, "trip.arrived", map[string]any{"trip_id": fmt.Sprintf("T%d", len(out)), "from_home_id": "H1", "to_home_id": "H2", "moved": []string{pick(itemIDs), pick(itemIDs)}})
+		case 20:
+			// plans, cancels and arrivals of a few shared trip ids, in any order
+			trip := pick([]string{"TA", "TB", "TC"})
+			switch pick([]string{"plan", "plan", "cancel", "arrive"}) {
+			case "plan":
+				add(dev, "trip.planned", map[string]any{"trip_id": trip, "from_home_id": pick(homeIDs), "to_home_id": pick(homeIDs), "date": int64(1_700_000_000_000 + rnd.IntN(30)*86_400_000), "list_id": pick(listIDs)})
+			case "cancel":
+				add(dev, "trip.cancelled", map[string]any{"trip_id": trip})
+			default:
+				add(dev, "trip.arrived", map[string]any{"trip_id": trip, "from_home_id": "H1", "to_home_id": "H2", "moved": []string{pick(itemIDs)}})
+			}
 		}
 	}
 	return out

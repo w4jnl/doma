@@ -56,13 +56,13 @@ enum Kind {
     static let homeCreated = "home.created", homeRenamed = "home.renamed", homeArchived = "home.archived"
     static let spotCreated = "spot.created", spotRenamed = "spot.renamed", spotArchived = "spot.archived"
     static let photoAdded = "photo.added"
-    static let tripArrived = "trip.arrived"
+    static let tripPlanned = "trip.planned", tripCancelled = "trip.cancelled", tripArrived = "trip.arrived"
     static let memberRemoved = "member.removed", deviceRevoked = "device.revoked"
 
     static let all = [itemNamed, itemRenamed, itemMerged, listCreated, listRenamed, listArchived,
                       entryAdded, entryEdited, entryChecked, entryUnchecked, entryCleared, entryMoved,
                       flagSet, stapleAdded, stapleRemoved, homeCreated, homeRenamed, homeArchived,
-                      spotCreated, spotRenamed, spotArchived, photoAdded, tripArrived, memberRemoved, deviceRevoked]
+                      spotCreated, spotRenamed, spotArchived, photoAdded, tripPlanned, tripCancelled, tripArrived, memberRemoved, deviceRevoked]
 }
 
 // MARK: Payloads
@@ -165,6 +165,19 @@ struct TripPayload: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case moved
         case tripID = "trip_id", fromHomeID = "from_home_id", toHomeID = "to_home_id"
+    }
+}
+
+/// trip.planned and trip.cancelled: the plan the family shares.
+struct TripPlanPayload: Codable, Sendable {
+    var tripID: String
+    var fromHomeID: String?
+    var toHomeID: String?
+    var date: Int64?
+    var listID: String?
+    enum CodingKeys: String, CodingKey {
+        case date
+        case tripID = "trip_id", fromHomeID = "from_home_id", toHomeID = "to_home_id", listID = "list_id"
     }
 }
 

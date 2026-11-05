@@ -161,6 +161,38 @@
         }
       }
     },
+    "%lld to bring": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld mee te nemen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld vziať"
+          }
+        }
+      }
+    },
+    "%lld to buy": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld te kopen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kúpiť"
+          }
+        }
+      }
+    },
     "%lld to get": {
       "localizations": {
         "nl": {
@@ -561,6 +593,22 @@
         }
       }
     },
+    "Another trip to %@ comes first; what it misses shows there.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een eerdere reis naar %@ gaat voor; wat daar ontbreekt staat daar."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skoršia cesta do %@ má prednosť; čo tam chýba, je uvedené tam."
+          }
+        }
+      }
+    },
     "Archive": {
       "localizations": {
         "nl": {
@@ -701,6 +749,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zrušiť"
+          }
+        }
+      }
+    },
+    "Cancel trip": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reis annuleren"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zrušiť cestu"
           }
         }
       }
@@ -1089,6 +1153,22 @@
         }
       }
     },
+    "History": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geschiedenis"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "História"
+          }
+        }
+      }
+    },
     "Home": {
       "localizations": {
         "nl": {
@@ -1393,6 +1473,22 @@
         }
       }
     },
+    "List, %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lijst, %@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoznam, %@"
+          }
+        }
+      }
+    },
     "Lists": {
       "localizations": {
         "nl": {
@@ -1585,6 +1681,22 @@
         }
       }
     },
+    "New trip": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuwe reis"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nová cesta"
+          }
+        }
+      }
+    },
     "No camera here": {
       "localizations": {
         "nl": {
@@ -1645,6 +1757,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zatiaľ žiadne zásoby"
+          }
+        }
+      }
+    },
+    "No trip planned yet. Tap + to plan one: where from, where to, when, and which list to shop on.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog geen reis gepland. Tik op + om er een te plannen: van waar, naar waar, wanneer, en met welke lijst."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zatiaľ žiadna naplánovaná cesta. Ťukni na + a naplánuj: odkiaľ, kam, kedy a s ktorým zoznamom."
           }
         }
       }
@@ -1745,6 +1873,38 @@
         }
       }
     },
+    "Plan": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plannen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naplánovať"
+          }
+        }
+      }
+    },
+    "Plan a trip": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reis plannen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naplánovať cestu"
+          }
+        }
+      }
+    },
     "Plum": {
       "localizations": {
         "nl": {
@@ -1805,6 +1965,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Naozaj archivovať?"
+          }
+        }
+      }
+    },
+    "Really cancel?": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Echt annuleren?"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naozaj zrušiť?"
           }
         }
       }
@@ -2593,6 +2769,22 @@
         }
       }
     },
+    "Upcoming": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komend"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nadchádzajúce"
+          }
+        }
+      }
+    },
     "Valid once, for 7 days, as": {
       "localizations": {
         "nl": {
@@ -2781,6 +2973,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tvoje meno, ako ho vidí rodina"
+          }
+        }
+      }
+    },
+    "cancelled": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "geannuleerd"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zrušená"
           }
         }
       }

@@ -248,8 +248,15 @@ enum Catalog {
         }
         let aliases = c.aliases.map { ItemAlias(itemID: c.resolve($0.value), normName: $0.key) }.filter { !pseudo.contains($0.itemID) }.sorted { $0.normName < $1.normName }
         try s.replaceAliases(aliases)
-        for id in changed.sorted() where c.resolve(id) == id && !pseudo.contains(id) {
+        let owners = changed.sorted().filter { c.resolve($0) == $0 && !pseudo.contains($0) }
+        for id in owners {
             try rederiveItem(s, id)
+        }
+        // an entry that changed hands between two of these items was counted for the one
+        // re-derived first while it still held it; count again now that every row is where it
+        // belongs
+        for id in owners {
+            try s.recountItemUsage(id)
         }
     }
 

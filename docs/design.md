@@ -185,7 +185,7 @@ Eighteen tables. Four are instance-level (persons, credentials, households, admi
 | `flags` | `household_id`, `home_id`, `item_id`, `state` (`have` / `low` / `out`), `set_hlc`, `set_by`, `note` | primary key (`home_id`, `item_id`); staleness is computed at read time from `set_hlc`, never stored |
 | `staples` | `household_id`, `home_id`, `item_id`, `sort` | the items a home should always have; the trip view and the home view are built from this set |
 | `photos` | `id`, `household_id`, `spot_id`, `taken_hlc`, `taken_by`, `path`, `thumb_path`, `bytes`, `width`, `height` | files under `photos.dir/<household_id>/`; the newest per spot is current; older ones kept until `retention.photos_per_spot` |
-| `trips` | `id`, `household_id`, `from_home_id`, `to_home_id`, `date`, `created_by`, `arrived_at` | a trip is a view until the person taps *Arrived*, which commits the bring list as flag changes; stored so the history shows what moved |
+| `trips` | `id`, `household_id`, `from_home_id`, `to_home_id`, `date`, `created_by`, `list_id`, `updated_hlc`, `arrived_at`, `cancelled_at` | a planned trip the family shares: from, to, a date and the list it shops on; its bring and buy lists are a view until the person taps *Arrived*, which commits the bring list as flag changes and sets `arrived_at`; a cancelled trip keeps `cancelled_at`; stored so the history shows what moved |
 | `push_log` | `household_id`, `credential_id`, `sent_at`, `seq` | coalescing: at most one push per device per 30 s |
 
 **Tenancy rules the agent must enforce in code and tests**
@@ -231,7 +231,9 @@ The server adds `seq`, `person_id`, `credential_id` and `received_at` on append.
 | `staple.added` / `staple.removed` | `home_id`, `item_id` | add-wins, remove-wins only if newer than the latest add |
 | `home.created` / `home.renamed` / `home.archived`, `spot.*` | `home_id`, `spot_id`, `name` | as for lists |
 | `photo.added` | `photo_id`, `spot_id`, `bytes`, `width`, `height` | append; the blob is uploaded separately by `photo_id`; the fold marks the photo current if its `hlc` is newest for the spot |
-| `trip.arrived` | `trip_id`, `from_home_id`, `to_home_id`, `moved` (list of `item_id`) | for each moved item: `flag.set out` at from-home and `have` at to-home with the trip's `hlc`; one event so a trip is atomic |
+| `trip.planned` | `trip_id`, `from_home_id`, `to_home_id`, `date`, `list_id` | the plan the family shares; add-wins for create, LWW on `hlc` for from, to, date, list and planner |
+| `trip.cancelled` | `trip_id` | sets `cancelled_at` at the earliest cancel; a cancel that lands before its plan makes the row the plan then fills |
+| `trip.arrived` | `trip_id`, `from_home_id`, `to_home_id`, `moved` (list of `item_id`) | for each moved item: `flag.set out` at from-home and `have` at to-home with the trip's `hlc`; one event so a trip is atomic; sets `arrived_at`; a trip nobody planned takes the arrival's homes and wall |
 | `member.removed`, `device.revoked` | `person_id`, `credential_id` | server-originated; clients drop the membership or stop syncing that credential |
 
 Rules that hold for every kind: events are idempotent by `id`; the fold is deterministic given the same ordered events; a client folds its own events optimistically at creation and again when they come back with `seq`, with identical result; an unknown `kind` is stored and skipped by the fold, so an old app survives a new server.
@@ -331,9 +333,10 @@ Any tap sets any flag directly; the drawn arrows are the paths the app takes on 
 
 **Trips**
 
-- A trip is from-home → to-home, created from the Trip tab with two pickers and a date (default today). It is a derived view until *Arrived*.
-- Bring = items that are `out` or `low` at to-home and `have` at from-home. Buy = items that are `out` or `low` at to-home and not `have` at from-home, plus every open entry on any shared list with `for_home_id = to-home`. Unknown counts as not `have` at from-home and not `out` at to-home; the trip screen lists unknown staples of to-home in a third group, *Check on arrival*.
-- Each bring row has a checkbox for packing; each buy row a *Add to list* button that creates an entry with `for_home_id = to-home`. *Add all* for the buy group.
+- A trip is from-home → to-home on a date, shopping on one shared list (the household's default unless chosen otherwise). The Trip tab lists the upcoming trips by date, nearest first, then the past ones; `+` plans one with two pickers, a date and the list; Edit changes them and Cancel, armed in place, drops it. The plan is shared through the log; its bring and buy lists are a derived view until *Arrived*.
+- A to-home's needs show on the nearest upcoming trip to that home and nowhere else; a later trip to the same home shows only what is still missing once the earlier one has arrived. Bring is judged against each trip's own from-home. Chains do not anticipate: B → C sees what B has now and refreshes once A → B has arrived.
+- Bring = items that are `out` or `low` at to-home and `have` at from-home. Buy = items that are `out` or `low` at to-home and not `have` at from-home, plus every open entry on the trip's list with `for_home_id = to-home`. Unknown counts as not `have` at from-home and not `out` at to-home; the trip screen lists unknown staples of to-home in a third group, *Check on arrival*.
+- Each bring row has a checkbox for packing; each buy row a *Add to list* button that creates an entry with `for_home_id = to-home` on the trip's list, and names the list; a long-press offers the other shared lists for a one-off. *Add all* for the buy group. "On the list" means open on the trip's list for that home; what sits on another list, the regular groceries, is not the trip's business.
 - *Arrived* commits one `trip.arrived` event with the packed items; the fold flags them `out` at from-home and `have` at to-home with the trip's `hlc`. Items not packed are left alone. The trip then shows in History with what moved.
 - Two members on the same trip see the same derived view; packing checkboxes are local to the device until *Arrived*, by design: the event is the record, not the checkboxes.
 
@@ -350,7 +353,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it, and the mic at its end; swipe left for Edit, long-press to drag | `item.named`, `entry.*` |
 | Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails; `+` makes a home, Rename and Archive on the row (a trip needs a second home and nothing else makes one) | `home.*` |
 | Home | staples with flag buttons; other flagged items; the trips through the home; *Take photos*; manage staples and spots behind Edit | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
-| Trip | from/to pickers, date; Bring, Buy, Check on arrival groups; *Arrived* | `entry.added`, `trip.arrived` |
+| Trip | the upcoming trips by date, then the past ones; `+` plans one (from, to, date, list); a trip opens into Bring, Buy, Check on arrival and *Arrived*; Edit and Cancel on the row | `trip.planned`, `trip.cancelled`, `entry.added`, `trip.arrived` |
 | Family | household name, members with role and last seen, pending invites, guest links, Invite (prominent), Guest link, Settings, Leave; Remove and Revoke behind a swipe, armed in the row; household switcher at the top when the person is in more than one | invites and guests through the REST API, not events |
 | Settings | this device's name, notifications (on, or a way to allow them; a switch per shared list and one for clears), the lock with Face ID or Touch ID, staleness (owners), the person's devices with Revoke and *Add a device* (a QR the new device scans to join as the same person), About with the lockup, server name and version | REST |
 

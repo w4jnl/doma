@@ -1577,6 +1577,237 @@
           }
         ]
       }
+    },
+    {
+      "name": "a planned trip is shared: the later plan wins on date and list, arriving keeps the plan and fills arrived_at",
+      "events": [
+        {
+          "id": "h1",
+          "person_id": "pa",
+          "hlc": "500:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H1",
+            "name": "Gouda"
+          }
+        },
+        {
+          "id": "h2",
+          "person_id": "pa",
+          "hlc": "501:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H2",
+            "name": "Hut"
+          }
+        },
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "olijfolie"
+          }
+        },
+        {
+          "id": "p1",
+          "person_id": "pa",
+          "hlc": "1500:0:a",
+          "kind": "trip.planned",
+          "payload": {
+            "trip_id": "T1",
+            "from_home_id": "H1",
+            "to_home_id": "H2",
+            "date": 1700000,
+            "list_id": "L1"
+          }
+        },
+        {
+          "id": "p2",
+          "person_id": "pb",
+          "hlc": "1600:0:b",
+          "kind": "trip.planned",
+          "payload": {
+            "trip_id": "T1",
+            "from_home_id": "H1",
+            "to_home_id": "H2",
+            "date": 1800000,
+            "list_id": "L1"
+          }
+        },
+        {
+          "id": "t1",
+          "person_id": "pa",
+          "hlc": "2000:0:a",
+          "kind": "trip.arrived",
+          "payload": {
+            "trip_id": "T1",
+            "from_home_id": "H1",
+            "to_home_id": "H2",
+            "moved": [
+              "I1"
+            ]
+          }
+        }
+      ],
+      "expect": {
+        "homes": [
+          {
+            "id": "H1",
+            "name": "Gouda",
+            "updated_hlc": "500:0:a"
+          },
+          {
+            "id": "H2",
+            "name": "Hut",
+            "updated_hlc": "501:0:a"
+          }
+        ],
+        "items": [
+          {
+            "id": "I1",
+            "name": "olijfolie",
+            "norm_name": "olijfolie",
+            "use_count": 1,
+            "last_used_at": 2000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "t1:I1",
+            "list_id": "L1",
+            "item_id": "I1",
+            "for_home_id": "H1",
+            "sort": 2000,
+            "added_hlc": "2000:0:a",
+            "added_by": "pa"
+          }
+        ],
+        "flags": [
+          {
+            "home_id": "H1",
+            "item_id": "I1",
+            "state": "out",
+            "set_hlc": "2000:0:a",
+            "set_by": "pa"
+          },
+          {
+            "home_id": "H2",
+            "item_id": "I1",
+            "state": "have",
+            "set_hlc": "2000:0:a",
+            "set_by": "pa"
+          }
+        ],
+        "trips": [
+          {
+            "id": "T1",
+            "from_home_id": "H1",
+            "to_home_id": "H2",
+            "date": 1800000,
+            "created_by": "pb",
+            "list_id": "L1",
+            "updated_hlc": "1600:0:b",
+            "arrived_at": 2000
+          }
+        ]
+      }
+    },
+    {
+      "name": "a cancel sticks whichever side of the plan it lands",
+      "events": [
+        {
+          "id": "h1",
+          "person_id": "pa",
+          "hlc": "500:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H1",
+            "name": "Gouda"
+          }
+        },
+        {
+          "id": "h2",
+          "person_id": "pa",
+          "hlc": "501:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "H2",
+            "name": "Hut"
+          }
+        },
+        {
+          "id": "p1",
+          "person_id": "pa",
+          "hlc": "1500:0:a",
+          "kind": "trip.planned",
+          "payload": {
+            "trip_id": "T2",
+            "from_home_id": "H1",
+            "to_home_id": "H2",
+            "date": 1700000,
+            "list_id": "L1"
+          }
+        },
+        {
+          "id": "c1",
+          "person_id": "pb",
+          "hlc": "1550:0:b",
+          "kind": "trip.cancelled",
+          "payload": {
+            "trip_id": "T2"
+          }
+        }
+      ],
+      "expect": {
+        "homes": [
+          {
+            "id": "H1",
+            "name": "Gouda",
+            "updated_hlc": "500:0:a"
+          },
+          {
+            "id": "H2",
+            "name": "Hut",
+            "updated_hlc": "501:0:a"
+          }
+        ],
+        "trips": [
+          {
+            "id": "T2",
+            "from_home_id": "H1",
+            "to_home_id": "H2",
+            "date": 1700000,
+            "created_by": "pa",
+            "list_id": "L1",
+            "updated_hlc": "1500:0:a",
+            "cancelled_at": 1550
+          }
+        ]
+      }
     }
   ]
 }

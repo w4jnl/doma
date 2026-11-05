@@ -7,12 +7,6 @@ import GRDB
 enum Schema {
     static var migrator: DatabaseMigrator {
         var m = DatabaseMigrator()
-        defer {
-            // v2: what the fold's recount and the catalog's last-bought hint look entries up by
-            m.registerMigration("v2") { db in
-                try db.create(indexOn: "entries", columns: ["server_id", "household_id", "item_id"])
-            }
-        }
         m.registerMigration("v1") { db in
             try db.create(table: "contexts") { t in
                 t.column("server_id", .text).primaryKey()
@@ -193,6 +187,32 @@ enum Schema {
                 t.primaryKey(["server_id", "household_id", "id"])
             }
         }
+        // after v1, in order: a defer here would run after the struct was copied out
+        // v2: what the fold's recount and the catalog's last-bought hint look entries up by
+        m.registerMigration("v2") { db in
+            try db.create(indexOn: "entries", columns: ["server_id", "household_id", "item_id"])
+        }
+        // v3: trips are planned before they are walked: the list they shop on, the plan's
+        // stamp, arrived_at only once arrived, cancelled_at; SQLite cannot loosen a NOT NULL
+        m.registerMigration("v3") { db in
+            try db.create(table: "trips_new") { t in
+                t.column("server_id", .text).notNull()
+                t.column("household_id", .text).notNull()
+                t.column("id", .text).notNull()
+                t.column("from_home_id", .text).notNull().defaults(to: "")
+                t.column("to_home_id", .text).notNull().defaults(to: "")
+                t.column("date", .integer).notNull().defaults(to: 0)
+                t.column("created_by", .text).notNull().defaults(to: "")
+                t.column("list_id", .text)
+                t.column("updated_hlc", .text)
+                t.column("arrived_at", .integer)
+                t.column("cancelled_at", .integer)
+                t.primaryKey(["server_id", "household_id", "id"])
+            }
+            try db.execute(sql: "INSERT INTO trips_new (server_id, household_id, id, from_home_id, to_home_id, date, created_by, arrived_at) SELECT server_id, household_id, id, from_home_id, to_home_id, date, created_by, arrived_at FROM trips")
+            try db.drop(table: "trips")
+            try db.rename(table: "trips_new", to: "trips")
+        }
         return m
     }
 
@@ -307,12 +327,12 @@ extension Photo {
 
 extension Trip {
     init(row r: Row) {
-        self.init(id: r["id"], fromHomeID: r["from_home_id"], toHomeID: r["to_home_id"], date: r["date"], createdBy: r["created_by"], arrivedAt: r["arrived_at"])
+        self.init(id: r["id"], fromHomeID: r["from_home_id"], toHomeID: r["to_home_id"], date: r["date"], createdBy: r["created_by"], listID: r["list_id"], updatedHLC: HLC(column: r["updated_hlc"]), arrivedAt: r["arrived_at"], cancelledAt: r["cancelled_at"])
     }
     func arguments(_ s: Scope) -> StatementArguments {
-        [s.serverID, s.householdID, id, fromHomeID, toHomeID, date, createdBy, arrivedAt]
+        [s.serverID, s.householdID, id, fromHomeID, toHomeID, date, createdBy, listID, updatedHLC?.description, arrivedAt, cancelledAt]
     }
-    static let insert = "INSERT OR IGNORE INTO trips (server_id, household_id, id, from_home_id, to_home_id, date, created_by, arrived_at) VALUES (?,?,?,?,?,?,?,?)"
+    static let insert = "INSERT OR REPLACE INTO trips (server_id, household_id, id, from_home_id, to_home_id, date, created_by, list_id, updated_hlc, arrived_at, cancelled_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
 }
 
 extension Event {

@@ -143,13 +143,19 @@ type Photo struct {
 	Height  int64      `json:"height"`
 }
 
+// Trip is a planned trip (trip.planned, last-writer-wins on UpdatedHLC for
+// from, to, date, list and planner), arrived (ArrivedAt), cancelled
+// (CancelledAt), or arrived without a plan (the arrival's wall as its date).
 type Trip struct {
-	ID         string `json:"id"`
-	FromHomeID string `json:"from_home_id"`
-	ToHomeID   string `json:"to_home_id"`
-	Date       int64  `json:"date"`
-	CreatedBy  string `json:"created_by"`
-	ArrivedAt  int64  `json:"arrived_at"`
+	ID          string      `json:"id"`
+	FromHomeID  string      `json:"from_home_id"`
+	ToHomeID    string      `json:"to_home_id"`
+	Date        int64       `json:"date"`
+	CreatedBy   string      `json:"created_by"`
+	ListID      *string     `json:"list_id"`
+	UpdatedHLC  *domain.HLC `json:"updated_hlc"`
+	ArrivedAt   *int64      `json:"arrived_at"`
+	CancelledAt *int64      `json:"cancelled_at"`
 }
 
 // Store is the fold's view of one household's tables and log. Get methods
@@ -206,6 +212,7 @@ type Store interface {
 	Spot(id string) (*Spot, error)
 	PutSpot(Spot) error
 	PutPhoto(Photo) error
+	Trip(id string) (*Trip, error)
 	PutTrip(Trip) error
 }
 
@@ -220,7 +227,7 @@ var Kinds = []string{
 	"home.created", "home.renamed", "home.archived",
 	"spot.created", "spot.renamed", "spot.archived",
 	"photo.added",
-	"trip.arrived",
+	"trip.planned", "trip.cancelled", "trip.arrived",
 	"member.removed", "device.revoked",
 }
 
@@ -250,6 +257,10 @@ func Apply(s Store, e Event) error {
 		return applySpot(s, e)
 	case "photo.added":
 		return applyPhotoAdded(s, e)
+	case "trip.planned":
+		return applyTripPlanned(s, e)
+	case "trip.cancelled":
+		return applyTripCancelled(s, e)
 	case "trip.arrived":
 		return applyTripArrived(s, e)
 	case "member.removed", "device.revoked":

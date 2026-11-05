@@ -61,6 +61,7 @@ protocol FoldStore {
     func spot(_ id: String) throws -> Spot?
     func putSpot(_ spot: Spot) throws
     func putPhoto(_ photo: Photo) throws
+    func trip(_ id: String) throws -> Trip?
     func putTrip(_ trip: Trip) throws
 }
 

@@ -227,6 +227,10 @@ struct SQLFoldStore: FoldStore {
         try db.execute(sql: Photo.insert, arguments: photo.arguments(scope))
     }
 
+    func trip(_ id: String) throws -> Trip? {
+        try Row.fetchOne(db, sql: "SELECT * FROM trips WHERE server_id = ? AND household_id = ? AND id = ?", arguments: [scope.serverID, scope.householdID, id]).map(Trip.init(row:))
+    }
+
     func putTrip(_ trip: Trip) throws {
         try db.execute(sql: Trip.insert, arguments: trip.arguments(scope))
     }

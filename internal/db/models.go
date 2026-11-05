@@ -209,5 +209,8 @@ type Trip struct {
 	ToHomeID    string
 	Date        int64
 	CreatedBy   string
-	ArrivedAt   int64
+	ListID      *string
+	UpdatedHlc  *string
+	ArrivedAt   *int64
+	CancelledAt *int64
 }

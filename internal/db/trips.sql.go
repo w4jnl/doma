@@ -9,37 +9,35 @@ import (
 	"context"
 )
 
-const insertTrip = `-- name: InsertTrip :exec
-INSERT INTO trips (id, household_id, from_home_id, to_home_id, date, created_by, arrived_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(id) DO NOTHING
+const getTrip = `-- name: GetTrip :one
+SELECT id, household_id, from_home_id, to_home_id, date, created_by, list_id, updated_hlc, arrived_at, cancelled_at FROM trips WHERE household_id = ? AND id = ?
 `
 
-type InsertTripParams struct {
-	ID          string
+type GetTripParams struct {
 	HouseholdID string
-	FromHomeID  string
-	ToHomeID    string
-	Date        int64
-	CreatedBy   string
-	ArrivedAt   int64
+	ID          string
 }
 
-func (q *Queries) InsertTrip(ctx context.Context, arg InsertTripParams) error {
-	_, err := q.db.ExecContext(ctx, insertTrip,
-		arg.ID,
-		arg.HouseholdID,
-		arg.FromHomeID,
-		arg.ToHomeID,
-		arg.Date,
-		arg.CreatedBy,
-		arg.ArrivedAt,
+func (q *Queries) GetTrip(ctx context.Context, arg GetTripParams) (Trip, error) {
+	row := q.db.QueryRowContext(ctx, getTrip, arg.HouseholdID, arg.ID)
+	var i Trip
+	err := row.Scan(
+		&i.ID,
+		&i.HouseholdID,
+		&i.FromHomeID,
+		&i.ToHomeID,
+		&i.Date,
+		&i.CreatedBy,
+		&i.ListID,
+		&i.UpdatedHlc,
+		&i.ArrivedAt,
+		&i.CancelledAt,
 	)
-	return err
+	return i, err
 }
 
 const listTrips = `-- name: ListTrips :many
-SELECT id, household_id, from_home_id, to_home_id, date, created_by, arrived_at FROM trips WHERE household_id = ? ORDER BY id
+SELECT id, household_id, from_home_id, to_home_id, date, created_by, list_id, updated_hlc, arrived_at, cancelled_at FROM trips WHERE household_id = ? ORDER BY id
 `
 
 func (q *Queries) ListTrips(ctx context.Context, householdID string) ([]Trip, error) {
@@ -58,7 +56,10 @@ func (q *Queries) ListTrips(ctx context.Context, householdID string) ([]Trip, er
 			&i.ToHomeID,
 			&i.Date,
 			&i.CreatedBy,
+			&i.ListID,
+			&i.UpdatedHlc,
 			&i.ArrivedAt,
+			&i.CancelledAt,
 		); err != nil {
 			return nil, err
 		}
@@ -71,4 +72,41 @@ func (q *Queries) ListTrips(ctx context.Context, householdID string) ([]Trip, er
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertTrip = `-- name: UpsertTrip :exec
+INSERT INTO trips (id, household_id, from_home_id, to_home_id, date, created_by, list_id, updated_hlc, arrived_at, cancelled_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(id) DO UPDATE SET
+  from_home_id = excluded.from_home_id, to_home_id = excluded.to_home_id, date = excluded.date, created_by = excluded.created_by,
+  list_id = excluded.list_id, updated_hlc = excluded.updated_hlc, arrived_at = excluded.arrived_at, cancelled_at = excluded.cancelled_at
+`
+
+type UpsertTripParams struct {
+	ID          string
+	HouseholdID string
+	FromHomeID  string
+	ToHomeID    string
+	Date        int64
+	CreatedBy   string
+	ListID      *string
+	UpdatedHlc  *string
+	ArrivedAt   *int64
+	CancelledAt *int64
+}
+
+func (q *Queries) UpsertTrip(ctx context.Context, arg UpsertTripParams) error {
+	_, err := q.db.ExecContext(ctx, upsertTrip,
+		arg.ID,
+		arg.HouseholdID,
+		arg.FromHomeID,
+		arg.ToHomeID,
+		arg.Date,
+		arg.CreatedBy,
+		arg.ListID,
+		arg.UpdatedHlc,
+		arg.ArrivedAt,
+		arg.CancelledAt,
+	)
+	return err
 }

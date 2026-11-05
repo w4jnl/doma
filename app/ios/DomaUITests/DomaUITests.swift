@@ -281,6 +281,17 @@ final class DomaUITests: XCTestCase {
             app.navigationBars.buttons.element(boundBy: 0).tap()
         }
         app.tabBars.buttons["Trip"].tap()
+        // plan the trip: Gouda to Hut, today, on the shopping list
+        let planTrip = app.buttons["plan-trip"]
+        XCTAssertTrue(planTrip.waitForExistence(timeout: 10), "a second home makes trips possible")
+        planTrip.tap()
+        let plan = app.buttons["plan"]
+        XCTAssertTrue(plan.waitForExistence(timeout: 5))
+        plan.tap()
+        let tripRow = app.descendants(matching: .any)["trip-Gouda-Hut"].firstMatch
+        XCTAssertTrue(tripRow.waitForExistence(timeout: 10), "the trip is listed")
+        XCTAssertTrue(tripRow.label.contains("1 to bring"), "the row counts what to bring: \(tripRow.label)")
+        tripRow.tap()
         let bring = app.descendants(matching: .any)["bring-melk"].firstMatch
         XCTAssertTrue(bring.waitForExistence(timeout: 10), "melk is on the bring list")
         let arrived = app.descendants(matching: .any)["arrived"].firstMatch
@@ -288,7 +299,8 @@ final class DomaUITests: XCTestCase {
         bring.tap()
         XCTAssertTrue(arrived.isEnabled)
         arrived.tap()
-        XCTAssertFalse(bring.waitForExistence(timeout: 5), "melk is at the hut now")
+        XCTAssertTrue(app.descendants(matching: .any)["plan-trip"].waitForExistence(timeout: 10), "arriving goes back to the trips")
+        XCTAssertFalse(tripRow.exists, "the trip is over")
         app.tabBars.buttons["Homes"].tap()
         let hut = app.descendants(matching: .any)["home-Hut"].firstMatch
         XCTAssertTrue(hut.waitForExistence(timeout: 10))
