@@ -124,9 +124,67 @@ the spec or the design system; if something in it cannot be built as written, sa
 propose the smallest change.
 ```
 
+## 3. Public install, phase 2
+
+Written 2026-11-05, to be pasted once phase 1's gate is met: one trip between two homes with
+nothing bought twice and nothing missing, on 0.4.1 or later.
+
+```
+Phase 1 is in, reviewed and in the family's hands: homes, flags, photos and planned trips,
+released as 0.4.1 with the apps on TestFlight. Now phase 2, public install. Its gate is a second
+family onboarding from the App Store with no help beyond the QR. Re-read CLAUDE.md, then in
+docs/design.md "What a family sees: onboarding, roles, vocabulary" (the five steps from store to
+list, the second household and the switcher), "Data model and tenancy" (quotas, null is
+unlimited), "Web" (/admin/h/{id} and /admin/server), "Observability of the server itself" and
+"Packaging" (metrics, backup, docs/deploy/, App Store from phase 2) and the Name row of the
+open-decisions table;
+then docs/design-system/README.md for the brand, the icon and the screenshots' rules.
+
+Most of the pieces exist: quotas on the admin's household page and in the photo path, Back up
+now on /admin/server, the Prometheus collectors, the switcher over households and servers, the
+deploy files under docs/deploy/. Phase 2 proves them end to end and makes the store listing. No
+new table, event, page or config key is expected; ask if one turns out to be needed.
+
+Build phase 2 in the order of its task list under "Testing, milestones, open decisions", taking
+every default in the open-decisions table, server first, then the apps:
+
+1. Server: a second household on one server, end to end in make e2e: two households, one person
+   in both, the switcher's data in /api/v1/me, nothing of one visible from the other (the
+   cross-tenant suite already asserts 404; extend it to any route added since), quotas set on
+   /admin/h/{id} and enforced: the device quota at invite acceptance (not checked today), the
+   photo quota at upload, both told to the family in its own words.
+2. Server: the backup and restore drill. Back up now writes the zip; a documented restore puts
+   the DB, the photos directory and secret.key back on an empty data directory and the server
+   comes up with every household, every photo and push still working; make e2e or a script
+   under scripts/ runs the drill against a throwaway server; README and docs/deploy/ say how.
+3. Server: metrics and deploy verified. Every collector the spec lists present and named as it
+   says, /readyz failing as specified, the dashboards' queries in docs/deploy/; the
+   compose file and the Nomad job each brought up once on a clean host from the ghcr.io image,
+   setup done through the browser, an invite accepted from a phone; what was wrong fixed in
+   the files.
+4. Apps: the second household and the second server from a phone's point of view: accept a
+   second invite, switch, the badge and the pushes per household, leave the last household on
+   a server and the context goes with it; the UI test covers the switch.
+5. Apps: onboarding polish for a stranger. The first screen, the camera permission text, the
+   Paste a link fallback, the first list's one line of help, the empty Homes and Trip tabs, the
+   notification ask after joining, every string in English, Dutch and Slovak; nothing a new
+   member sees names a server, token or event.
+6. App Store: the listing under the qualified name (check EUIPO first and report what it says),
+   the privacy labels (no data collected by anyone but the family's own server), the age
+   rating, the screenshots from the snapshot harness in light and dark on the required sizes,
+   the review notes with a demo household on the test server and a demo invite that stays
+   valid, the App Store build through make ios-testflight and submission for review; the Mac
+   app stays on the Homebrew tap.
+
+Run against make run of the server in this repository and the test host for the drills. Work
+on a branch per step and open a PR for each; stop after step 6 and report what the gate needs
+from me: a second family, their QR, and the store review's answer. Do not start phase 3. Ask
+before deviating from the spec or the design system; if something in it cannot be built as
+written, say what and propose the smallest change.
+```
+
 ## Later phases
 
-Phase 2 (public install) and phase 3 (one designed-for feature at a time; multiple server
-contexts were pulled forward on 2026-11-04) each get a prompt of the same shape when their
-predecessor's gate is met: the phase's task list, the defaults, a branch and PR per step, stop at
-the gate.
+Phase 3 (one designed-for feature at a time; multiple server contexts were pulled forward on
+2026-11-04) gets a prompt of the same shape for each feature when phase 2's gate is met: the
+feature's task, the defaults, a branch and PR per step, stop at its gate.
