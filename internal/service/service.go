@@ -35,6 +35,11 @@ type Config struct {
 	SnapshotsDir  string
 	EventsDays    int
 	SnapshotsKept int
+	// PhotosDir holds the photos; MaxUploadBytes caps one upload and
+	// PhotosPerSpot is how many a spot keeps.
+	PhotosDir      string
+	MaxUploadBytes int64
+	PhotosPerSpot  int
 }
 
 // Service is the one service layer.
@@ -55,6 +60,9 @@ type Service struct {
 	// minute, not one per request on the single writer.
 	touchMu sync.Mutex
 	touched map[string]int64
+	// linkKeyBytes signs photo links, derived from the keyring on first use.
+	linkMu       sync.Mutex
+	linkKeyBytes []byte
 }
 
 // New builds the service. The server's own events carry the device id
@@ -80,6 +88,12 @@ func New(d *db.DB, cfg Config, log *slog.Logger) *Service {
 	}
 	if cfg.SnapshotsKept <= 0 {
 		cfg.SnapshotsKept = 2
+	}
+	if cfg.MaxUploadBytes <= 0 {
+		cfg.MaxUploadBytes = 8 << 20
+	}
+	if cfg.PhotosPerSpot <= 0 {
+		cfg.PhotosPerSpot = 5
 	}
 	s := &Service{db: d, cfg: cfg, log: log, now: func() time.Time { return time.Now().UTC() }}
 	s.clock, _ = domain.NewClock(domain.SystemPerson, s.now)

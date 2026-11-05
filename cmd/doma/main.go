@@ -127,6 +127,7 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 		BaseURL: cfg.BaseURL(), InviteDays: cfg.Invites.DefaultDays, GuestDays: cfg.Invites.GuestDefaultDays,
 		StalenessDays: cfg.Defaults.StalenessDays, MaxEventsPerSync: cfg.Sync.MaxEventsPerResponse, ReplayLimit: cfg.Sync.ReplayLimit,
 		SnapshotsDir: cfg.SnapshotsDir(), EventsDays: cfg.Retention.EventsDays,
+		PhotosDir: cfg.PhotosDir(), MaxUploadBytes: int64(cfg.Photos.MaxBytesPerUpload), PhotosPerSpot: cfg.Retention.PhotosPerSpot,
 	}, log)
 	changes := bus.New()
 	svc.SetBus(changes)

@@ -4,7 +4,9 @@
 package secrets
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -52,6 +54,13 @@ func FromBytes(key []byte) (*Keyring, error) {
 		return nil, errors.New("key must be 32 bytes")
 	}
 	return &Keyring{key: append([]byte(nil), key...)}, nil
+}
+
+// MAC derives a 32-byte key for one purpose from the instance key.
+func (k *Keyring) MAC(label string) []byte {
+	m := hmac.New(sha256.New, k.key)
+	m.Write([]byte(label))
+	return m.Sum(nil)
 }
 
 // Prefix marks a sealed value.

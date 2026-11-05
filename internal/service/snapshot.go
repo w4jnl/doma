@@ -44,6 +44,10 @@ func (s *Service) RunSnapshots(ctx context.Context) error {
 			s.log.Error("snapshot", "household", h.ID, "err", err)
 			continue
 		}
+		if err := s.reconcilePhotos(ctx, h.ID); err != nil {
+			errs = append(errs, fmt.Errorf("household %s photos: %w", h.ID, err))
+			s.log.Error("photos", "household", h.ID, "err", err)
+		}
 	}
 	s.lastRun = s.now()
 	if s.metrics != nil {

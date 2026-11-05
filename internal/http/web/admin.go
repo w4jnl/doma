@@ -42,6 +42,7 @@ type householdRow struct {
 	ID, Name, Timezone string
 	Members, Devices   int
 	LastEvent          string
+	Photos             string
 }
 
 type householdsData struct {
@@ -62,7 +63,7 @@ func (h *Web) renderHouseholds(w http.ResponseWriter, r *http.Request, sess *aut
 	}
 	data := householdsData{Timezone: "Europe/Amsterdam"}
 	for _, hh := range hs {
-		row := householdRow{ID: hh.ID, Name: hh.Name, Timezone: hh.Timezone, Members: hh.Members, Devices: hh.Devices}
+		row := householdRow{ID: hh.ID, Name: hh.Name, Timezone: hh.Timezone, Members: hh.Members, Devices: hh.Devices, Photos: hh.PhotoSize()}
 		if hh.LastEventAt > 0 {
 			row.LastEvent = ago(hh.LastEventAt, h.now())
 		}

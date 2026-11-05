@@ -35,6 +35,9 @@ func (e errBadRequest) Error() string { return e.msg }
 
 func badRequest(format string, a ...any) error { return errBadRequest{msg: fmt.Sprintf(format, a...)} }
 
+// BadRequest is the error a handler returns for a 400.
+func BadRequest(format string, a ...any) error { return badRequest(format, a...) }
+
 type errRateLimited struct{ wait time.Duration }
 
 func (e errRateLimited) Error() string { return "rate limited" }
@@ -120,17 +123,33 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 const maxBody = 4 << 20
 
 // readBody reads the whole body once, so the signature check and the
-// handler see the same bytes.
-func readBody(r *http.Request) ([]byte, error) {
+// handler see the same bytes. An upload route names its own cap; past it
+// the body is over quota, and a Content-Length that says so is refused
+// before a byte is read.
+func readBody(r *http.Request, maxBytes int64) ([]byte, error) {
 	if r.Body == nil {
 		return nil, nil
 	}
-	b, err := io.ReadAll(io.LimitReader(r.Body, maxBody+1))
+	if maxBytes <= 0 {
+		b, err := io.ReadAll(io.LimitReader(r.Body, maxBody+1))
+		if err != nil {
+			return nil, badRequest("reading body: %v", err)
+		}
+		if len(b) > maxBody {
+			return nil, badRequest("body over %d bytes", maxBody)
+		}
+		return b, nil
+	}
+	over := fmt.Errorf("%w: the body may be %d bytes at most", domain.ErrQuota, maxBytes)
+	if r.ContentLength > maxBytes {
+		return nil, over
+	}
+	b, err := io.ReadAll(io.LimitReader(r.Body, maxBytes+1))
 	if err != nil {
 		return nil, badRequest("reading body: %v", err)
 	}
-	if len(b) > maxBody {
-		return nil, badRequest("body over %d bytes", maxBody)
+	if int64(len(b)) > maxBytes {
+		return nil, over
 	}
 	return b, nil
 }

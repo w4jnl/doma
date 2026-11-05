@@ -8,7 +8,7 @@
     {{range .Data.Households}}
     <li>
       <div class="dm-grow"><strong>{{.Name}}</strong> <span class="dm-meta">{{.Timezone}}</span></div>
-      <span class="dm-meta">{{.Members}} members · {{.Devices}} devices · {{if .LastEvent}}last change {{.LastEvent}}{{else}}no changes yet{{end}}</span>
+      <span class="dm-meta">{{.Members}} members · {{.Devices}} devices · {{.Photos}} · {{if .LastEvent}}last change {{.LastEvent}}{{else}}no changes yet{{end}}</span>
       <a class="dm-button dm-button-quiet" href="/admin/h/{{.ID}}">Open</a>
     </li>
     {{end}}

@@ -94,6 +94,38 @@ func (c *Client) Do(ctx context.Context, method, path string, body, out any) err
 	return c.do(ctx, method, path, body, out, true)
 }
 
+// Upload performs a signed POST of raw bytes, as a photo upload, and
+// decodes the JSON answer into out when out is not nil.
+func (c *Client) Upload(ctx context.Context, path string, body []byte, contentType string, out any) error {
+	if c.CredentialID == "" {
+		return errors.New("client has no credential: accept an invite first")
+	}
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+path, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	r.Header.Set("Content-Type", contentType)
+	if err := auth.SignRequest(r, c.CredentialID, c.Signer, body, c.Now()); err != nil {
+		return err
+	}
+	resp, err := c.HTTP.Do(r)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode >= 400 {
+		return problemOf(resp, raw)
+	}
+	if out != nil && len(raw) > 0 {
+		return json.Unmarshal(raw, out)
+	}
+	return nil
+}
+
 // Download performs a signed GET and returns the raw body.
 func (c *Client) Download(ctx context.Context, path string) ([]byte, string, error) {
 	resp, err := c.send(ctx, http.MethodGet, path, nil, true)

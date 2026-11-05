@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"image"
+	"image/color"
+	"image/jpeg"
 	"io"
 	"net"
 	"net/http"
@@ -148,7 +151,7 @@ func field(raw json.RawMessage, key string) string {
 	return s
 }
 
-// TestSmoke: setup, a household, two invites, sync both ways, a flag, a trip.
+// TestSmoke: setup, a household, two invites, sync both ways, a flag, a trip, a photo.
 func TestSmoke(t *testing.T) {
 	in := start(t)
 	ctx := context.Background()
@@ -169,6 +172,9 @@ func TestSmoke(t *testing.T) {
 	resp, _ = in.form("/admin/households", url.Values{"_csrf": {csrf}, "name": {"De Vries"}, "timezone": {"Europe/Amsterdam"}, "home": {"Gouda"}}, session)
 	hhPath := resp.Header.Get("Location")
 	household := strings.TrimPrefix(hhPath, "/admin/h/")
+	if code, page := in.page("/admin", session); code != http.StatusOK || !strings.Contains(page, "De Vries") || !strings.Contains(page, "no photos") {
+		t.Fatalf("households page with a household: %d", code)
+	}
 	_, body = in.form(hhPath+"/invite", url.Values{"_csrf": {csrf}}, session)
 	token := regexp.MustCompile(`/i/([A-Za-z0-9_-]+)`).FindStringSubmatch(body)
 	if token == nil || !strings.Contains(body, "<svg") {
@@ -250,7 +256,24 @@ func TestSmoke(t *testing.T) {
 		t.Fatalf("flags after the trip:\nhut:\n%s\ngouda:\n%s", homes["homes/hut.md"], homes["homes/gouda.md"])
 	}
 
-	// 7. the guest view, readiness and metrics
+	// 7. a spot's photo: the event through sync, the JPEG by id, the thumbnail on the other phone
+	pantry, photoID := domain.NewID(), domain.NewID()
+	a.sync(t, household,
+		a.event("spot.created", map[string]any{"spot_id": pantry, "home_id": hut, "name": "Pantry"}),
+		a.event("photo.added", map[string]any{"photo_id": photoID, "spot_id": pantry}),
+	)
+	var stored map[string]any
+	if err := a.Upload(ctx, "/photos/v1/"+household+"/"+photoID, jpegBytes(t, 800, 600), "image/jpeg", &stored); err != nil {
+		t.Fatalf("photo upload: %v", err)
+	}
+	if thumb, ctype, err := b.Download(ctx, "/photos/v1/"+household+"/"+photoID+"/thumb"); err != nil || ctype != "image/jpeg" || len(thumb) == 0 {
+		t.Fatalf("thumbnail on b: %v %q", err, ctype)
+	}
+	if _, _, err := b.Download(ctx, "/photos/v1/"+household+"/"+domain.NewID()); err == nil {
+		t.Fatal("a photo nobody added was served")
+	}
+
+	// 8. the guest view, readiness and metrics
 	var guest map[string]any
 	if err := a.Do(ctx, http.MethodPost, "/api/v1/h/"+household+"/guests", map[string]any{"home_id": hut, "list_id": listID, "label": "cleaner"}, &guest); err != nil {
 		t.Fatal(err)
@@ -274,6 +297,22 @@ func TestSmoke(t *testing.T) {
 		t.Errorf("metrics: %d", mresp.StatusCode)
 	}
 	_ = acc
+}
+
+// jpegBytes is a w by h JPEG, what a phone would send.
+func jpegBytes(t *testing.T, w, h int) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	for x := range w {
+		for y := range h {
+			img.Set(x, y, color.RGBA{uint8(x), uint8(y), 120, 255})
+		}
+	}
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, nil); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
 }
 
 // exportHomes downloads the export and returns the homes/*.md files.
