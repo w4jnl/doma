@@ -91,6 +91,8 @@ struct FlagRow: Identifiable, Hashable, Sendable {
     var note: String
     var isStaple: Bool
     var ageShown: Bool
+    /// The staple's place among the home's staples; 0 for the rest.
+    var sort: Int64 = 0
 }
 
 struct HomeCard: Identifiable, Hashable, Sendable {
@@ -168,8 +170,18 @@ extension Queries {
             """, arguments: [homeID, homeID, s.serverID, s.householdID]).map { r in
             let setAt: Int64? = r["set_at"]
             let isStaple: Int64 = r["is_staple"]
-            return FlagRow(itemID: r["id"], name: r["name"], state: staleness.state(r["state"], setAt: setAt), setAt: setAt, setBy: r["set_by"], note: r["note"] ?? "", isStaple: isStaple == 1, ageShown: staleness.showsAge(setAt))
+            return FlagRow(itemID: r["id"], name: r["name"], state: staleness.state(r["state"], setAt: setAt), setAt: setAt, setBy: r["set_by"], note: r["note"] ?? "", isStaple: isStaple == 1, ageShown: staleness.showsAge(setAt), sort: r["sort"])
         }
+    }
+
+    /// The sort a new staple takes: after the home's last one, so staples read in the order
+    /// they were added until someone drags them.
+    static func nextStapleSort(_ db: Database, _ s: Scope, homeID: String) throws -> Int64 {
+        let last = try Int64.fetchOne(db, sql: """
+            SELECT MAX(sort) FROM staples
+            WHERE server_id = ? AND household_id = ? AND home_id = ? AND added_hlc IS NOT NULL AND (removed_hlc IS NULL OR removed_hlc < added_hlc)
+            """, arguments: [s.serverID, s.householdID, homeID]) ?? 0
+        return last + HomeActions.sortGap
     }
 
     /// A spot's photos, newest first.

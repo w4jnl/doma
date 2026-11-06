@@ -173,11 +173,12 @@ row, not a new screen.
   at the foot in `ink-muted`. A list with nothing on it shows the mark small and one line of
   help under the title; the title's subtitle says how many are still to get. There is no shop
   mode: one layout, the screen awake while a list is in front.
-- **A home.** Staples first, in their order, each row the flag
-  glyph and word at the right, the item at the left, and the flag's age in mono `ink-muted` once it
-  passes half the staleness threshold. An unknown staple shows three small buttons, have / low /
-  out, in that row. A staple is typed into the same add bar a list has, and its row offers
-  Rename and Remove on a swipe or a long-press; there is no Edit mode. Spot thumbnails at `thumb`
+- **A home.** Staples first, in their order, in rows of a list's height and insets on `ground`,
+  each row the flag glyph and word at the right, the item at the left, and the flag's age in mono
+  `ink-muted` once it passes half the staleness threshold. An unknown staple shows three small
+  buttons, have / low / out, in that row. A staple is typed into the same add bar a list has, its
+  row offers Rename and Remove on a swipe and a long press drags it into place; there is no Edit
+  mode. Spot thumbnails at `thumb`
   (72pt) and `radius-md` in a horizontal strip below the staples, a dashed `+` tile at its end;
   *Take photos* is one button in the toolbar.
 - **Trip.** The tab is the trips: upcoming by date, nearest first, each row "Gouda → Hut", the
