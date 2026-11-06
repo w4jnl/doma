@@ -237,7 +237,11 @@ final class DomaUITests: XCTestCase {
         let buren = app.buttons["Buren"]
         XCTAssertTrue(buren.waitForExistence(timeout: 5), "the menu lists both")
         buren.tap()
-        app.tabBars.buttons["Homes"].tap()
+        // the tab bar folded while Family scrolled; a swipe down brings it back
+        app.swipeDown()
+        let homes = app.tabBars.buttons["Homes"]
+        XCTAssertTrue(homes.waitForExistence(timeout: 5), "the tab bar is back")
+        homes.tap()
         XCTAssertTrue(app.descendants(matching: .any)["home-Elsewhere"].firstMatch.waitForExistence(timeout: 10), "the second household's home, not the first's")
         XCTAssertFalse(app.descendants(matching: .any)["home-Gouda"].exists)
         app.buttons["Household"].tap()
