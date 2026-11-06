@@ -33,7 +33,7 @@ http:
 
   routers:
     doma-open:   # phones, guests, the apps, probes: no forward auth
-      rule: 'Host(`{{ env "DOMA_HOST" }}`) && (PathPrefix(`/i/`) || PathPrefix(`/g/`) || PathPrefix(`/static/`) || PathPrefix(`/api/`) || PathPrefix(`/sync/`) || Path(`/healthz`) || Path(`/readyz`) || Path(`/metrics`))'
+      rule: 'Host(`{{ env "DOMA_HOST" }}`) && (PathPrefix(`/i/`) || PathPrefix(`/g/`) || PathPrefix(`/static/`) || PathPrefix(`/api/`) || PathPrefix(`/sync/`) || PathPrefix(`/photos/`) || Path(`/healthz`) || Path(`/readyz`) || Path(`/metrics`))'
       priority: 100
       entryPoints: [websecure]
       service: doma

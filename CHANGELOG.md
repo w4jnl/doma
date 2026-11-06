@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Pictures pass a proxy sign-in.** The Authelia example's open router gains the photo
+  paths, which it and its test had missed: on a host with Authelia in front, pictures could
+  neither go up nor come down. A stack built from the example needs the same line.
 - **Metrics documented and held to the spec.** `docs/deploy/metrics.md` has the scrape
   config, a dashboard's queries and the alerts; a test keeps every collector's name and
   labels as the spec lists them. The compose file was brought up from the published image
