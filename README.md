@@ -14,7 +14,8 @@ other turns the flags into a bring list and a buy list.
 
 ## Setup
 
-Not released yet; phase 0 runs from source. Linux on amd64 and arm64 for the server.
+Released: the server from the GitHub releases or `ghcr.io/w4jnl/doma`, the Mac app from the tap,
+the iPhone app from TestFlight. Linux on amd64 and arm64 for the server.
 
 1. Run it. With Docker, on a named volume for `/data`:
    ```sh

@@ -6,6 +6,13 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+## 0.5.0 (2026-11-06)
+
+Phase 2, a second family: a household's devices have a quota, the admin can delete any
+household, a backup restores with one script and the drill proves it, the deploy files are
+checked against a running stack, and every word a stranger meets before the first list is in
+the three languages. On the home, staples are typed, said and dragged as entries are on a list.
+
 - **Pictures pass a proxy sign-in.** The Authelia example's open router gains the photo
   paths, which it and its test had missed: on a host with Authelia in front, pictures could
   neither go up nor come down. A stack built from the example needs the same line.
