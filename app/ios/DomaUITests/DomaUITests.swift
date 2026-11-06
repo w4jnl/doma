@@ -90,7 +90,8 @@ final class DomaUITests: XCTestCase {
             box.error = error
             done.fulfill()
         }.resume()
-        wait(for: [done], timeout: 10)
+        // the admin's sign-in hashes the password; the CI Mac takes its time over it
+        wait(for: [done], timeout: 60)
         if let e = box.error { throw e }
         return (box.data ?? Data(), box.response)
     }
@@ -237,10 +238,11 @@ final class DomaUITests: XCTestCase {
         let buren = app.buttons["Buren"]
         XCTAssertTrue(buren.waitForExistence(timeout: 5), "the menu lists both")
         buren.tap()
-        // the tab bar folded while Family scrolled; a swipe down brings it back
-        app.swipeDown()
+        XCTAssertTrue(app.staticTexts["Buren"].waitForExistence(timeout: 10), "the second household is in front")
+        // the tab bar folded while Family scrolled; swipes down bring it back
         let homes = app.tabBars.buttons["Homes"]
-        XCTAssertTrue(homes.waitForExistence(timeout: 5), "the tab bar is back")
+        for _ in 0..<6 where !homes.waitForExistence(timeout: 2) { app.swipeDown() }
+        XCTAssertTrue(homes.exists, "the tab bar is back")
         homes.tap()
         XCTAssertTrue(app.descendants(matching: .any)["home-Elsewhere"].firstMatch.waitForExistence(timeout: 10), "the second household's home, not the first's")
         XCTAssertFalse(app.descendants(matching: .any)["home-Gouda"].exists)
