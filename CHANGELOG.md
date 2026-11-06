@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Restore is drilled.** `scripts/restore.sh` puts a backup zip onto an empty data
+  directory, the README says when and how, and `make e2e` backs a live server up, restores
+  it and finds every household, device, photo and the admin's second step working.
 - **A household's devices have a quota.** When the admin has set one, an invite that would
   bring one device too many is refused with a plain message; a rejoin takes no seat and a
   removed device frees one. The e2e smoke now joins a second household with the same key, and
