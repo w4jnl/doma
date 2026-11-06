@@ -177,6 +177,33 @@ server from its backup. Do not start phase 3. Ask before deviating from the spec
 system; if something in it cannot be built as written, say what and propose the smallest change.
 ```
 
+## 4. History and overviews, phase 3
+
+Written 2026-11-06, the night phase 2 was concluded and 0.5.0 released, as the first phase-3
+feature; the user asked about the family's buying habits.
+
+```
+Phase 2 is in and 0.5.0 is out: two households on one doma, the device quota, the restore
+drill, the deploy checked against the homelab's stack, every word before the first list in
+three languages. Now the first phase-3 feature, history and overviews. Re-read CLAUDE.md, then
+in docs/design.md "History and quantities" (a purchase is a cleared entry, kept with qty, unit,
+note, home, who and when; the overview screens read those rows and make no event), the apps
+table and "Testing, milestones, open decisions"; then docs/design-system/README.md for the
+rows, the mono face for data and the one left axis.
+
+Build it on the apps alone, both platforms, no server change: the purchases are on every
+device already. One screen, History, reached from a row at the foot of the Lists overview on
+the phone and from the sidebar on the Mac; one month at a time, stepped back and forth under
+the title, the latest month with a purchase first. In the month: per item, most bought first, with how many
+times, the totals of qty by unit (an entry without a quantity counts one) and when last; per
+home; who shopped, named as the family knows them, this device's person as "You". Numbers,
+never a chart. Queries in the store with a logic test for months, items, totals, homes and
+people; the screen in the snapshot suite on both platforms with purchases in the fixture; the
+strings in the three languages. Write the screen into the spec's apps table and the design
+system before the code; tick the phase-3 item when it is in. One branch, one PR, the usual
+gates; stop at its gate, the family reading a month and finding it right.
+```
+
 ## Later phases
 
 Phase 3 (one designed-for feature at a time; multiple server contexts were pulled forward on

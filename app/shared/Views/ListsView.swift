@@ -11,6 +11,7 @@ struct ListsView: View {
     @Environment(Session.self) private var session
     @State private var lists: Live<[ListSummary]>?
     @State private var marks: Live<[OpenMark]>?
+    @State private var months: Live<[PurchaseMonth]>?
     @State private var adding = false
     @State private var newName = ""
     @State private var personal = false
@@ -53,6 +54,29 @@ struct ListsView: View {
                         .foregroundStyle(Tokens.inkMuted)
                 }
             }
+            Section {
+                NavigationLink(value: HistoryRoute()) {
+                    HStack(spacing: Tokens.space3) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .foregroundStyle(Tokens.inkMuted)
+                            .frame(width: Tokens.space5)
+                            .accessibilityHidden(true)
+                        Text("History")
+                            .foregroundStyle(Tokens.ink)
+                        Spacer(minLength: Tokens.space2)
+                        if let n = boughtThisMonth, n > 0 {
+                            Text("\(n) this month")
+                                .font(Tokens.mono(.subheadline))
+                                .foregroundStyle(Tokens.inkMuted)
+                        }
+                    }
+                    .frame(minHeight: ListView.rowHeight)
+                }
+                .accessibilityIdentifier("history")
+                .listRowBackground(Self.rowGround)
+                .listRowSeparatorTint(Tokens.line)
+                .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+            }
         }
         #if os(iOS)
         .listStyle(.insetGrouped)
@@ -66,6 +90,7 @@ struct ListsView: View {
         .navigationTitle("Lists")
         .navigationSubtitle(open == 0 ? Text("Nothing to get") : Text("\(open) to get"))
         .navigationDestination(for: String.self) { id in ListView(listID: id) }
+        .navigationDestination(for: HistoryRoute.self) { _ in HistoryView() }
         #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
         #endif
@@ -105,6 +130,13 @@ struct ListsView: View {
         guard let scope = session.scope else { return }
         lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
         marks = Live(session.store, initial: []) { db in try Queries.openMarks(db, scope) }
+        months = Live(session.store, initial: []) { db in try Queries.purchaseMonths(db, scope) }
+    }
+
+    /// How many purchases this month, for the History row; nil until known.
+    private var boughtThisMonth: Int? {
+        let m = HistoryView.month(of: RelativeText.now())
+        return months?.value.first { $0.month == m }?.count ?? 0
     }
 
     /// Entries others added to a list since it was last in front here.

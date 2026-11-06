@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **History.** At the foot of the Lists overview, a month at a time: what was bought, how many
+  times and how much per unit, for which home, and who shopped. Read from the purchases every
+  phone already keeps; nothing new is sent.
 ## 0.5.0 (2026-11-06)
 
 Phase 2, a second family: a household's devices have a quota, the admin can delete any
