@@ -1,0 +1,75 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "strings": {
+    "NSCameraUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan your family's invite and take a picture of a spot before you leave."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan de uitnodiging van je gezin en maak een foto van een plek voor je vertrekt."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naskenuj pozvánku svojej rodiny a odfoť miesto, než odídeš."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Say an item onto a list. The words are made on this Mac; the sound is never kept."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeg een artikel op een lijst. De woorden ontstaan op deze Mac; het geluid wordt nooit bewaard."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Povedz položku na zoznam. Slová vznikajú v tomto Macu; zvuk sa nikdy neukladá."
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your speech is turned into words on this Mac, for the list. The sound is never kept."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je spraak wordt op deze Mac omgezet in woorden, voor de lijst. Het geluid wordt nooit bewaard."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tvoja reč sa mení na slová v tomto Macu, pre zoznam. Zvuk sa nikdy neukladá."
+          }
+        }
+      }
+    }
+  }
+}
