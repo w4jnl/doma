@@ -522,7 +522,7 @@ proxy_logout_url = ""                   # the proxy's logout page, where Sign ou
 **Observability of the server itself**
 
 - `slog` JSON: one line per request (`method path status dur_ms req_id household person`), one per sync batch (`household accepted rejected returned next`), one per push attempt, one per snapshot job, one per photo upload.
-- `/metrics`: `doma_households`, `doma_members{household}`, `doma_events_total{household,kind}`, `doma_sync_requests_total{result}`, `doma_sync_duration_seconds`, `doma_push_total{result}`, `doma_photo_bytes{household}`, `doma_snapshot_age_seconds{household}`, `doma_db_write_duration_seconds`.
+- `/metrics`: `doma_households`, `doma_members{household}`, `doma_events_total{household,kind}`, `doma_sync_requests_total{result}`, `doma_sync_duration_seconds`, `doma_push_total{result}`, `doma_photo_bytes{household}`, `doma_snapshot_age_seconds{household}`, `doma_db_write_duration_seconds`, and `doma_build_info{version}`; `docs/deploy/metrics.md` has the scrape config, a dashboard's queries and the alerts worth having, and a test holds the names and labels to this list.
 - `/readyz` fails when the writer cannot `BEGIN IMMEDIATE` within 2 s or the snapshot job has not run in 36 h.
 - `-d` on `serve` switches to debug and colour, logs every sync request's event ids, every fold rule applied with its before and after state, and every SQL statement slower than 50 ms.
 

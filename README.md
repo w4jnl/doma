@@ -47,6 +47,9 @@ file into the empty `/data` volume from a helper image; the script's comment sho
 and start doma on that directory. Every household, device and photo and the admin's second step
 come back, and the phones carry on with their keys. `make e2e` drills exactly this.
 
+`/metrics` is Prometheus; set `DOMA_METRICS_TOKEN` and scrape with it as the bearer.
+`docs/deploy/metrics.md` lists the collectors, a dashboard's queries and the alerts worth having.
+
 ## Why doma
 
 The problem:

@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Metrics documented and held to the spec.** `docs/deploy/metrics.md` has the scrape
+  config, a dashboard's queries and the alerts; a test keeps every collector's name and
+  labels as the spec lists them. The compose file was brought up from the published image
+  and walked through setup, a household, an invite, the probes, the metrics and a restart.
 - **The permission questions speak Dutch and Slovak.** The camera, microphone and speech
   questions the phone asks on the first scan and the first spoken item follow the app's
   language, as every other word before the first list already did.
