@@ -88,7 +88,7 @@ What doma does about it:
 doma is one family's app, published in the shape of its siblings. Phase 0, the server and the
 lists in the iPhone and Mac apps under `app/`, is in the family's hands; phase 1, homes, flags,
 photos and trips, is built and waits for its gate, one trip between two homes with nothing
-bought twice and nothing missing. Then a second family from the App Store. The roadmap and every design decision are in [`docs/design.md`](docs/design.md); the
+bought twice and nothing missing. Then a second family, from TestFlight; the App Store comes last. The roadmap and every design decision are in [`docs/design.md`](docs/design.md); the
 brand and UI rules in [`docs/design-system/`](docs/design-system/README.md).
 
 ## How it works

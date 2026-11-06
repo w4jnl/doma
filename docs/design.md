@@ -530,7 +530,7 @@ proxy_logout_url = ""                   # the proxy's logout page, where Sign ou
 
 - Server: `goreleaser` builds `doma_{version}_linux_{amd64,arm64}` and a `FROM scratch` image `ghcr.io/w4jnl/doma` with `/doma` and CA certificates; `docs/deploy/` has `doma.service` (systemd, `DynamicUser=yes`, `StateDirectory=doma`), `compose.yaml`, `doma.nomad.hcl`, a Traefik snippet that terminates TLS and forwards everything, and under `docs/deploy/authelia/` a compose stack with Traefik and Authelia. The server authenticates every route itself; the proxy may add its own sign-in in front of the admin pages only (`/`, `/setup`, `/admin`), never in front of the invite and guest links, `/static/`, the API, sync or the probes, which phones on mobile data and the apps must reach without a browser. With `admin.auth = "password"`, the default, the proxy's sign-in comes before doma's own; with `admin.auth = "proxy"` doma takes the admin from the proxy's `Remote-User` and asks for nothing more.
 - Backup = the DB file, the photos directory and `secret.key`; `/admin/server` has *Back up now*, which uses the SQLite online backup API and writes a dated zip next to the DB.
-- Apps: `make ios-build`, `make mac-build`, `make ios-testflight` as in nt; TestFlight for the family during phases 0–1, App Store from phase 2 so non-technical members install from the store. The Mac app ships outside the store as nt's does: `make mac-release` signs it with the Developer ID, notarizes and staples it into a DMG, `scripts/release.sh` puts the DMG on the GitHub release and writes the cask `doma` in w4jnl/homebrew-tap, so `brew install --cask w4jnl/tap/doma` installs it on macOS 26 or later. Bundle id `nl.w4j.doma`; the App Store listing name is a qualified form such as "Doma – lists, homes, trips" because "Doma" alone is taken (see open decisions); the listing opens on the Scan screen and includes a demo household so review can exercise the app without a server.
+- Apps: `make ios-build`, `make mac-build`, `make ios-testflight` as in nt; TestFlight for the family and the second family through phases 0–2, the App Store as the last feature of phase 3 so strangers install from the store. The Mac app ships outside the store as nt's does: `make mac-release` signs it with the Developer ID, notarizes and staples it into a DMG, `scripts/release.sh` puts the DMG on the GitHub release and writes the cask `doma` in w4jnl/homebrew-tap, so `brew install --cask w4jnl/tap/doma` installs it on macOS 26 or later. Bundle id `nl.w4j.doma`; the App Store listing name is a qualified form such as "Doma – lists, homes, trips" because "Doma" alone is taken (see open decisions); the listing opens on the Scan screen and includes a demo household so review can exercise the app without a server.
 
 ## Testing, milestones, open decisions
 
@@ -570,12 +570,12 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 - [x] Guest links and the guest view
 - [x] Home and Trip screens, Dutch and Slovak strings
 
-**Phase 2 — public install** (gate: a second family onboards from the App Store with no help beyond the QR)
+**Phase 2 — a second family** (gate: a second family joins a second household from TestFlight with no help beyond the QR, on a server that came back from a backup)
 
-- [ ] App Store listing, demo household for review, onboarding polish
-- [ ] Second household on the same server end to end; switcher; quotas
+- [ ] Second household and second server finished: the device quota enforced at invite acceptance, two households in the e2e smoke, a UI test that joins a second household and switches (the contexts, the switcher, the photo quota and the cross-tenant suite are in)
 - [ ] Backup and restore drill from `/admin/server`
 - [ ] Metrics, `docs/deploy/` verified on Nomad and compose
+- [ ] Onboarding polish for a stranger: every screen before the first list, in the three languages
 
 **Phase 3 — designed-for features** (each its own gate)
 
@@ -585,6 +585,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 - [ ] History and overviews: purchases per item, per month and per home, totals of `qty` by `unit`; read from the entries table, no new events
 - [ ] Tasks as a third list kind
 - [ ] Watch app for lists
+- [ ] App Store, last: the listing under the qualified name, the demo household for review, submission (gate: a second family installs from the store)
 
 **Open decisions** (defaults the agent takes unless overruled)
 
