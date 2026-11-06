@@ -6,6 +6,8 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The Nomad job is gone.** The homelab runs compose, by hand or as a Portainer stack; `docs/deploy/`
+  keeps the systemd unit, the compose file, the Traefik snippet and the Authelia stack.
 ## 0.4.1 (2026-11-05)
 
 Planned trips, for the phase-1 gate: a trip is from, to, a date and a list, shared with the

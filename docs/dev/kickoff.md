@@ -162,8 +162,9 @@ every default in the open-decisions table, server first, then the apps:
    runs the drill against a throwaway server in CI; README and docs/deploy/ say how.
 3. Server: metrics and deploy verified. Every collector the spec lists present and named as it
    says, /readyz failing as specified, the dashboards' queries in docs/deploy/; the compose
-   file and the Nomad job each brought up once on a clean host from the ghcr.io image, setup
-   done through the browser, an invite accepted from a phone; what was wrong fixed in the files.
+   file brought up once on a clean host from the ghcr.io image, by hand and as a Portainer
+   stack, setup done through the browser, an invite accepted from a phone; what was wrong fixed
+   in the files. Nomad is gone: no job file, no mention.
 4. Apps: onboarding polish for a stranger. The first screen, the camera permission text, the
    Paste a link fallback, the first list's one line of help, the empty Homes and Trip tabs, the
    notification ask after joining, every string in English, Dutch and Slovak; nothing a new
