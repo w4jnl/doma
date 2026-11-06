@@ -16,6 +16,8 @@ updates this file first. Dates are the tag dates.
   and Remove, armed in place. Renaming a staple renames the item everywhere. The spots' pictures
   moved below the staples, with a `+` at the end of the strip for a new spot and Rename and
   Remove on a long-press.
+- **The Nomad job is gone.** The homelab runs compose, by hand or as a Portainer stack; `docs/deploy/`
+  keeps the systemd unit, the compose file, the Traefik snippet and the Authelia stack.
 
 ## 0.4.1 (2026-11-05)
 

@@ -36,8 +36,9 @@ Put the server behind the reverse proxy you already run, terminating TLS. doma a
 every route itself, and the invite and guest links must open from a phone on mobile data, so
 the proxy's own sign-in, if you want one, goes in front of the admin pages only; with
 `admin.auth = "proxy"` doma then takes the admin from the proxy's `Remote-User` instead of asking
-for its own password. `docs/deploy/` has a systemd unit, a compose file, a Nomad job, a Traefik
-snippet, and under `authelia/` a compose stack with Traefik and Authelia that does exactly that.
+for its own password. `docs/deploy/` has a systemd unit, a compose file, which is also what a
+Portainer stack takes, a Traefik snippet, and under `authelia/` a compose stack with Traefik and
+Authelia that does exactly that.
 
 ## Why doma
 
@@ -88,7 +89,7 @@ What doma does about it:
 doma is one family's app, published in the shape of its siblings. Phase 0, the server and the
 lists in the iPhone and Mac apps under `app/`, is in the family's hands; phase 1, homes, flags,
 photos and trips, is built and waits for its gate, one trip between two homes with nothing
-bought twice and nothing missing. Then a second family from the App Store. The roadmap and every design decision are in [`docs/design.md`](docs/design.md); the
+bought twice and nothing missing. Then a second family, from TestFlight; the App Store comes last. The roadmap and every design decision are in [`docs/design.md`](docs/design.md); the
 brand and UI rules in [`docs/design-system/`](docs/design-system/README.md).
 
 ## How it works
