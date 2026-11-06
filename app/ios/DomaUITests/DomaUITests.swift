@@ -201,14 +201,10 @@ final class DomaUITests: XCTestCase {
         let gouda = app.descendants(matching: .any)["home-Gouda"].firstMatch
         XCTAssertTrue(gouda.waitForExistence(timeout: 10), "the household's first home is a card")
         gouda.tap()
-        let edit = app.buttons["edit-home"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 10), "the home is open")
-        edit.tap()
         let field = app.textFields["new-staple"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "the home is open, the add bar at the bottom")
         field.tap()
         field.typeText("olijfolie\n")
-        app.buttons["edit-home"].tap()
         let out = app.buttons["flag-out-olijfolie"]
         XCTAssertTrue(out.waitForExistence(timeout: 5), "an unanswered staple offers the three flags")
         out.tap()
@@ -229,15 +225,12 @@ final class DomaUITests: XCTestCase {
         let gouda = app.descendants(matching: .any)["home-Gouda"].firstMatch
         XCTAssertTrue(gouda.waitForExistence(timeout: 10))
         gouda.tap()
-        let edit = app.buttons["edit-home"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 10), "the home is open")
-        edit.tap()
-        app.buttons["Spot"].tap()
+        let add = app.descendants(matching: .any)["add-spot"].firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 10), "the home is open, the + at the end of the strip")
+        add.tap()
         let field = app.textFields["new-spot"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
-        field.tap()
         field.typeText("Pantry\n")
-        app.buttons["edit-home"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["spot-Pantry"].waitForExistence(timeout: 5), "the spot is in the strip")
         app.buttons["take-photos"].tap()
         let shutter = app.buttons["shutter"]
@@ -267,14 +260,10 @@ final class DomaUITests: XCTestCase {
             let card = app.descendants(matching: .any)[home].firstMatch
             XCTAssertTrue(card.waitForExistence(timeout: 10), home)
             card.tap()
-            let edit = app.buttons["edit-home"]
-            XCTAssertTrue(edit.waitForExistence(timeout: 10), "the home is open")
-            edit.tap()
             let field = app.textFields["new-staple"]
-            XCTAssertTrue(field.waitForExistence(timeout: 5))
+            XCTAssertTrue(field.waitForExistence(timeout: 10), "the home is open")
             field.tap()
             field.typeText("melk\n")
-            app.buttons["edit-home"].tap()
             let button = app.buttons[flag]
             XCTAssertTrue(button.waitForExistence(timeout: 5), flag)
             button.tap()

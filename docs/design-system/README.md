@@ -176,8 +176,10 @@ row, not a new screen.
 - **A home.** Staples first, in their order, each row the flag
   glyph and word at the right, the item at the left, and the flag's age in mono `ink-muted` once it
   passes half the staleness threshold. An unknown staple shows three small buttons, have / low /
-  out, in that row. Spot thumbnails at `thumb` (72pt) and `radius-md` in a horizontal strip above
-  the staples; *Take photos* is one button in the toolbar.
+  out, in that row. A staple is typed into the same add bar a list has, and its row offers
+  Rename and Remove on a swipe or a long-press; there is no Edit mode. Spot thumbnails at `thumb`
+  (72pt) and `radius-md` in a horizontal strip below the staples, a dashed `+` tile at its end;
+  *Take photos* is one button in the toolbar.
 - **Trip.** The tab is the trips: upcoming by date, nearest first, each row "Gouda → Hut", the
   date and how many to bring and to buy; the past ones under History with what moved; `+` plans
   one. A trip opens into two pickers in one row, from and to, with the swap control between
