@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Restore is drilled.** `scripts/restore.sh` puts a backup zip onto an empty data
+  directory, the README says when and how, and `make e2e` backs a live server up, restores
+  it and finds every household, device, photo and the admin's second step working.
 - **The admin can delete a household with members.** Asked twice on the household's page;
   everything goes, and members left with no household go with their devices. A phone whose
   household is gone keeps its other households syncing, and *Leave this household* removes

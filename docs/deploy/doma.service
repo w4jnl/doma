@@ -1,6 +1,7 @@
 # systemd unit for doma. Install the binary at /usr/local/bin/doma and the
 # config at /etc/doma/doma.toml; the database, the photos and the key files
-# live in /var/lib/doma (StateDirectory).
+# live in /var/lib/doma (StateDirectory); a restore is scripts/restore.sh <zip> /var/lib/doma
+# with the unit stopped and the directory empty.
 [Unit]
 Description=doma: what to buy, what is there, what to bring
 Documentation=https://github.com/w4jnl/doma

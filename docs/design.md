@@ -529,7 +529,7 @@ proxy_logout_url = ""                   # the proxy's logout page, where Sign ou
 **Packaging**
 
 - Server: `goreleaser` builds `doma_{version}_linux_{amd64,arm64}` and a `FROM scratch` image `ghcr.io/w4jnl/doma` with `/doma` and CA certificates; `docs/deploy/` has `doma.service` (systemd, `DynamicUser=yes`, `StateDirectory=doma`), `compose.yaml` (also what a Portainer stack takes), a Traefik snippet that terminates TLS and forwards everything, and under `docs/deploy/authelia/` a compose stack with Traefik and Authelia. The server authenticates every route itself; the proxy may add its own sign-in in front of the admin pages only (`/`, `/setup`, `/admin`), never in front of the invite and guest links, `/static/`, the API, sync or the probes, which phones on mobile data and the apps must reach without a browser. With `admin.auth = "password"`, the default, the proxy's sign-in comes before doma's own; with `admin.auth = "proxy"` doma takes the admin from the proxy's `Remote-User` and asks for nothing more.
-- Backup = the DB file, the photos directory and `secret.key`; `/admin/server` has *Back up now*, which uses the SQLite online backup API and writes a dated zip next to the DB.
+- Backup = the DB file, the photos directory and `secret.key`; `/admin/server` has *Back up now*, which uses the SQLite online backup API and writes a dated zip next to the DB. Restore = stop doma, `scripts/restore.sh <zip> <empty data directory>` (the three parts back where the server expects them; with the container, unzipped into the empty volume), start doma on that directory; every household, device and photo and the admin's second step come back, and the phones carry on with their keys. `make e2e` drills exactly this against a throwaway server.
 - Apps: `make ios-build`, `make mac-build`, `make ios-testflight` as in nt; TestFlight for the family and the second family through phases 0–2, the App Store as the last feature of phase 3 so strangers install from the store. The Mac app ships outside the store as nt's does: `make mac-release` signs it with the Developer ID, notarizes and staples it into a DMG, `scripts/release.sh` puts the DMG on the GitHub release and writes the cask `doma` in w4jnl/homebrew-tap, so `brew install --cask w4jnl/tap/doma` installs it on macOS 26 or later. Bundle id `nl.w4j.doma`; the App Store listing name is a qualified form such as "Doma – lists, homes, trips" because "Doma" alone is taken (see open decisions); the listing opens on the Scan screen and includes a demo household so review can exercise the app without a server.
 
 ## Testing, milestones, open decisions
@@ -546,7 +546,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 - Server integration: boot on a temp SQLite file; exercise invite acceptance, sync round trips with two devices, the guest view, photo upload and quota, export; the cross-tenant and cross-person suites.
 - Property test on the fold: random event sets applied in random orders converge to the same tables.
 - App UI tests: add, strike, clear, offline add then sync, accept invite from a QR image; snapshot tests for every screen in light and dark, two Dynamic Type sizes; `make voice`, the three languages through the Listener on the Mac.
-- End-to-end smoke: `make e2e` starts the server, creates a household, accepts two invites with a Go test client that implements the device-key signature, adds on one and reads on the other, flips a flag, derives a trip, commits it, and checks the flags moved; then a second household on the same doma, joined with the same key, synced with the first in one request, whose device quota refuses a third device.
+- End-to-end smoke: `make e2e` starts the server, creates a household, accepts two invites with a Go test client that implements the device-key signature, adds on one and reads on the other, flips a flag, derives a trip, commits it, and checks the flags moved; then a second household on the same doma, joined with the same key, synced with the first in one request, whose device quota refuses a third device; and the restore drill: a live server backed up from `/admin/server`, stopped, restored with the script on an empty directory, and found whole.
 - Load: `cmd/domaload` with 200 devices syncing every 5 s against a laptop; acceptance is p99 sync under 50 ms and no event lost.
 - CI: `go vet`, `golangci-lint`, `sqlc diff`, `govulncheck`, tests with `-race`, the household_id grep gate, `xcodebuild test` for DomaKit.
 
@@ -573,7 +573,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 **Phase 2 — a second family** (gate: a second family joins a second household from TestFlight with no help beyond the QR, on a server that came back from a backup)
 
 - [x] Second household and second server finished: the device quota enforced at invite acceptance, two households in the e2e smoke, a UI test that joins a second household and switches (the contexts, the switcher, the photo quota and the cross-tenant suite are in)
-- [ ] Backup and restore drill from `/admin/server`
+- [x] Backup and restore drill from `/admin/server`
 - [ ] Metrics, `docs/deploy/` verified with compose, by hand and as a Portainer stack
 - [ ] Onboarding polish for a stranger: every screen before the first list, in the three languages
 

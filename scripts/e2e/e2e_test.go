@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -20,6 +21,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -28,47 +30,86 @@ import (
 	"github.com/w4jnl/doma/internal/service"
 )
 
-// instance is one built binary serving one temp data directory.
+// instance is the built binary serving one data directory: doma.db, photos/
+// and secret.key in it.
 type instance struct {
 	t    *testing.T
 	base string
+	data string
 	http *http.Client
 	log  bytes.Buffer
+	stop func()
+}
+
+var (
+	buildOnce sync.Once
+	binPath   string
+	buildErr  error
+)
+
+// binary builds doma once for the package and returns its path.
+func binary(t *testing.T) string {
+	t.Helper()
+	buildOnce.Do(func() {
+		root, err := filepath.Abs("../..")
+		if err != nil {
+			buildErr = err
+			return
+		}
+		dir, err := os.MkdirTemp("", "doma-e2e-")
+		if err != nil {
+			buildErr = err
+			return
+		}
+		binPath = filepath.Join(dir, "doma")
+		build := exec.Command("go", "build", "-o", binPath, "./cmd/doma")
+		build.Dir = root
+		if out, err := build.CombinedOutput(); err != nil {
+			buildErr = fmt.Errorf("build: %v\n%s", err, out)
+		}
+	})
+	if buildErr != nil {
+		t.Fatal(buildErr)
+	}
+	return binPath
 }
 
 func start(t *testing.T) *instance {
 	t.Helper()
-	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dir := t.TempDir()
-	bin := filepath.Join(dir, "doma")
-	build := exec.Command("go", "build", "-o", bin, "./cmd/doma")
-	build.Dir = root
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build: %v\n%s", err, out)
-	}
+	return startIn(t, filepath.Join(t.TempDir(), "data"))
+}
+
+// startIn serves the data directory given, made if missing, and stops it at
+// the end of the test; in.stop stops it earlier.
+func startIn(t *testing.T, data string) *instance {
+	t.Helper()
+	bin := binary(t)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	addr := ln.Addr().String()
 	_ = ln.Close()
-	in := &instance{t: t, base: "http://" + addr, http: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
+	in := &instance{t: t, base: "http://" + addr, data: data, http: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 	ctx, cancel := context.WithCancel(context.Background())
 	cmd := exec.CommandContext(ctx, bin, "serve")
 	cmd.Env = append(os.Environ(),
-		"DOMA_SERVER_LISTEN="+addr, "DOMA_SERVER_BASE_URL="+in.base, "DOMA_DB_PATH="+filepath.Join(dir, "data", "doma.db"),
+		"DOMA_SERVER_LISTEN="+addr, "DOMA_SERVER_BASE_URL="+in.base, "DOMA_DB_PATH="+filepath.Join(data, "doma.db"),
 		"DOMA_LOG_FORMAT=json", "DOMA_METRICS_TOKEN=e2e-metrics", "NO_COLOR=1",
 	)
 	cmd.Stdout, cmd.Stderr = &in.log, &in.log
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
+	var once sync.Once
+	in.stop = func() {
+		once.Do(func() {
+			cancel()
+			_ = cmd.Wait()
+		})
+	}
 	t.Cleanup(func() {
-		cancel()
-		_ = cmd.Wait()
+		in.stop()
 		if t.Failed() {
 			t.Logf("server log:\n%s", in.log.String())
 		}

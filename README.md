@@ -40,6 +40,13 @@ for its own password. `docs/deploy/` has a systemd unit, a compose file, which i
 Portainer stack takes, a Traefik snippet, and under `authelia/` a compose stack with Traefik and
 Authelia that does exactly that.
 
+Back up from the admin's server page: *Back up now* writes `doma-backup-<date>.zip` next to the
+database, holding the database, `secret.key` and the photos; copy it somewhere else. To restore,
+stop doma, run `scripts/restore.sh <zip> <empty data directory>` (with the container, unzip the
+file into the empty `/data` volume from a helper image; the script's comment shows the command),
+and start doma on that directory. Every household, device and photo and the admin's second step
+come back, and the phones carry on with their keys. `make e2e` drills exactly this.
+
 ## Why doma
 
 The problem:
