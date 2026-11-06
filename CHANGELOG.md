@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The permission questions speak Dutch and Slovak.** The camera, microphone and speech
+  questions the phone asks on the first scan and the first spoken item follow the app's
+  language, as every other word before the first list already did.
 - **Restore is drilled.** `scripts/restore.sh` puts a backup zip onto an empty data
   directory, the README says when and how, and `make e2e` backs a live server up, restores
   it and finds every household, device, photo and the admin's second step working.
