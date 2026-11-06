@@ -36,8 +36,9 @@ Put the server behind the reverse proxy you already run, terminating TLS. doma a
 every route itself, and the invite and guest links must open from a phone on mobile data, so
 the proxy's own sign-in, if you want one, goes in front of the admin pages only; with
 `admin.auth = "proxy"` doma then takes the admin from the proxy's `Remote-User` instead of asking
-for its own password. `docs/deploy/` has a systemd unit, a compose file (which is also what a Portainer stack takes), a Traefik
-snippet, and under `authelia/` a compose stack with Traefik and Authelia that does exactly that.
+for its own password. `docs/deploy/` has a systemd unit, a compose file, which is also what a
+Portainer stack takes, a Traefik snippet, and under `authelia/` a compose stack with Traefik and
+Authelia that does exactly that.
 
 ## Why doma
 
