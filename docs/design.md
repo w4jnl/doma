@@ -438,7 +438,7 @@ Three surfaces on one router: the sync endpoint for the apps, a REST API for eve
 | `GET /sync/v1/snapshot/{household}/{seq}` | gzip JSON snapshot download |
 | `POST /photos/v1/{household}/{photo_id}` | JPEG upload for an accepted `photo.added`; 413 over quota |
 | `GET /photos/v1/{household}/{photo_id}[/thumb]` | signed, cacheable 1 h |
-| `POST /i/{token}` | accept an invite: body `{public_key, platform, label, display_name}`; returns `{server, person_id, credential_id, display_name, household, role}`; for a device invite the person's name wins over the typed one; `GET /i/{token}` renders the App Store page with the deep link |
+| `POST /i/{token}` | accept an invite: body `{public_key, platform, label, display_name}`; returns `{server, person_id, credential_id, display_name, household, role}`; for a device invite the person's name wins over the typed one; 413 when the household's `quota_devices` has no seat for the devices coming in (a rejoin takes no seat); `GET /i/{token}` renders the App Store page with the deep link |
 | `GET /api/v1/me` | person, credentials, memberships with roles |
 | `GET` and `POST /api/v1/h/{household}/invites` · `DELETE /api/v1/h/{household}/invites/{id}` | owners; `POST` with `{device: true}` is any member's, for a device of their own, valid a day, not listed among the household's |
 | `GET` and `POST /api/v1/h/{household}/guests` · `DELETE …/guests/{id}` | owners; body `{home_id, list_id, label, days}` |
@@ -454,7 +454,7 @@ Membership, invites and guests are REST and not events because they change who m
 
 **Errors and limits**
 
-Codes: 400 malformed, 401 bad signature or expired token, 403 role, 404 for anything outside the caller's households (never 403, so households cannot be enumerated), 409 invite already used, 413 photo over quota, 422 event validation, 429 rate limit with `Retry-After`. Limits: 120 sync requests per minute per device, 2,000 events per sync request, 10 photo uploads per minute per device.
+Codes: 400 malformed, 401 bad signature or expired token, 403 role, 404 for anything outside the caller's households (never 403, so households cannot be enumerated), 409 invite already used, 413 photo over quota or a household with all its devices, 422 event validation, 429 rate limit with `Retry-After`. Limits: 120 sync requests per minute per device, 2,000 events per sync request, 10 photo uploads per minute per device.
 
 ## Security checklist
 
@@ -546,7 +546,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 - Server integration: boot on a temp SQLite file; exercise invite acceptance, sync round trips with two devices, the guest view, photo upload and quota, export; the cross-tenant and cross-person suites.
 - Property test on the fold: random event sets applied in random orders converge to the same tables.
 - App UI tests: add, strike, clear, offline add then sync, accept invite from a QR image; snapshot tests for every screen in light and dark, two Dynamic Type sizes; `make voice`, the three languages through the Listener on the Mac.
-- End-to-end smoke: `make e2e` starts the server, creates a household, accepts two invites with a Go test client that implements the device-key signature, adds on one and reads on the other, flips a flag, derives a trip, commits it, and checks the flags moved.
+- End-to-end smoke: `make e2e` starts the server, creates a household, accepts two invites with a Go test client that implements the device-key signature, adds on one and reads on the other, flips a flag, derives a trip, commits it, and checks the flags moved; then a second household on the same doma, joined with the same key, synced with the first in one request, whose device quota refuses a third device.
 - Load: `cmd/domaload` with 200 devices syncing every 5 s against a laptop; acceptance is p99 sync under 50 ms and no event lost.
 - CI: `go vet`, `golangci-lint`, `sqlc diff`, `govulncheck`, tests with `-race`, the household_id grep gate, `xcodebuild test` for DomaKit.
 
@@ -572,7 +572,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 
 **Phase 2 — a second family** (gate: a second family joins a second household from TestFlight with no help beyond the QR, on a server that came back from a backup)
 
-- [ ] Second household and second server finished: the device quota enforced at invite acceptance, two households in the e2e smoke, a UI test that joins a second household and switches (the contexts, the switcher, the photo quota and the cross-tenant suite are in)
+- [x] Second household and second server finished: the device quota enforced at invite acceptance, two households in the e2e smoke, a UI test that joins a second household and switches (the contexts, the switcher, the photo quota and the cross-tenant suite are in)
 - [ ] Backup and restore drill from `/admin/server`
 - [ ] Metrics, `docs/deploy/` verified with compose, by hand and as a Portainer stack
 - [ ] Onboarding polish for a stranger: every screen before the first list, in the three languages

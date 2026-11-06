@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -304,7 +305,50 @@ func TestSmoke(t *testing.T) {
 	if mresp.StatusCode != http.StatusOK || !strings.Contains(string(mbody), "doma_sync_requests_total") {
 		t.Errorf("metrics: %d", mresp.StatusCode)
 	}
-	_ = acc
+
+	// 9. a second household on the same doma: the owner joins it with the same key, syncs both
+	// in one request, and its device quota refuses a third device
+	resp, _ = in.form("/admin/households", url.Values{"_csrf": {csrf}, "name": {"Buren"}, "timezone": {"Europe/Amsterdam"}, "home": {"Elsewhere"}}, session)
+	hh2Path := resp.Header.Get("Location")
+	household2 := strings.TrimPrefix(hh2Path, "/admin/h/")
+	if household2 == "" || household2 == household {
+		t.Fatalf("second household: %q", hh2Path)
+	}
+	_, body = in.form(hh2Path+"/invite", url.Values{"_csrf": {csrf}}, session)
+	token2 := regexp.MustCompile(`/i/([A-Za-z0-9_-]+)`).FindStringSubmatch(body)
+	if token2 == nil {
+		t.Fatal("no owner invite for the second household")
+	}
+	acc2, err := a.Accept(ctx, token2[1], "Jaro", "Jaro's iPhone")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if acc2.PersonID != acc.PersonID || acc2.CredentialID != acc.CredentialID || acc2.Household.ID != household2 {
+		t.Fatalf("the second household with the same key: %+v", acc2)
+	}
+	if err := a.Get(ctx, "/api/v1/me", &me); err != nil || len(me["memberships"].([]any)) != 2 {
+		t.Fatalf("me with two households: %v %v", err, me)
+	}
+	var both service.SyncResponse
+	if err := a.Sync(ctx, service.SyncRequest{Households: []service.SyncHousehold{{ID: household, Since: a.since}, {ID: household2}}}, &both); err != nil {
+		t.Fatal(err)
+	}
+	if len(both.Households) != 2 || len(both.Households[1].Events) != 2 || field(both.Households[1].Events[0].Payload, "list_id") == listID {
+		t.Fatalf("two households in one sync: %+v", both.Households)
+	}
+	if resp, _ = in.form(hh2Path+"/quotas", url.Values{"_csrf": {csrf}, "devices": {"1"}, "photo_mb": {""}}, session); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("quotas: %d", resp.StatusCode)
+	}
+	if err := a.Do(ctx, http.MethodPost, "/api/v1/h/"+household2+"/invites", map[string]string{"role": "member"}, &inv); err != nil {
+		t.Fatal(err)
+	}
+	var problem *client.Problem
+	if _, err := b.Accept(ctx, strings.TrimPrefix(inv["url"].(string), in.base+"/i/"), "Sam", "Sam's iPhone"); !errors.As(err, &problem) || problem.Status != http.StatusRequestEntityTooLarge {
+		t.Fatalf("a device past the quota: %v", err)
+	}
+	if _, _, err := b.Download(ctx, "/api/v1/h/"+household2+"/export"); err == nil {
+		t.Error("b reads a household it is not in")
+	}
 }
 
 // jpegBytes is a w by h JPEG, what a phone would send.

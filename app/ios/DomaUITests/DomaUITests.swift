@@ -35,49 +35,69 @@ final class DomaUITests: XCTestCase {
     /// The admin's session, one for the whole run: the login is rate limited per address.
     nonisolated(unsafe) static var admin: URLSession?
 
-    /// A fresh owner invite from the admin pages.
-    func mintInvite(_ live: Live) throws -> String {
+    /// The admin's session, signed in once, and a CSRF token from its households page.
+    func admin(_ live: Live) throws -> (URLSession, String) {
         let base = URL(string: live.baseURL)!
         let session: URLSession
         if let s = Self.admin {
             session = s
         } else {
             session = URLSession(configuration: .ephemeral)
-            var login = URLRequest(url: base.appendingPathComponent("/admin/login"))
-            login.httpMethod = "POST"
-            login.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-            login.httpBody = Data("login=\(live.admin.login)&password=\(live.admin.password.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!)".utf8)
-            _ = try sync(session, login)
+            _ = try post(session, base.appendingPathComponent("/admin/login"), "login=\(live.admin.login)&password=\(live.admin.password.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!)")
             Self.admin = session
         }
-        let admin = try sync(session, URLRequest(url: base.appendingPathComponent("/admin")))
+        let admin = try fetch(session, URLRequest(url: base.appendingPathComponent("/admin"))).data
         let page = String(decoding: admin, as: UTF8.self)
         let csrf = try XCTUnwrap(page.range(of: #"name="_csrf" value="([^"]+)""#, options: .regularExpression).map { page[$0] }
             .flatMap { $0.split(separator: "\"").last.map(String.init) }, "no admin session: " + String(page.prefix(200)))
-        var invite = URLRequest(url: base.appendingPathComponent("/admin/h/\(live.household)/invite"))
-        invite.httpMethod = "POST"
-        invite.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        invite.httpBody = Data("_csrf=\(csrf)".utf8)
-        let html = String(decoding: try sync(session, invite), as: UTF8.self)
+        return (session, csrf)
+    }
+
+    /// A fresh owner invite from the admin pages, for the run's household or another.
+    func mintInvite(_ live: Live, household: String? = nil) throws -> String {
+        let base = URL(string: live.baseURL)!
+        let (session, csrf) = try admin(live)
+        let html = String(decoding: try post(session, base.appendingPathComponent("/admin/h/\(household ?? live.household)/invite"), "_csrf=\(csrf)").data, as: UTF8.self)
         let token = try XCTUnwrap(html.range(of: #"/i/[A-Za-z0-9_-]+"#, options: .regularExpression).map { String(html[$0].dropFirst(3)) })
         return live.baseURL + "/i/" + token
     }
 
-    private func sync(_ session: URLSession, _ request: URLRequest) throws -> Data {
+    /// Another household from the admin pages; its id, read off the page it lands on.
+    func createHousehold(_ live: Live, named name: String, home: String) throws -> String {
+        let base = URL(string: live.baseURL)!
+        let (session, csrf) = try admin(live)
+        let form = "_csrf=\(csrf)&name=\(name.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!)&timezone=Europe/Amsterdam&home=\(home.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!)"
+        let landed = try post(session, base.appendingPathComponent("/admin/households"), form).response?.url
+        let id = try XCTUnwrap(landed?.lastPathComponent, "no household page after the form")
+        XCTAssertNotEqual(id, "households", "the form did not make a household")
+        return id
+    }
+
+    private func post(_ session: URLSession, _ url: URL, _ form: String) throws -> (data: Data, response: URLResponse?) {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data(form.utf8)
+        return try fetch(session, request)
+    }
+
+    private func fetch(_ session: URLSession, _ request: URLRequest) throws -> (data: Data, response: URLResponse?) {
         let done = expectation(description: "http")
         let box = Box()
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             box.data = data
+            box.response = response
             box.error = error
             done.fulfill()
         }.resume()
         wait(for: [done], timeout: 10)
         if let e = box.error { throw e }
-        return box.data ?? Data()
+        return (box.data ?? Data(), box.response)
     }
 
     final class Box: @unchecked Sendable {
         var data: Data?
+        var response: URLResponse?
         var error: Error?
     }
 
@@ -189,6 +209,42 @@ final class DomaUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["waiting"].exists, "everything went up")
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertFalse(app.descendants(matching: .any)["offline"].exists, "the badge is gone")
+    }
+
+    /// A second household on the same doma, joined from Family with the same key and no name
+    /// asked again; the title becomes the switcher and goes between the two.
+    func testJoinASecondHouseholdAndSwitch() throws {
+        let live = try live()
+        let app = launch(join: try mintInvite(live))
+        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15), "the first household is in")
+        let second = try createHousehold(live, named: "Buren", home: "Elsewhere")
+        let url = try mintInvite(live, household: second)
+        app.tabBars.buttons["Family"].tap()
+        // the button is at the foot, under every member the run's tests have joined
+        let join = app.buttons["Join another household"]
+        for _ in 0..<8 where !join.waitForExistence(timeout: 1) { app.swipeUp() }
+        XCTAssertTrue(join.exists, "the foot of Family")
+        join.tap()
+        let link = app.textFields["invite-link"]
+        XCTAssertTrue(link.waitForExistence(timeout: 10), "Scan as a sheet, with its field as there is no camera")
+        link.tap()
+        link.typeText(url)
+        XCTAssertFalse(app.textFields["display-name"].exists, "the name is known on this doma")
+        app.buttons["join"].tap()
+        let switcher = app.buttons["Household"]
+        XCTAssertTrue(switcher.waitForExistence(timeout: 15), "two households: the title is the switcher")
+        switcher.tap()
+        let buren = app.buttons["Buren"]
+        XCTAssertTrue(buren.waitForExistence(timeout: 5), "the menu lists both")
+        buren.tap()
+        app.tabBars.buttons["Homes"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["home-Elsewhere"].firstMatch.waitForExistence(timeout: 10), "the second household's home, not the first's")
+        XCTAssertFalse(app.descendants(matching: .any)["home-Gouda"].exists)
+        app.buttons["Household"].tap()
+        let deVries = app.buttons["De Vries"]
+        XCTAssertTrue(deVries.waitForExistence(timeout: 5))
+        deVries.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["home-Gouda"].firstMatch.waitForExistence(timeout: 10), "and back")
     }
 
     /// Homes: the first home is there from the household; a staple typed under Edit, flagged
