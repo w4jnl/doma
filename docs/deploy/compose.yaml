@@ -2,7 +2,9 @@
 # scratch (the static binary and CA certificates), so there is no shell
 # inside; health is checked from outside at /healthz. The first browser
 # visit shows the setup page. Back up now on /admin/server writes the zip into the volume;
-# README.md, Setup, says how to restore it onto an empty volume.
+# README.md, Setup, says how to restore it onto an empty volume. metrics.md next to this file
+# has the Prometheus scrape config and a dashboard's queries. The same file is what a
+# Portainer stack takes: paste it, set the environment, deploy.
 #
 #   docker compose up -d
 services:

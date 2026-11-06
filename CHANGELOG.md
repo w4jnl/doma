@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Metrics documented and held to the spec.** `docs/deploy/metrics.md` has the scrape
+  config, a dashboard's queries and the alerts; a test keeps every collector's name and
+  labels as the spec lists them. The compose file was brought up from the published image
+  and walked through setup, a household, an invite, the probes, the metrics and a restart.
 - **Restore is drilled.** `scripts/restore.sh` puts a backup zip onto an empty data
   directory, the README says when and how, and `make e2e` backs a live server up, restores
   it and finds every household, device, photo and the admin's second step working.
