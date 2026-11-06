@@ -13,11 +13,13 @@ enum HomeActions {
         try session.record(Kind.flagSet, FlagPayload(homeID: homeID, itemID: itemID, state: state.rawValue))
     }
 
-    /// Adds a staple by a typed name: an exact name reuses the item, anything else creates one.
+    /// Adds a staple by a typed or spoken line: read as a list's line is, so a quantity or a
+    /// note said with it does not become part of the name; an exact name reuses the item,
+    /// anything else creates one.
     @discardableResult
     static func addStaple(_ text: String, home homeID: String, in session: Session) throws -> String? {
         guard let scope = session.scope else { return nil }
-        let name = text.trimmingCharacters(in: .whitespaces)
+        let name = EntryText.parse(text).name
         let norm = Norm.name(name)
         guard !norm.isEmpty else { return nil }
         let existing = try session.store.read(scope) { db, s in try Queries.itemID(db, s, norm: norm) }

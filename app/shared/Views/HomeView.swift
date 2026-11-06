@@ -1,8 +1,9 @@
 // A home: the staples with their flag as glyph and word, the age in mono once it passes half
 // the staleness, three small buttons on a staple nobody has answered for; then every other item
 // flagged here; then the spots' pictures in a strip; then the trips through this home. A staple
-// is typed into the bar at the bottom, as an entry is on a list, and a swipe or a long-press on
-// its row offers Rename and Remove; a spot comes from the + at the end of the strip and its
+// is typed or said into the bar at the bottom, as an entry is on a list, with the same mic and
+// the same split of a spoken line into the items it names; a swipe or a long-press on its row
+// offers Rename and Remove; a spot comes from the + at the end of the strip and its
 // long-press offers the same two. Take photos walks the spots with the camera.
 import SwiftUI
 
@@ -10,11 +11,15 @@ struct HomeView: View {
     var homeID: String
     @Environment(Session.self) private var session
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @State private var home: Live<HomeCard?>?
     @State private var rows: Live<[FlagRow]>?
     @State private var trips: Live<[TripRow]>?
     @State private var text = ""
+    @State private var selection: TextSelection?
     @State private var matches: [Match] = []
+    @State private var micTaps = 0
+    @State private var voiceProblem: String?
     /// The staple whose row is a field now, and what it says.
     @State private var renaming: String?
     @State private var renameText = ""
@@ -53,6 +58,11 @@ struct HomeView: View {
                 #if os(macOS)
                 if renaming == nil {
                     addRowMac
+                    if let voiceProblem {
+                        ProblemLine(text: voiceProblem)
+                            .listRowBackground(Tokens.ground)
+                            .listRowSeparator(.hidden)
+                    }
                     ForEach(matches.prefix(5)) { m in
                         matchButton(m)
                             .listRowBackground(Tokens.accentSoft)
@@ -144,6 +154,13 @@ struct HomeView: View {
             if let card { SweepView(home: card) }
         }
         .navigationDestination(item: $spotShown) { spot in PhotoView(spot: spot) }
+        // the mic taps back at once, then says when it listens and when it stops
+        .sensoryFeedback(.impact(weight: .light), trigger: micTaps)
+        .sensoryFeedback(trigger: session.dictation.busy) { _, now in now ? .start : .stop }
+        .onChange(of: scenePhase) { _, now in
+            if now == .background { stopDictation() }
+        }
+        .onDisappear { stopDictation() }
         .animation(Motion.of(reduceMotion, Motion.base), value: renaming)
         .animation(Motion.of(reduceMotion, Motion.base), value: spotField)
         .onAppear(perform: observe)
@@ -187,6 +204,14 @@ struct HomeView: View {
                     .glassEffect(.regular, in: .rect(cornerRadius: Tokens.radiusMD))
                     .transition(Motion.arrive(reduceMotion, from: .bottom))
                 }
+                if let voiceProblem {
+                    ProblemLine(text: voiceProblem)
+                        .padding(.horizontal, Tokens.space4)
+                        .padding(.vertical, Tokens.space2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassEffect(.regular, in: .rect(cornerRadius: Tokens.radiusMD))
+                        .transition(Motion.arrive(reduceMotion, from: .bottom))
+                }
                 addField
                     .padding(.horizontal, Tokens.space4)
                     .frame(minHeight: Tokens.rowH)
@@ -196,6 +221,7 @@ struct HomeView: View {
             .padding(.bottom, Tokens.space2)
         }
         .animation(Motion.of(reduceMotion, Motion.quick), value: matches.map(\.id))
+        .animation(Motion.of(reduceMotion, Motion.quick), value: voiceProblem)
     }
 
     /// The accent disc and the field with no box.
@@ -210,7 +236,7 @@ struct HomeView: View {
                     .foregroundStyle(Tokens.onAccent)
             }
             .accessibilityHidden(true)
-            TextField("Add a staple", text: $text)
+            TextField("Add a staple", text: $text, selection: $selection)
                 .accessibilityIdentifier("new-staple")
                 .textFieldStyle(.plain)
                 .focused($fieldFocused)
@@ -218,6 +244,8 @@ struct HomeView: View {
                 .onSubmit(addTyped)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .overlay(alignment: .leading) { hearing }
+            MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
         }
     }
     #else
@@ -230,13 +258,15 @@ struct HomeView: View {
                 .foregroundStyle(Tokens.accent)
                 .frame(width: Tokens.space5)
                 .accessibilityHidden(true)
-            TextField("Add a staple", text: $text)
+            TextField("Add a staple", text: $text, selection: $selection)
                 .accessibilityIdentifier("new-staple")
                 .textFieldStyle(.plain)
                 .focused($fieldFocused)
                 .onSubmit(addTyped)
                 .onExitCommand { fieldFocused = false; text = "" }
                 .autocorrectionDisabled()
+                .overlay(alignment: .leading) { hearing }
+            MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
         }
         .frame(minHeight: Tokens.rowH)
         .listRowBackground(Tokens.ground)
@@ -265,6 +295,79 @@ struct HomeView: View {
         _ = try? HomeActions.addStaple(t, home: homeID, in: session)
         text = ""
         matches = []
+    }
+
+    // MARK: Saying a staple
+
+    /// The words the model may still change, faint after what is in the field; the field's own
+    /// text sits under them unseen so they start where it ends.
+    @ViewBuilder
+    private var hearing: some View {
+        let volatile = session.dictation.heard.volatile
+        if session.dictation.busy, !volatile.isEmpty {
+            HStack(spacing: text.isEmpty ? 0 : Tokens.space1) {
+                Text(text).opacity(0)
+                Text(volatile)
+                    .foregroundStyle(Tokens.inkFaint)
+                    .lineLimit(1)
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+    }
+
+    /// The mic's tap, as on a list: listen in the language last chosen, or stop. Each piece the
+    /// model settles lands in the field as if typed, the matches answer it, and a pause adds
+    /// it as return would. Stopping keeps the words in the field.
+    private func toggleDictation() {
+        let listener = session.dictation
+        micTaps += 1
+        if listener.busy {
+            stopDictation()
+            return
+        }
+        voiceProblem = nil
+        listener.lines = false
+        listener.words = { piece in
+            text = Heard.item(Heard.join(text, piece))
+            selection = TextSelection(insertionPoint: text.endIndex)
+        }
+        listener.paused = {
+            if !text.isEmpty { addSpoken() }
+        }
+        Task {
+            await listener.start(Language.remembered)
+            if case .failed(let why) = listener.state { voiceProblem = why }
+        }
+    }
+
+    /// The pause's add: the spoken line split into the staples it names, by the catalog's
+    /// names and the separators said. What no rule splits is one staple.
+    private func addSpoken() {
+        guard let scope = session.scope else { return }
+        let names = (try? session.store.read(scope) { db, s in try Queries.itemNames(db, s) }) ?? []
+        let pieces = Spoken.split(text, language: Language.remembered, names: names)
+        for piece in pieces {
+            _ = try? HomeActions.addStaple(piece, home: homeID, in: session)
+        }
+        text = ""
+        matches = []
+    }
+
+    /// The language chosen under the mic: remembered, and listened in from now.
+    private func dictate(in language: Language) {
+        Language.remembered = language
+        let listener = session.dictation
+        Task {
+            if listener.busy { await listener.stop() }
+            toggleDictation()
+        }
+    }
+
+    private func stopDictation() {
+        let listener = session.dictation
+        guard listener.busy else { return }
+        Task { await listener.stop() }
     }
 
     // MARK: Spots

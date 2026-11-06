@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **A staple can be said.** The home's add bar has the list's mic: the words land in the
+  field, a pause adds them, and one spoken line splits into the staples it names the way a
+  list's does. A quantity said or typed with a staple is dropped from its name.
 - **A home edits like a list.** No Edit button: a staple is typed into the bar at the bottom,
   with the catalog's matches above it, and a swipe or a long-press on its row offers Rename
   and Remove, armed in place. Renaming a staple renames the item everywhere. The spots' pictures
