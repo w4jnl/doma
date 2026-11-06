@@ -22,19 +22,62 @@ enum HomeActions {
         let name = EntryText.parse(text).name
         let norm = Norm.name(name)
         guard !norm.isEmpty else { return nil }
-        let existing = try session.store.read(scope) { db, s in try Queries.itemID(db, s, norm: norm) }
+        let (existing, sort) = try session.store.read(scope) { db, s in
+            (try Queries.itemID(db, s, norm: norm), try Queries.nextStapleSort(db, s, homeID: homeID))
+        }
         let itemID = existing ?? ULID.make()
         try session.record { events, clock, person in
             if existing == nil {
                 events.append(Event(id: ULID.make(), personID: person, hlc: clock.next(), kind: Kind.itemNamed, payload: ItemPayload(itemID: itemID, name: name).jsonValue))
             }
-            events.append(Event(id: ULID.make(), personID: person, hlc: clock.next(), kind: Kind.stapleAdded, payload: StaplePayload(homeID: homeID, itemID: itemID).jsonValue))
+            events.append(Event(id: ULID.make(), personID: person, hlc: clock.next(), kind: Kind.stapleAdded, payload: StaplePayload(homeID: homeID, itemID: itemID, sort: sort).jsonValue))
         }
         return itemID
     }
 
+    /// Adds a known item as a staple, at the end.
     static func addStaple(itemID: String, home homeID: String, in session: Session) throws {
-        try session.record(Kind.stapleAdded, StaplePayload(homeID: homeID, itemID: itemID))
+        guard let scope = session.scope else { return }
+        let sort = try session.store.read(scope) { db, s in try Queries.nextStapleSort(db, s, homeID: homeID) }
+        try session.record(Kind.stapleAdded, StaplePayload(homeID: homeID, itemID: itemID, sort: sort))
+    }
+
+    /// The room left between two staples' sorts; a drag takes the middle, and renumbers the
+    /// home's staples when there is none.
+    nonisolated static let sortGap: Int64 = 1000
+
+    /// Moves staples as the list's rows move: each moved staple is added again with a sort
+    /// between its new neighbours, which is the newest add and so wins the fold.
+    static func moveStaples(_ rows: [FlagRow], from source: IndexSet, to destination: Int, home homeID: String, in session: Session) throws {
+        let before = rows.filter(\.isStaple)
+        var staples = before
+        staples.move(fromOffsets: source, toOffset: destination)
+        let moved = Set(source.map { before[$0].itemID })
+        var sorts = Dictionary(uniqueKeysWithValues: staples.map { ($0.itemID, $0.sort) })
+        func renumber() throws {
+            for (j, r) in staples.enumerated() {
+                let s = Int64(j + 1) * sortGap
+                if sorts[r.itemID] != s {
+                    sorts[r.itemID] = s
+                    try session.record(Kind.stapleAdded, StaplePayload(homeID: homeID, itemID: r.itemID, sort: s))
+                }
+            }
+        }
+        for (i, row) in staples.enumerated() where moved.contains(row.itemID) {
+            let prev = staples[..<i].last { !moved.contains($0.itemID) || sorts[$0.itemID] != $0.sort }.map { sorts[$0.itemID]! }
+            let next = staples[(i + 1)...].first { !moved.contains($0.itemID) }.map { sorts[$0.itemID]! }
+            let sort: Int64
+            switch (prev, next) {
+            case (nil, nil): continue
+            case (let p?, nil): sort = p + sortGap
+            case (nil, let n?): sort = n - sortGap
+            case (let p?, let n?) where n - p > 1: sort = p + (n - p) / 2
+            default:
+                return try renumber()
+            }
+            sorts[row.itemID] = sort
+            try session.record(Kind.stapleAdded, StaplePayload(homeID: homeID, itemID: row.itemID, sort: sort))
+        }
     }
 
     static func removeStaple(itemID: String, home homeID: String, in session: Session) throws {

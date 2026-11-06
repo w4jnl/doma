@@ -61,6 +61,35 @@ final class HomeLogicTests: XCTestCase {
         XCTAssertEqual(r.map(\.isStaple), [false, false], "the flag stays when the staple goes")
     }
 
+    func testStaplesKeepTheOrderTheyAreGiven() throws {
+        let s = try session()
+        for name in ["zout", "melk", "brood"] { _ = try HomeActions.addStaple(name, home: "G", in: s) }
+        var r = try rows(s, "G")
+        XCTAssertEqual(r.map(\.name), ["zout", "melk", "brood"], "a new staple goes last, not into the alphabet")
+        try HomeActions.moveStaples(r, from: IndexSet(integer: 2), to: 0, home: "G", in: s)
+        r = try rows(s, "G")
+        XCTAssertEqual(r.map(\.name), ["brood", "zout", "melk"])
+        try HomeActions.moveStaples(r, from: IndexSet(integer: 0), to: 2, home: "G", in: s)
+        r = try rows(s, "G")
+        XCTAssertEqual(r.map(\.name), ["zout", "brood", "melk"], "between two takes the middle")
+        XCTAssertTrue(r[0].sort < r[1].sort && r[1].sort < r[2].sort)
+        // no room between neighbours: the home renumbers and the order still holds
+        for _ in 0..<12 {
+            r = try rows(s, "G")
+            try HomeActions.moveStaples(r, from: IndexSet(integer: 2), to: 1, home: "G", in: s)
+        }
+        r = try rows(s, "G")
+        XCTAssertEqual(Set(r.map(\.name)), ["zout", "brood", "melk"])
+        XCTAssertTrue(r[0].sort < r[1].sort && r[1].sort < r[2].sort)
+        // an item flagged here but not a staple is listed after, whatever its name
+        guard case .added(let aardappels) = try ListActions.add("aardappels", to: "L1", in: s) else { return XCTFail("not added") }
+        try HomeActions.setFlag(.low, home: "G", item: aardappels, in: s)
+        XCTAssertEqual(try rows(s, "G").last?.name, "aardappels")
+        try HomeActions.addStaple(itemID: aardappels, home: "G", in: s)
+        XCTAssertEqual(try rows(s, "G").map(\.name).last, "aardappels", "made a staple, it stays last")
+        XCTAssertTrue(try rows(s, "G").last!.isStaple)
+    }
+
     func testHomesAndSpots() throws {
         let s = try session()
         let hut = try XCTUnwrap(HomeActions.createHome(named: " Hut ", in: s))

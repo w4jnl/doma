@@ -55,6 +55,9 @@ struct HomeView: View {
                         stapleRow(row)
                     }
                 }
+                .onMove { from, to in
+                    try? HomeActions.moveStaples(all, from: from, to: to, home: homeID, in: session)
+                }
                 #if os(macOS)
                 if renaming == nil {
                     addRowMac
@@ -108,7 +111,7 @@ struct HomeView: View {
                 Section {
                     ForEach(ts) { t in
                         TripHistoryRow(trip: t)
-                            .listRowBackground(ListsView.rowGround)
+                            .listRowBackground(Tokens.ground)
                             .listRowSeparatorTint(Tokens.line)
                     }
                 } header: {
@@ -116,13 +119,10 @@ struct HomeView: View {
                 }
             }
         }
-        #if os(iOS)
-        .listStyle(.insetGrouped)
-        #else
         .listStyle(.plain)
-        #endif
         .textCase(nil)
         .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, ListView.rowHeight)
         .background(Tokens.ground)
         .navigationTitle(card?.name ?? "")
         .navigationSubtitle(subtitle(card))
@@ -485,8 +485,8 @@ struct HomeView: View {
 
     // MARK: Rows
 
-    /// A staple: the flag row with Rename and Remove on a swipe or a long-press; on the Mac a
-    /// double click renames.
+    /// A staple: the flag row with Rename and Remove on a swipe; a long press drags it into
+    /// place, as on a list. On the Mac the menu has both and a double click renames.
     private func stapleRow(_ row: FlagRow) -> some View {
         flagRow(row)
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -495,11 +495,11 @@ struct HomeView: View {
                 Button("Rename") { startRename(row) }
                     .tint(Tokens.accent)
             }
+            #if os(macOS)
             .contextMenu {
                 Button("Rename") { startRename(row) }
                 Button("Remove", role: .destructive) { arm(row.itemID) }
             }
-            #if os(macOS)
             .onTapGesture(count: 2) { startRename(row) }
             #endif
     }
@@ -528,11 +528,12 @@ struct HomeView: View {
                 .foregroundStyle(Tokens.inkMuted)
             #endif
         }
-        .frame(minHeight: Tokens.rowH)
+        .frame(minHeight: ListView.rowHeight)
         #if os(macOS)
         .onExitCommand { renaming = nil }
         #endif
         .listRowBackground(Tokens.surface)
+        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
     }
 
     @ViewBuilder
@@ -596,9 +597,11 @@ struct HomeView: View {
                 .accessibilityIdentifier("flag-" + row.name)
             }
         }
-        .rowHeight()
-        .listRowBackground(ListsView.rowGround)
+        .frame(minHeight: ListView.rowHeight)
+        .contentShape(Rectangle())
+        .listRowBackground(Tokens.ground)
         .listRowSeparatorTint(Tokens.line)
+        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
         .animation(Motion.of(reduceMotion, Motion.quick), value: arming == row.itemID)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibility(row))

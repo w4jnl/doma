@@ -6,6 +6,8 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Staples drag into order.** A long press on a staple moves it, as on a list; a new staple
+  lands at the end. The home's rows now sit as a list's do.
 - **A staple can be said.** The home's add bar has the list's mic: the words land in the
   field, a pause adds them, and one spoken line splits into the staples it names the way a
   list's does. A quantity said or typed with a staple is dropped from its name.
