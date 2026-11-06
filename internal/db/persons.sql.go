@@ -9,6 +9,16 @@ import (
 	"context"
 )
 
+const deleteOrphanPersons = `-- name: DeleteOrphanPersons :exec
+DELETE FROM persons WHERE id NOT IN (SELECT person_id FROM memberships)
+`
+
+// A person with no household left goes, and their devices and device invites with them.
+func (q *Queries) DeleteOrphanPersons(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteOrphanPersons)
+	return err
+}
+
 const getPerson = `-- name: GetPerson :one
 SELECT id, display_name, created_at, last_seen_at FROM persons WHERE id = ?
 `

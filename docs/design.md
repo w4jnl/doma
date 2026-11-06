@@ -194,7 +194,7 @@ Eighteen tables. Four are instance-level (persons, credentials, households, admi
 - Personal lists add a second predicate: `AND (owner_person_id IS NULL OR owner_person_id = ?)`. A guest scope adds `AND list_id = ?` on entries and `AND home_id = ?` on flags and staples.
 - The sync endpoint filters events the same way before returning them: a member never receives another member's personal-list events; a guest receives only events for its home and list. Filtering is by event `kind` and payload fields the fold indexes, so personal-list events carry `list_id` and `owner_person_id` in the payload.
 - Uniqueness is scoped: `items.norm_name` per household, `lists.name` per (household, owner), `homes.name` per household.
-- Deleting a household is admin-only, requires zero members, cascades through `ON DELETE CASCADE`, and removes the photo directory.
+- Deleting a household is admin-only and asked twice on its page, members or not; it cascades through `ON DELETE CASCADE`, removes the photo directory and every person left with no household (their devices with them). A member's phone is told nothing: its next sync of that household is refused with 404 and *Leave this household* removes it there, the other households on that doma keep syncing one by one meanwhile.
 - Photos are the only data outside SQLite; the quota is checked before the upload is accepted and the usage is recomputed nightly from disk.
 - SQLite pragmas at open: `journal_mode=WAL`, `synchronous=NORMAL`, `busy_timeout=5000`, `foreign_keys=ON`; one `*sql.DB` with `MaxOpenConns(1)` for writes and a second read-only pool.
 
@@ -408,7 +408,7 @@ No household name beyond the list's title, no other homes, no members, no photos
 | --- | --- |
 | `/setup` | first run only: admin login, password, first household; redirects to `/admin` and never renders again |
 | `/admin` | households: name, members, devices, photo bytes used, last event; create household |
-| `/admin/h/{id}` | members with role and last seen, devices with platform and last sync, pending invites, guest links, quotas, staleness, export, delete (zero members only) |
+| `/admin/h/{id}` | members with role and last seen, devices with platform and last sync, pending invites, guest links, quotas, staleness, export, delete (asked twice, members or not) |
 | `/admin/server` | base URL and TLS check, APNs key status and last error, backup now, last snapshot time, log level, version |
 | `/admin/invite` | create the first owner invite for a household (QR rendered server-side as SVG) so a family can be bootstrapped without any member yet |
 

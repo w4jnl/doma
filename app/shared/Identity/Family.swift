@@ -236,18 +236,21 @@ final class FamilyModel {
         }
     }
 
-    /// This person leaves the household; the server refuses the last owner.
+    /// This person leaves the household; the server refuses the last owner. A household the
+    /// server no longer has (the admin deleted it) is left here all the same.
     func leave() async -> Bool {
         guard let client = session.client, let base, let c = session.context, let scope = session.scope else { return false }
         do {
             try await client.delete(base + "/members/" + c.personID)
-            try? session.store.removeHousehold(scope)
-            session.reload()
-            return true
+        } catch ClientError.problem(let p) where p.status == 404 {
+            // gone there already
         } catch {
             problem = Self.message(error)
             return false
         }
+        try? session.store.removeHousehold(scope)
+        session.reload()
+        return true
     }
 
     func revoke(device id: String) async {

@@ -115,7 +115,7 @@ func TestHouseholdPageAndGuestView(t *testing.T) {
 	}
 	// delete asks once, then deletes
 	rec = post(mux, "/admin/h/"+hh.ID+"/delete", url.Values{"_csrf": {csrf}}, session)
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Really delete?") {
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Really delete?") || !strings.Contains(rec.Body.String(), "Everything goes") {
 		t.Fatalf("delete first step: %d", rec.Code)
 	}
 	// a guest, before the delete: link, page, add, check, clear, fragment with ETag
@@ -189,4 +189,27 @@ func detail(t *testing.T, svc *service.Service, id string) (home, list string) {
 		t.Fatalf("detail %+v %v", d, err)
 	}
 	return d.Homes[0].ID, d.Lists[0].ID
+}
+
+func TestDeleteHouseholdWithMembers(t *testing.T) {
+	_, svc, mux := newWeb(t)
+	session, csrf := adminSession(t, mux)
+	ctx := context.Background()
+	hh, _ := svc.CreateHousehold(ctx, "Family", "Europe/Amsterdam", "Gouda")
+	inv, _ := svc.CreateInvite(ctx, domain.Scope{HouseholdID: hh.ID, Role: domain.RoleOwner}, domain.RoleOwner)
+	signer, _ := auth.NewEd25519Signer()
+	if _, err := svc.AcceptInvite(ctx, inv.Token, service.AcceptInvite{PublicKey: signer.Public(), DisplayName: "Jaro"}); err != nil {
+		t.Fatal(err)
+	}
+	rec := post(mux, "/admin/h/"+hh.ID+"/delete", url.Values{"_csrf": {csrf}}, session)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "1 members lose it") {
+		t.Fatalf("first step with a member: %d", rec.Code)
+	}
+	rec = post(mux, "/admin/h/"+hh.ID+"/delete", url.Values{"_csrf": {csrf}, "confirm": {"1"}}, session)
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/admin" {
+		t.Fatalf("delete with a member: %d %s", rec.Code, rec.Body.String())
+	}
+	if rec := get(mux, "/admin/h/"+hh.ID, session); rec.Code != http.StatusNotFound {
+		t.Errorf("household page after delete: %d", rec.Code)
+	}
 }
