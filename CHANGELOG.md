@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **A household's devices have a quota.** When the admin has set one, an invite that would
+  bring one device too many is refused with a plain message; a rejoin takes no seat and a
+  removed device frees one. The e2e smoke now joins a second household with the same key, and
+  a UI test joins one from Family and switches.
 - **Staples drag into order.** A long press on a staple moves it, as on a list; a new staple
   lands at the end. The home's rows now sit as a list's do.
 - **A staple can be said.** The home's add bar has the list's mic: the words land in the

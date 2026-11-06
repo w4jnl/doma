@@ -329,3 +329,73 @@ func TestDevices(t *testing.T) {
 		t.Errorf("expired invite: %v", err)
 	}
 }
+
+// A household's device quota holds at acceptance: a new person, a second device, a person
+// bringing two devices from another household; a rejoin and a revoked device do not count.
+func TestDeviceQuotaAtAcceptance(t *testing.T) {
+	s := newService(t)
+	ctx := context.Background()
+	h, _ := s.CreateHousehold(ctx, "Family", "Europe/Amsterdam", "Gouda")
+	two := int64(2)
+	if err := s.SetQuotas(ctx, h.ID, &two, nil); err != nil {
+		t.Fatal(err)
+	}
+	adminScope := domain.Scope{HouseholdID: h.ID, Role: domain.RoleOwner}
+	inv, _ := s.CreateInvite(ctx, adminScope, domain.RoleOwner)
+	owner, ownerKey := accept(t, s, inv.Token, "Jaro")
+	ownerScope := domain.Scope{HouseholdID: h.ID, PersonID: owner.PersonID, Role: domain.RoleOwner}
+	inv2, _ := s.CreateInvite(ctx, ownerScope, domain.RoleMember)
+	member, _ := accept(t, s, inv2.Token, "Sam")
+
+	// the third device: a new person, or the owner's second device
+	inv3, _ := s.CreateInvite(ctx, ownerScope, domain.RoleMember)
+	third, _ := auth.NewEd25519Signer()
+	if _, err := s.AcceptInvite(ctx, inv3.Token, service.AcceptInvite{PublicKey: third.Public(), DisplayName: "Alex"}); !errors.Is(err, domain.ErrQuota) {
+		t.Fatalf("third device: %v", err)
+	}
+	if _, err := s.InviteByToken(ctx, inv3.Token); err != nil {
+		t.Errorf("a refused invite stays unused: %v", err)
+	}
+	dev, err := s.CreateDeviceInvite(ctx, ownerScope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AcceptInvite(ctx, dev.Token, service.AcceptInvite{PublicKey: third.Public()}); !errors.Is(err, domain.ErrQuota) {
+		t.Errorf("owner's second device: %v", err)
+	}
+	// a rejoin adds no device
+	if _, err := s.AcceptInvite(ctx, inv3.Token, service.AcceptInvite{PublicKey: ownerKey.Public(), DisplayName: "Jaro"}); err != nil {
+		t.Errorf("rejoin under a full quota: %v", err)
+	}
+	// a revoked device frees its seat
+	if err := s.RevokeCredential(ctx, owner.PersonID, member.CredentialID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AcceptInvite(ctx, inv3.Token, service.AcceptInvite{PublicKey: third.Public(), DisplayName: "Alex"}); err != nil {
+		t.Errorf("after a revoke: %v", err)
+	}
+	// a person with two devices elsewhere brings both: one seat is not enough
+	other, _ := s.CreateHousehold(ctx, "Others", "Europe/Amsterdam", "Elsewhere")
+	oinv, _ := s.CreateInvite(ctx, domain.Scope{HouseholdID: other.ID, Role: domain.RoleOwner}, domain.RoleOwner)
+	alex, alexKey := accept(t, s, oinv.Token, "Alex B")
+	odev, _ := s.CreateDeviceInvite(ctx, domain.Scope{HouseholdID: other.ID, PersonID: alex.PersonID, Role: domain.RoleOwner})
+	second, _ := auth.NewEd25519Signer()
+	if _, err := s.AcceptInvite(ctx, odev.Token, service.AcceptInvite{PublicKey: second.Public()}); err != nil {
+		t.Fatal(err)
+	}
+	three := int64(3)
+	if err := s.SetQuotas(ctx, h.ID, &three, nil); err != nil {
+		t.Fatal(err)
+	}
+	inv4, _ := s.CreateInvite(ctx, ownerScope, domain.RoleMember)
+	if _, err := s.AcceptInvite(ctx, inv4.Token, service.AcceptInvite{PublicKey: alexKey.Public(), DisplayName: "Alex B"}); !errors.Is(err, domain.ErrQuota) {
+		t.Errorf("two devices into one seat: %v", err)
+	}
+	var unlimited *int64
+	if err := s.SetQuotas(ctx, h.ID, unlimited, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AcceptInvite(ctx, inv4.Token, service.AcceptInvite{PublicKey: alexKey.Public(), DisplayName: "Alex B"}); err != nil {
+		t.Errorf("no quota: %v", err)
+	}
+}

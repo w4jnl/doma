@@ -249,6 +249,20 @@ func (s *Service) AcceptInvite(ctx context.Context, token string, req AcceptInvi
 			out = &Accepted{Server: s.cfg.BaseURL, PersonID: personID, CredentialID: credentialID, DisplayName: name, Household: household(h), Role: domain.Role(m.Role), Rejoined: true}
 			return nil
 		}
+		// the person brings every device they have into the household
+		creds, err := q.CredentialsForPerson(ctx, personID)
+		if err != nil {
+			return err
+		}
+		var brought int64
+		for _, c := range creds {
+			if c.Kind == domain.KindDeviceKey && c.RevokedAt == nil {
+				brought++
+			}
+		}
+		if err := devicesFit(ctx, q, h, brought); err != nil {
+			return err
+		}
 		if err := q.InsertMembership(ctx, db.InsertMembershipParams{PersonID: personID, HouseholdID: inv.HouseholdID, Role: inv.Role, CreatedAt: now}); err != nil {
 			return err
 		}
@@ -289,6 +303,9 @@ func (s *Service) acceptDevice(ctx context.Context, q *db.Queries, inv *db.Invit
 		}
 		credentialID = existing.ID
 	} else {
+		if err := devicesFit(ctx, q, h, 1); err != nil {
+			return err
+		}
 		credentialID = domain.NewID()
 		if err := q.InsertCredential(ctx, db.InsertCredentialParams{ID: credentialID, PersonID: personID, Kind: domain.KindDeviceKey, PublicKey: ptr(key), Label: label, Platform: platform, CreatedAt: now}); err != nil {
 			return err
@@ -302,6 +319,23 @@ func (s *Service) acceptDevice(ctx context.Context, q *db.Queries, inv *db.Invit
 		return fmt.Errorf("%w: that invite was used already", domain.ErrConflict)
 	}
 	*out = &Accepted{Server: s.cfg.BaseURL, PersonID: personID, CredentialID: credentialID, DisplayName: p.DisplayName, Household: household(h), Role: domain.Role(m.Role), Device: true}
+	return nil
+}
+
+// devicesFit refuses an acceptance that would take the household past its
+// device quota: the devices it has now plus the ones coming in. A null quota
+// is unlimited.
+func devicesFit(ctx context.Context, q *db.Queries, h db.Household, coming int64) error {
+	if h.QuotaDevices == nil {
+		return nil
+	}
+	have, err := q.CountDevices(ctx, h.ID)
+	if err != nil {
+		return err
+	}
+	if have+coming > *h.QuotaDevices {
+		return fmt.Errorf("%w: this household has all the devices it may have (%d); the owner can remove one in Settings or ask for more", domain.ErrQuota, *h.QuotaDevices)
+	}
 	return nil
 }
 
