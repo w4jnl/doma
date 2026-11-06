@@ -6,6 +6,12 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **A home edits like a list.** No Edit button: a staple is typed into the bar at the bottom,
+  with the catalog's matches above it, and a swipe or a long-press on its row offers Rename
+  and Remove, armed in place. Renaming a staple renames the item everywhere. The spots' pictures
+  moved below the staples, with a `+` at the end of the strip for a new spot and Rename and
+  Remove on a long-press.
+
 ## 0.4.1 (2026-11-05)
 
 Planned trips, for the phase-1 gate: a trip is from, to, a date and a list, shared with the

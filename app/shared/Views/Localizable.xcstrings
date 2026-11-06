@@ -449,6 +449,22 @@
         }
       }
     },
+    "Add a spot": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plek toevoegen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridať miesto"
+          }
+        }
+      }
+    },
     "Add a staple": {
       "localizations": {
         "nl": {
@@ -2321,6 +2337,22 @@
         }
       }
     },
+    "Spots": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plekken"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Miesta"
+          }
+        }
+      }
+    },
     "Staple": {
       "localizations": {
         "nl": {
@@ -2353,18 +2385,18 @@
         }
       }
     },
-    "Staples are what this home should always have. Tap Edit to add them; when one runs out, flag it and it goes on the list.": {
+    "Staples are what this home should always have. Type one below; when one runs out, flag it and it goes on the list.": {
       "localizations": {
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Basisartikelen horen altijd in dit huis te zijn. Tik op Bewerken om ze toe te voegen; is er een op, zet de vlag en het komt op de lijst."
+            "value": "Basisartikelen horen altijd in dit huis te zijn. Typ er hieronder een; is er een op, zet de vlag en het komt op de lijst."
           }
         },
         "sk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zásoby sú to, čo má tento domov vždy mať. Ťukni na Upraviť a pridaj ich; keď niečo dôjde, označ to a pôjde na zoznam."
+            "value": "Zásoby sú to, čo má tento domov vždy mať. Napíš jednu nižšie; keď niečo dôjde, označ to a pôjde na zoznam."
           }
         }
       }

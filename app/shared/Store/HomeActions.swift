@@ -39,6 +39,13 @@ enum HomeActions {
         try session.record(Kind.stapleRemoved, StaplePayload(homeID: homeID, itemID: itemID))
     }
 
+    /// A staple's name is the item's name: on every list and at every home.
+    static func renameItem(_ itemID: String, to name: String, in session: Session) throws {
+        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !Norm.name(n).isEmpty else { return }
+        try session.record(Kind.itemRenamed, ItemPayload(itemID: itemID, name: n))
+    }
+
     @discardableResult
     static func createHome(named name: String, in session: Session) throws -> String? {
         let name = name.trimmingCharacters(in: .whitespaces)
