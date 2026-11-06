@@ -173,21 +173,22 @@ func (s *Service) UpdateHousehold(ctx context.Context, sc domain.Scope, u Househ
 	return s.HouseholdByID(ctx, sc.HouseholdID)
 }
 
-// DeleteHousehold removes a household with no members left; the admin
-// only. Rows cascade and the photo directory goes with them.
+// DeleteHousehold removes a household, members or not; the admin only,
+// asked twice on the page. Rows cascade, the photo directory goes with
+// them, and so does every person left with no household. A member's
+// phone is told nothing: its next sync of that household is refused and
+// Leave this household removes it there.
 func (s *Service) DeleteHousehold(ctx context.Context, id string) error {
 	err := s.db.Tx(ctx, func(q *db.Queries) error {
 		if _, err := q.GetHousehold(ctx, id); err != nil {
 			return notFound(err)
 		}
-		n, err := q.CountMembers(ctx, id)
-		if err != nil {
+		if err := q.DeleteHousehold(ctx, id); err != nil {
 			return err
 		}
-		if n > 0 {
-			return fmt.Errorf("%w: the household still has %d members", domain.ErrConflict, n)
-		}
-		return q.DeleteHousehold(ctx, id)
+		// members who belonged nowhere else go with it, their devices and device invites
+		// through the cascade; a member of another household keeps their person and devices
+		return q.DeleteOrphanPersons(ctx)
 	})
 	if err == nil {
 		s.removePhotoDir(id)

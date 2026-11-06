@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The admin can delete a household with members.** Asked twice on the household's page;
+  everything goes, and members left with no household go with their devices. A phone whose
+  household is gone keeps its other households syncing, and *Leave this household* removes
+  the deleted one from it.
 - **A household's devices have a quota.** When the admin has set one, an invite that would
   bring one device too many is refused with a plain message; a rejoin takes no seat and a
   removed device frees one. The e2e smoke now joins a second household with the same key, and
