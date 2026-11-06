@@ -34,6 +34,8 @@ type Querier interface {
 	DeleteFlagsForItems(ctx context.Context, arg DeleteFlagsForItemsParams) error
 	DeleteHousehold(ctx context.Context, id string) error
 	DeleteMembership(ctx context.Context, arg DeleteMembershipParams) (int64, error)
+	// A person with no household left goes, and their devices and device invites with them.
+	DeleteOrphanPersons(ctx context.Context) error
 	DeleteSnapshot(ctx context.Context, arg DeleteSnapshotParams) error
 	DeleteStaplesForItems(ctx context.Context, arg DeleteStaplesForItemsParams) error
 	EntriesForKey(ctx context.Context, arg EntriesForKeyParams) ([]Entry, error)

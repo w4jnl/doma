@@ -195,10 +195,6 @@ func (h *Web) deleteHousehold(w http.ResponseWriter, r *http.Request, sess *auth
 		return
 	}
 	if err := h.svc.DeleteHousehold(r.Context(), id); err != nil {
-		if errors.Is(err, domain.ErrConflict) {
-			h.renderHousehold(w, r, sess, id, householdData{}, http.StatusConflict, "The household still has members.")
-			return
-		}
 		if errors.Is(err, domain.ErrNotFound) {
 			http.NotFound(w, r)
 			return

@@ -143,6 +143,14 @@ final class Syncer {
                 problem = problem ?? status.lastError
             } catch let e as ClientError {
                 ok = false
+                if case .problem(let p) = e, p.status == 404, server.scopes.count > 1 {
+                    // one household is no longer there (the admin deleted it): the others
+                    // keep moving, one by one, until the person leaves the gone one
+                    for scope in server.scopes {
+                        if (try? await exchange(server, scopes: [scope])) == true { sentAny = true }
+                    }
+                    await uploadPending(server)
+                }
                 if e.isOffline {
                     lost = true
                     status.failures += 1
@@ -182,9 +190,9 @@ final class Syncer {
 
     /// One server's exchange: the outbox up and the log down for each of its households, in
     /// rounds until nothing moves. Returns whether anything went up.
-    private func exchange(_ server: Server) async throws -> Bool {
+    private func exchange(_ server: Server, scopes: [Scope]? = nil) async throws -> Bool {
         let client = server.client
-        let scopes = server.scopes
+        let scopes = scopes ?? server.scopes
         var sentAny = false
         for _ in 0..<50 {
             var request = SyncRequest(households: [])

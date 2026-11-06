@@ -258,8 +258,24 @@ func TestInvitesAndMembers(t *testing.T) {
 	if len(kinds) != 3 || kinds[2] != "member.removed" {
 		t.Errorf("events %v", kinds)
 	}
-	if err := s.DeleteHousehold(ctx, h.ID); !errors.Is(err, domain.ErrConflict) {
-		t.Errorf("delete with members: %v", err)
+	// deleting with members left: the household goes, a person with no other household goes
+	// with their devices, a person who is elsewhere too stays
+	other, _ := s.CreateHousehold(ctx, "Others", "Europe/Amsterdam", "Elsewhere")
+	oinv, _ := s.CreateInvite(ctx, domain.Scope{HouseholdID: other.ID, Role: domain.RoleOwner}, domain.RoleOwner)
+	if _, err := s.AcceptInvite(ctx, oinv.Token, service.AcceptInvite{PublicKey: ownerKey.Public(), DisplayName: "Jaro"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteHousehold(ctx, h.ID); err != nil {
+		t.Fatalf("delete with members: %v", err)
+	}
+	if _, err := s.HouseholdByID(ctx, h.ID); !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("household after delete: %v", err)
+	}
+	if _, err := s.CredentialForAuth(ctx, owner.CredentialID); err != nil {
+		t.Errorf("the owner is still in Others, their device should stay: %v", err)
+	}
+	if _, err := s.CredentialForAuth(ctx, member.CredentialID); !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("the member belonged nowhere else, their device should be gone: %v", err)
 	}
 }
 

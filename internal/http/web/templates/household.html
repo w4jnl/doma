@@ -79,7 +79,6 @@
   <h2>Export and delete</h2>
   <div class="dm-row-actions">
     <a class="dm-button dm-button-quiet" href="/admin/h/{{.Data.Detail.ID}}/export">Export</a>
-    {{if eq .Data.Detail.Members 0}}
     <form method="post" action="/admin/h/{{.Data.Detail.ID}}/delete">
       <input type="hidden" name="_csrf" value="{{.CSRF}}">
       {{if .Data.ConfirmDelete}}
@@ -89,8 +88,10 @@
       <button class="dm-button dm-button-quiet" type="submit">Delete</button>
       {{end}}
     </form>
-    {{else}}
-    <span class="dm-meta">A household with members cannot be deleted.</span>
+    {{if .Data.ConfirmDelete}}
+    <span class="dm-meta">Everything goes: the lists, the homes, the photos and the history. {{if .Data.Detail.Members}}{{.Data.Detail.Members}} members lose it from their phones; export first if they want it back.{{end}}</span>
+    {{else if .Data.Detail.Members}}
+    <span class="dm-meta">Export first; a delete cannot be undone.</span>
     {{end}}
   </div>
 </section>
