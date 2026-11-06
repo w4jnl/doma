@@ -11,11 +11,16 @@ struct DomaApp: App {
 
     /// The tests' host: the suites draw into windows of their own, and this one is a point in
     /// the bottom right corner. It has to exist, the pictures come out half a pixel off without
-    /// a window of the app's own, but nobody needs to see it; hiding it or making the app an
-    /// accessory shifts them the same way.
+    /// a window of the app's own, but nobody needs to see it. Under the tests the app is an
+    /// accessory: no Dock tile, never activated, and a tiling window manager leaves its windows
+    /// alone instead of giving each picture's window half the screen and the focus. The
+    /// pictures are recorded under that policy.
     private static let testing = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
     init() {
+        if Self.testing {
+            NSApplication.shared.setActivationPolicy(.accessory)
+        }
         _session = State(initialValue: Self.testing ? Session(store: try! DomaStore.inMemory()) : Session.live())
     }
 
