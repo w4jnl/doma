@@ -575,7 +575,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 - [x] Second household and second server finished: the device quota enforced at invite acceptance, two households in the e2e smoke, a UI test that joins a second household and switches (the contexts, the switcher, the photo quota and the cross-tenant suite are in)
 - [x] Backup and restore drill from `/admin/server`
 - [ ] Metrics, `docs/deploy/` verified with compose, by hand and as a Portainer stack
-- [ ] Onboarding polish for a stranger: every screen before the first list, in the three languages
+- [x] Onboarding polish for a stranger: every screen before the first list, in the three languages
 
 **Phase 3 — designed-for features** (each its own gate)
 
