@@ -95,3 +95,9 @@ code, .dm-mono { font-family: var(--font-mono); font-size: 0.9375rem; }
 .dm-quiet-link { font: inherit; font-size: 0.875rem; color: var(--ink-muted); background: none; border: 0; padding: var(--space-1) var(--space-2); cursor: pointer; white-space: nowrap; }
 .dm-quiet-link:hover { color: var(--ink); }
 .dm-divider { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) 0; border-top: 1px solid var(--line); }
+.dm-flagrow { flex-wrap: wrap; }
+.dm-flagbar { display: flex; gap: var(--space-1); }
+.dm-quiet-link.dm-on { color: var(--ink); font-weight: 600; text-decoration: underline; }
+.dm-thumb { width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover; flex: none; }
+.dm-thumb-empty { display: inline-block; background: var(--surface-sunk); border: 1px solid var(--line); }
+.dm-rows li form { margin: 0; }

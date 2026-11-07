@@ -1,0 +1,69 @@
+{{define "content"}}
+<div class="dm-app">
+  <h1>{{.Data.View.Home.Name}}</h1>
+  {{if .Data.Error}}<p class="dm-error">{{.Data.Error}}</p>{{end}}
+  {{$page := .Data.Page}}{{$csrf := .CSRF}}
+  <section>
+    <h2>Staples</h2>
+    <form method="post" action="{{$page}}/staples" class="dm-add">
+      <input type="hidden" name="_csrf" value="{{$csrf}}">
+      <input class="dm-input" name="text" placeholder="Add a staple" required maxlength="200" autocomplete="off">
+      <button class="dm-button" type="submit">Add</button>
+    </form>
+    {{if .Data.View.Staples}}
+    <ul class="dm-rows">
+      {{range .Data.View.Staples}}{{template "flagrow" (dict "Page" $page "CSRF" $csrf "R" . "Staple" true)}}{{end}}
+    </ul>
+    {{else}}
+    <p class="dm-muted">What this home should always have. Type the first one above.</p>
+    {{end}}
+  </section>
+  {{if .Data.View.Others}}
+  <section>
+    <h2>Also here</h2>
+    <ul class="dm-rows">
+      {{range .Data.View.Others}}{{template "flagrow" (dict "Page" $page "CSRF" $csrf "R" . "Staple" false)}}{{end}}
+    </ul>
+  </section>
+  {{end}}
+  {{if .Data.View.Home.Spots}}
+  <section>
+    <h2>Spots</h2>
+    <ul class="dm-rows">
+      {{range .Data.View.Home.Spots}}
+      <li>{{if .Thumb}}<img class="dm-thumb" src="{{.Thumb}}" alt="" width="48" height="48">{{else}}<span class="dm-thumb dm-thumb-empty" aria-hidden="true"></span>{{end}}<span class="dm-grow">{{.Name}}</span></li>
+      {{end}}
+    </ul>
+    <p class="dm-muted">Pictures are taken with the phone.</p>
+  </section>
+  {{end}}
+  {{if .Data.View.Trips}}
+  <section>
+    <h2>Trips</h2>
+    <ul class="dm-rows">
+      {{range .Data.View.Trips}}
+      <li><a class="dm-row-link" href="{{$.Data.Base}}/trip/{{.ID}}"><span class="dm-grow">{{.FromName}} to {{.ToName}}</span><span class="dm-meta">{{date .Date}}{{if .Arrived}}, arrived{{else if .Cancelled}}, cancelled{{end}}</span></a></li>
+      {{end}}
+    </ul>
+  </section>
+  {{end}}
+</div>
+{{end}}
+{{define "flagrow"}}
+<li class="dm-flagrow">
+  <span class="dm-flag dm-flag-{{.R.State}}"><svg class="dm-glyph" aria-hidden="true"><use href="#i-{{.R.State}}"/></svg>{{.R.State}}</span>
+  <span class="dm-grow">{{.R.Name}}{{if .R.SetAt}} <span class="dm-meta">{{ago .R.SetAt}}</span>{{end}}</span>
+  <form method="post" action="{{.Page}}/flag/{{.R.ItemID}}" class="dm-flagbar">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <button class="dm-quiet-link{{if eq .R.State "have"}} dm-on{{end}}" name="state" value="have" type="submit">Have</button>
+    <button class="dm-quiet-link{{if eq .R.State "low"}} dm-on{{end}}" name="state" value="low" type="submit">Low</button>
+    <button class="dm-quiet-link{{if eq .R.State "out"}} dm-on{{end}}" name="state" value="out" type="submit">Out</button>
+  </form>
+  {{if .Staple}}
+  <form method="post" action="{{.Page}}/staples/{{.R.ItemID}}/remove">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <button class="dm-quiet-link" type="submit" aria-label="Remove {{.R.Name}} from the staples">Remove</button>
+  </form>
+  {{end}}
+</li>
+{{end}}

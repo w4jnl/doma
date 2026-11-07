@@ -72,8 +72,9 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   shared: `trip.planned` and `trip.cancelled` in the fold (last-writer-wins plan, earliest cancel),
   `trips` with `list_id`, `updated_hlc`, nullable `arrived_at` and `cancelled_at`.
   Phase 3: History and Not needed in the apps, tasks lists (`lists.kind`), and the member web
-  client under `internal/http/web/app.go` (sign-in by the phone's vouch or a passkey, Lists and
-  List) with the vouch route on the API and Scan reading a browser's code.
+  client under `internal/http/web/app.go` and `app2.go` (sign-in by the phone's vouch or a passkey;
+  Lists, List, Homes, Home, Trip, Family) over `internal/service/web.go` and `webhome.go`, with
+  the vouch route on the API and Scan reading a browser's code.
   Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;

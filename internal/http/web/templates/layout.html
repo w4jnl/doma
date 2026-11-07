@@ -24,6 +24,9 @@
     <a class="dm-wordmark" href="/app">{{mark}} doma</a>
     <nav aria-label="doma">
       <a href="/app/h/{{.Household}}/lists"{{if eq .Nav "lists"}} aria-current="page"{{end}}>Lists</a>
+      <a href="/app/h/{{.Household}}/homes"{{if eq .Nav "homes"}} aria-current="page"{{end}}>Homes</a>
+      <a href="/app/h/{{.Household}}/trips"{{if eq .Nav "trips"}} aria-current="page"{{end}}>Trip</a>
+      <a href="/app/h/{{.Household}}/family"{{if eq .Nav "family"}} aria-current="page"{{end}}>Family</a>
     </nav>
     {{if gt (len .Households) 1}}<nav class="dm-switch" aria-label="Household">{{range .Households}}<a href="/app/h/{{.ID}}/lists"{{if eq .ID $.Household}} aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}
     <form method="post" action="/app/signout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Sign out</button></form>

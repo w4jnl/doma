@@ -428,6 +428,9 @@ Server-rendered htmx pages on the same service layer, for a member at a laptop o
 | `/app/v/{code}` | what the code links to, for a camera that read it instead of doma: open the app's Scan and scan again, or paste the link there |
 | `/app/h/{household}/lists` | the household's lists and the person's own, with their counts; a new list, shared or *Just me*, shopping or tasks; a switcher in the top bar when the person is in more than one household |
 | `/app/h/{household}/l/{list}` | the list: add, strike, *Not needed*, Clear, in the family's words; the rows poll every 10 s like the guest view |
+| `/app/h/{household}/homes`, `…/home/{home}` | one row per home with its out, low and unknown counts, and a new home; the home's staples with Have, Low and Out on the row, a staple typed into a bar, Remove, the other flagged items, the spots with their newest picture, the trips through it; pictures are taken with the phone |
+| `/app/h/{household}/trips`, `…/trip/{trip}` | upcoming trips, Plan a trip (from, to, day, list), past trips; a trip's Bring, Buy with *Add to list*, Check on arrival, *Arrived* and *Cancel the trip*, derived as on the phone |
+| `/app/h/{household}/family` | the household's members with role and last seen, Remove for owners; Invite with its QR and link shown once; guest links made and revoked; the person's devices and passkeys with Revoke |
 | `/app/passkey/…` | the two WebAuthn ceremonies as JSON, driven by `static/passkey.js`, our own file under the page's CSP |
 
 **Signing in.** The first time, the browser shows a code; the member opens Scan on their phone (Family, *Join another household*, or Paste a link) and the app, signed with its device key, tells the server who sits at the browser (`POST /api/v1/vouch`). The code lives five minutes, once. The browser's session then belongs to the phone's credential, and the lists page offers *Add a passkey*: a discoverable WebAuthn credential, stored in `credentials` as kind `passkey` with the record as its public key and the hash of its id for the lookup, labelled after the browser, revocable from Settings like a phone. From then on *Use a passkey* signs the browser in with a touch, and the session is the passkey's. Sessions are in memory, a month sliding; a restart signs browsers out. The relying party is the host of `server.base_url`, so the family opens the address the server was told.
@@ -596,7 +599,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 
 **Phase 3 — designed-for features** (each its own gate)
 
-- [ ] Passkeys and the member web client
+- [x] Passkeys and the member web client: `/app`, signed in by the phone's vouch and then a passkey; Lists, List, Homes, Home, Trip and Family
 - [x] Multiple server contexts in the app (pulled forward from phase 3: a test and a production doma on one phone)
 - [ ] `flag.proposed` from a vision model over new photos, with a confirm screen
 - [x] History and overviews: purchases per item, per month and per home, totals of `qty` by `unit`; read from the entries table, no new events

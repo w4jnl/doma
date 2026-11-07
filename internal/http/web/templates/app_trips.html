@@ -1,0 +1,44 @@
+{{define "content"}}
+<div class="dm-app">
+  <h1>Trip</h1>
+  {{if .Data.Error}}<p class="dm-error">{{.Data.Error}}</p>{{end}}
+  {{$base := .Data.Base}}
+  <section>
+    <h2>Upcoming</h2>
+    {{if .Data.Upcoming}}
+    <ul class="dm-rows">
+      {{range .Data.Upcoming}}
+      <li><a class="dm-row-link" href="{{$base}}/trip/{{.ID}}"><span class="dm-grow">{{.FromName}} to {{.ToName}}</span><span class="dm-meta">{{date .Date}}</span></a></li>
+      {{end}}
+    </ul>
+    {{else}}
+    <p class="dm-muted">No trip planned.</p>
+    {{end}}
+  </section>
+  {{if gt (len .Data.Homes) 1}}
+  <section class="dm-panel">
+    <h2>Plan a trip</h2>
+    <form method="post" action="{{$base}}/trips" class="dm-inline-form">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      <label class="dm-field"><span>From</span><select class="dm-input" name="from">{{range .Data.Homes}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
+      <label class="dm-field"><span>To</span><select class="dm-input" name="to">{{range $i, $h := .Data.Homes}}<option value="{{$h.ID}}"{{if eq $i 1}} selected{{end}}>{{$h.Name}}</option>{{end}}</select></label>
+      <label class="dm-field"><span>Day</span><input class="dm-input" type="date" name="date" value="{{.Data.Today}}" required></label>
+      <label class="dm-field"><span>List</span><select class="dm-input" name="list">{{range .Data.Lists}}<option value="{{.ID}}"{{if .Default}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+      <button class="dm-button" type="submit">Plan</button>
+    </form>
+  </section>
+  {{else}}
+  <p class="dm-muted">A trip goes from one home to another. Make a second home first.</p>
+  {{end}}
+  {{if .Data.Past}}
+  <section>
+    <h2>Past</h2>
+    <ul class="dm-rows">
+      {{range .Data.Past}}
+      <li><a class="dm-row-link" href="{{$base}}/trip/{{.ID}}"><span class="dm-grow">{{.FromName}} to {{.ToName}}</span><span class="dm-meta">{{date .Date}}, {{if .Arrived}}arrived{{else}}cancelled{{end}}</span></a></li>
+      {{end}}
+    </ul>
+  </section>
+  {{end}}
+</div>
+{{end}}

@@ -417,3 +417,98 @@ func TestWebClientPasskeyRegistersAndSignsIn(t *testing.T) {
 		t.Errorf("finish without a ceremony: %d", res.StatusCode)
 	}
 }
+
+func TestWebClientHomesTripsAndFamily(t *testing.T) {
+	s := newSuite(t)
+	b, csrf := signInByPhone(t, s, s.a.owner)
+	base := "/app/h/" + s.a.id
+	// homes: the first home is there; a second one is made
+	res, body := b.get(base + "/homes")
+	if res.StatusCode != http.StatusOK || !strings.Contains(body, "Home") {
+		t.Fatalf("homes: %d", res.StatusCode)
+	}
+	res, _ = b.form(base+"/homes", url.Values{"_csrf": {csrf}, "name": {"Hut"}})
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("create home: %d", res.StatusCode)
+	}
+	hut := res.Header.Get("Location")
+	hutID := hut[strings.LastIndex(hut, "/")+1:]
+	// a staple at the hut, flagged out: the home page says so and the default list gets it
+	res, _ = b.form(hut+"/staples", url.Values{"_csrf": {csrf}, "text": {"melk"}})
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("add staple: %d", res.StatusCode)
+	}
+	_, body = b.get(hut)
+	ids := regexp.MustCompile(`/flag/([A-Za-z0-9]+)`).FindStringSubmatch(body)
+	if ids == nil || !strings.Contains(body, "melk") {
+		t.Fatalf("the staple is not on the home page: %s", body)
+	}
+	melk := ids[1]
+	if res, _ := b.form(hut+"/flag/"+melk, url.Values{"_csrf": {csrf}, "state": {"out"}}); res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("flag out: %d", res.StatusCode)
+	}
+	_, body = b.get(hut)
+	if !strings.Contains(body, `dm-flag-out`) || !strings.Contains(body, "1 out") && !strings.Contains(body, ">out<") {
+		t.Errorf("the flag does not read out: %s", body)
+	}
+	if _, body := b.get(base + "/l/" + s.a.list); !strings.Contains(body, "melk") {
+		t.Errorf("out did not put melk on the default list")
+	}
+	// a trip from Home to the hut: melk is to buy, since Home has no flag for it; Arrived closes it
+	res, body = b.get(base + "/trips")
+	if res.StatusCode != http.StatusOK || !strings.Contains(body, "Plan a trip") {
+		t.Fatalf("trips: %d %s", res.StatusCode, body)
+	}
+	res, _ = b.form(base+"/trips", url.Values{"_csrf": {csrf}, "from": {s.a.home}, "to": {hutID}, "date": {"2026-11-08"}, "list": {s.a.list}})
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("plan: %d", res.StatusCode)
+	}
+	trip := res.Header.Get("Location")
+	_, body = b.get(trip)
+	if !strings.Contains(body, "Buy") || !strings.Contains(body, "melk") || !strings.Contains(body, "on the list") {
+		t.Errorf("the plan lacks melk to buy, on the list already: %s", body)
+	}
+	if res, _ := b.form(base+"/trips", url.Values{"_csrf": {csrf}, "from": {s.a.home}, "to": {s.a.home}, "date": {"2026-11-08"}}); res.StatusCode != http.StatusUnprocessableEntity {
+		t.Errorf("a trip to the same home: %d", res.StatusCode)
+	}
+	if res, _ := b.form(trip+"/arrived", url.Values{"_csrf": {csrf}}); res.StatusCode != http.StatusSeeOther {
+		t.Errorf("arrived: %d", res.StatusCode)
+	}
+	if _, body := b.get(base + "/trips"); !strings.Contains(body, "Past") || !strings.Contains(body, "arrived") {
+		t.Errorf("the trip is not among the past ones: %s", body)
+	}
+	if res, _ := b.form(trip+"/arrived", url.Values{"_csrf": {csrf}}); res.StatusCode != http.StatusConflict {
+		t.Errorf("arriving twice: %d", res.StatusCode)
+	}
+	// family: members, an invite with its QR, a guest link, the devices
+	res, body = b.get(base + "/family")
+	if res.StatusCode != http.StatusOK || !strings.Contains(body, "Family A owner") || !strings.Contains(body, "Family A member") || !strings.Contains(body, "Your devices") {
+		t.Fatalf("family: %d %s", res.StatusCode, body)
+	}
+	res, body = b.form(base+"/family/invite", url.Values{"_csrf": {csrf}, "role": {"member"}})
+	if res.StatusCode != http.StatusOK || !strings.Contains(body, "/i/") || !strings.Contains(body, "<svg") {
+		t.Errorf("invite: %d %s", res.StatusCode, body)
+	}
+	res, body = b.form(base+"/family/guests", url.Values{"_csrf": {csrf}, "label": {"cleaner web"}, "home": {s.a.home}, "list": {s.a.list}, "days": {"7"}})
+	if res.StatusCode != http.StatusOK || !strings.Contains(body, "/g/") {
+		t.Errorf("guest link: %d %s", res.StatusCode, body)
+	}
+	_, body = b.get(base + "/family")
+	if !strings.Contains(body, "cleaner web") || !strings.Contains(body, "member invite") {
+		t.Errorf("the family page lacks the new link or invite: %s", body)
+	}
+	// a member sees no invite form and may not invite
+	m, mcsrf := signInByPhone(t, s, s.a.member)
+	if _, body := m.get(base + "/family"); strings.Contains(body, "Make a link") || strings.Contains(body, `name="role"`) {
+		t.Errorf("a member is offered the owner's forms")
+	}
+	if res, _ := m.form(base+"/family/invite", url.Values{"_csrf": {mcsrf}, "role": {"member"}}); res.StatusCode != http.StatusForbidden {
+		t.Errorf("a member invites: %d", res.StatusCode)
+	}
+	// the other household's pages are 404 here too
+	for _, p := range []string{"/homes", "/trips", "/family"} {
+		if res, _ := b.get("/app/h/" + s.b.id + p); res.StatusCode != http.StatusNotFound {
+			t.Errorf("household B %s: %d", p, res.StatusCode)
+		}
+	}
+}
