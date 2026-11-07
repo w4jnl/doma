@@ -64,7 +64,8 @@ struct ListsHome: View {
     @Environment(Session.self) private var session
     @State private var lists: Live<[ListSummary]>?
     @State private var currentID: String?
-    @State private var path: [Route] = []
+    // a NavigationPath, not [Route]: the overview's own links (History) carry other value types
+    @State private var path = NavigationPath()
 
     enum Route: Hashable {
         case all
@@ -74,7 +75,7 @@ struct ListsHome: View {
         NavigationStack(path: $path) {
             Group {
                 if let id = currentID {
-                    ListView(listID: id, overview: { path = [.all] })
+                    ListView(listID: id, overview: { path = NavigationPath([Route.all]) })
                         .id(id)
                 } else {
                     Tokens.ground
@@ -83,14 +84,14 @@ struct ListsHome: View {
             .navigationDestination(for: Route.self) { _ in
                 ListsView(pick: { id in
                     open(id)
-                    path = []
+                    path = NavigationPath()
                 })
             }
         }
         .onAppear(perform: observe)
         .onChange(of: session.scope) { observe() }
         .onChange(of: lists?.value) { _, now in settle(now ?? []) }
-        .onChange(of: again) { path = path.isEmpty ? [.all] : [] }
+        .onChange(of: again) { path = path.isEmpty ? NavigationPath([Route.all]) : NavigationPath() }
     }
 
     private var key: String { "list.current." + (session.currentRef?.key ?? "") }
