@@ -85,8 +85,9 @@ struct ListPayload: Codable, Sendable {
     var colour: String?
     var ownerPersonID: String?
     var isDefault: Bool?
+    var kind: String?
     enum CodingKeys: String, CodingKey {
-        case name, colour
+        case name, colour, kind
         case listID = "list_id", ownerPersonID = "owner_person_id", isDefault = "default"
     }
 }

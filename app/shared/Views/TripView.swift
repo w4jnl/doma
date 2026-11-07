@@ -128,7 +128,7 @@ struct TripsView: View {
         guard let scope = session.scope else { return }
         let staleness = self.staleness
         homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }
-        lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope).filter { !$0.isPersonal } }
+        lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope).filter { !$0.isPersonal && !$0.isTasks } }
         screen = Live(session.store, initial: TripsScreen()) { db in
             var out = TripsScreen(trips: try Queries.trips(db, scope))
             for trip in out.trips where TripPlan.carries(trip, among: out.trips) {
@@ -402,7 +402,7 @@ struct TripView: View {
         let staleness = self.staleness
         let id = tripID
         homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }
-        lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope).filter { !$0.isPersonal } }
+        lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope).filter { !$0.isPersonal && !$0.isTasks } }
         state = Live(session.store, initial: (nil, TripPlan(), true)) { db in
             let trips = try Queries.trips(db, scope)
             guard let trip = trips.first(where: { $0.id == id }) else { return (nil, TripPlan(), true) }

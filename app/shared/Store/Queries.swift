@@ -11,6 +11,8 @@ struct ListSummary: Identifiable, Hashable, Sendable {
     var isDefault: Bool
     var openCount: Int
     var colour: String
+    /// Things to do rather than to buy: done instead of got, no homes, no purchases.
+    var isTasks: Bool = false
 }
 
 /// An open entry, light, for counting what is unseen: the stamp is the column's string, which
@@ -86,13 +88,13 @@ enum Queries {
     /// get. Archived lists and other people's personal lists are left out.
     static func lists(_ db: Database, _ s: Scope) throws -> [ListSummary] {
         try Row.fetchAll(db, sql: """
-            SELECT l.id, l.name, l.owner_person_id, l.is_default, l.colour,
+            SELECT l.id, l.name, l.owner_person_id, l.is_default, l.colour, l.kind,
               (SELECT COUNT(*) FROM entries e WHERE e.server_id = l.server_id AND e.household_id = l.household_id AND e.list_id = l.id AND e.cleared_hlc IS NULL AND e.checked_hlc IS NULL) AS open_count
             FROM lists l
             WHERE l.server_id = ? AND l.household_id = ? AND l.archived_at IS NULL AND (l.owner_person_id IS NULL OR l.owner_person_id = ?)
             ORDER BY l.owner_person_id IS NOT NULL, l.is_default DESC, l.sort, l.name COLLATE NOCASE, l.id
             """, arguments: [s.serverID, s.householdID, s.personID]).map { r in
-            ListSummary(id: r["id"], name: r["name"], isPersonal: (r["owner_person_id"] as String?) != nil, isDefault: (r["is_default"] as Int64) != 0, openCount: r["open_count"], colour: r["colour"])
+            ListSummary(id: r["id"], name: r["name"], isPersonal: (r["owner_person_id"] as String?) != nil, isDefault: (r["is_default"] as Int64) != 0, openCount: r["open_count"], colour: r["colour"], isTasks: (r["kind"] as String? ?? "") == "tasks")
         }
     }
 
@@ -139,35 +141,46 @@ enum Queries {
 
     /// The catalog filtered by prefix on any word of the name or an alias, by use then recency,
     /// at most eight, each with when it was last bought.
-    static func matches(_ db: Database, _ s: Scope, prefix: String) throws -> [Match] {
+    /// Only the names used on lists of the same kind match: what the family buys does not come
+    /// up while typing a chore, nor the other way round. `last_bought` is the latest clear on
+    /// such a list, which on a tasks list is when it was last done.
+    static func matches(_ db: Database, _ s: Scope, prefix: String, tasks: Bool = false) throws -> [Match] {
         let p = Norm.name(prefix)
         guard !p.isEmpty else { return [] }
         let like = p.replacingOccurrences(of: "%", with: "\\%").replacingOccurrences(of: "_", with: "\\_")
+        let kind = tasks ? "tasks" : ""
         return try Row.fetchAll(db, sql: """
             SELECT i.id, i.name, i.use_count,
-              (SELECT MAX(CAST(substr(e.cleared_hlc, 1, 13) AS INTEGER)) FROM entries e WHERE e.server_id = i.server_id AND e.household_id = i.household_id AND e.item_id = i.id AND e.cleared_hlc IS NOT NULL) AS last_bought
+              (SELECT MAX(CAST(substr(e.cleared_hlc, 1, 13) AS INTEGER)) FROM entries e JOIN lists l ON l.server_id = e.server_id AND l.household_id = e.household_id AND l.id = e.list_id
+               WHERE e.server_id = i.server_id AND e.household_id = i.household_id AND e.item_id = i.id AND e.cleared_hlc IS NOT NULL AND l.kind = ?) AS last_bought
             FROM items i
-            WHERE i.server_id = ? AND i.household_id = ? AND i.merged_into IS NULL AND i.archived_at IS NULL AND (
+            WHERE i.server_id = ? AND i.household_id = ? AND i.merged_into IS NULL AND i.archived_at IS NULL
+              AND EXISTS (SELECT 1 FROM entries e JOIN lists l ON l.server_id = e.server_id AND l.household_id = e.household_id AND l.id = e.list_id
+                          WHERE e.server_id = i.server_id AND e.household_id = i.household_id AND e.item_id = i.id AND l.kind = ?)
+              AND (
               i.norm_name LIKE ? ESCAPE '\\' OR i.norm_name LIKE ? ESCAPE '\\'
               OR EXISTS (SELECT 1 FROM item_aliases a WHERE a.server_id = i.server_id AND a.household_id = i.household_id AND a.item_id = i.id AND (a.norm_name LIKE ? ESCAPE '\\' OR a.norm_name LIKE ? ESCAPE '\\'))
             )
             ORDER BY i.use_count DESC, i.last_used_at DESC, i.norm_name
             LIMIT ?
-            """, arguments: [s.serverID, s.householdID, like + "%", "% " + like + "%", like + "%", "% " + like + "%", matchLimit]).map { r in
+            """, arguments: [kind, s.serverID, s.householdID, kind, like + "%", "% " + like + "%", like + "%", "% " + like + "%", matchLimit]).map { r in
             Match(itemID: r["id"], name: r["name"], useCount: r["use_count"], lastBought: r["last_bought"])
         }
     }
 
     /// The household's most used items that are not on the list now: the chips over an empty
-    /// add field.
+    /// add field. Items used on lists of the list's kind only.
     static func usual(_ db: Database, _ s: Scope, listID: String, limit: Int = 8) throws -> [Match] {
         try Row.fetchAll(db, sql: """
             SELECT i.id, i.name, i.use_count FROM items i
             WHERE i.server_id = ? AND i.household_id = ? AND i.merged_into IS NULL AND i.archived_at IS NULL AND i.use_count > 0
               AND NOT EXISTS (SELECT 1 FROM entries e WHERE e.server_id = i.server_id AND e.household_id = i.household_id AND e.list_id = ? AND e.item_id = i.id AND e.cleared_hlc IS NULL)
+              AND EXISTS (SELECT 1 FROM entries e JOIN lists l ON l.server_id = e.server_id AND l.household_id = e.household_id AND l.id = e.list_id
+                          WHERE e.server_id = i.server_id AND e.household_id = i.household_id AND e.item_id = i.id
+                            AND l.kind = (SELECT kind FROM lists x WHERE x.server_id = i.server_id AND x.household_id = i.household_id AND x.id = ?))
             ORDER BY i.use_count DESC, i.last_used_at DESC, i.norm_name
             LIMIT ?
-            """, arguments: [s.serverID, s.householdID, listID, limit]).map { r in
+            """, arguments: [s.serverID, s.householdID, listID, listID, limit]).map { r in
             Match(itemID: r["id"], name: r["name"], useCount: r["use_count"], lastBought: nil)
         }
     }

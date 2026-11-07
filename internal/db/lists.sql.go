@@ -21,7 +21,7 @@ func (q *Queries) DefaultListID(ctx context.Context, householdID string) (string
 }
 
 const getList = `-- name: GetList :one
-SELECT id, household_id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc FROM lists WHERE household_id = ? AND id = ?
+SELECT id, household_id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc, kind FROM lists WHERE household_id = ? AND id = ?
 `
 
 type GetListParams struct {
@@ -42,12 +42,13 @@ func (q *Queries) GetList(ctx context.Context, arg GetListParams) (List, error) 
 		&i.IsDefault,
 		&i.ArchivedAt,
 		&i.UpdatedHlc,
+		&i.Kind,
 	)
 	return i, err
 }
 
 const listLists = `-- name: ListLists :many
-SELECT id, household_id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc FROM lists WHERE household_id = ? ORDER BY id
+SELECT id, household_id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc, kind FROM lists WHERE household_id = ? ORDER BY id
 `
 
 func (q *Queries) ListLists(ctx context.Context, householdID string) ([]List, error) {
@@ -69,6 +70,7 @@ func (q *Queries) ListLists(ctx context.Context, householdID string) ([]List, er
 			&i.IsDefault,
 			&i.ArchivedAt,
 			&i.UpdatedHlc,
+			&i.Kind,
 		); err != nil {
 			return nil, err
 		}
@@ -84,11 +86,11 @@ func (q *Queries) ListLists(ctx context.Context, householdID string) ([]List, er
 }
 
 const upsertList = `-- name: UpsertList :exec
-INSERT INTO lists (id, household_id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO lists (id, household_id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc, kind)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
   name = excluded.name, colour = excluded.colour, owner_person_id = excluded.owner_person_id, sort = excluded.sort,
-  is_default = excluded.is_default, archived_at = excluded.archived_at, updated_hlc = excluded.updated_hlc
+  is_default = excluded.is_default, archived_at = excluded.archived_at, updated_hlc = excluded.updated_hlc, kind = excluded.kind
 `
 
 type UpsertListParams struct {
@@ -101,6 +103,7 @@ type UpsertListParams struct {
 	IsDefault     int64
 	ArchivedAt    *int64
 	UpdatedHlc    *string
+	Kind          string
 }
 
 func (q *Queries) UpsertList(ctx context.Context, arg UpsertListParams) error {
@@ -114,6 +117,7 @@ func (q *Queries) UpsertList(ctx context.Context, arg UpsertListParams) error {
 		arg.IsDefault,
 		arg.ArchivedAt,
 		arg.UpdatedHlc,
+		arg.Kind,
 	)
 	return err
 }

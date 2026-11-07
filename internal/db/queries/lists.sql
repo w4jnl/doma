@@ -5,11 +5,11 @@ SELECT * FROM lists WHERE household_id = ? AND id = ?;
 SELECT * FROM lists WHERE household_id = ? ORDER BY id;
 
 -- name: UpsertList :exec
-INSERT INTO lists (id, household_id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO lists (id, household_id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc, kind)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
   name = excluded.name, colour = excluded.colour, owner_person_id = excluded.owner_person_id, sort = excluded.sort,
-  is_default = excluded.is_default, archived_at = excluded.archived_at, updated_hlc = excluded.updated_hlc;
+  is_default = excluded.is_default, archived_at = excluded.archived_at, updated_hlc = excluded.updated_hlc, kind = excluded.kind;
 
 -- name: DefaultListID :one
 SELECT id FROM lists WHERE household_id = ? AND is_default = 1 ORDER BY id LIMIT 1;

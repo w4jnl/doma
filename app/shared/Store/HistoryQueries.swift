@@ -46,6 +46,8 @@ struct MonthOverview: Hashable, Sendable {
 
 extension Queries {
     /// The month a stamp falls in, in the device's calendar, as SQL on the entry's cleared stamp.
+    /// A done task is not a purchase.
+    private static let notTasks = "e.list_id NOT IN (SELECT x.id FROM lists x WHERE x.server_id = e.server_id AND x.household_id = e.household_id AND x.kind = 'tasks')"
     private static let clearedMonth = "strftime('%Y-%m', CAST(substr(e.cleared_hlc, 1, 13) AS INTEGER) / 1000, 'unixepoch', 'localtime')"
 
     /// Every month with a purchase, newest first.
@@ -53,7 +55,7 @@ extension Queries {
         try Row.fetchAll(db, sql: """
             SELECT \(clearedMonth) AS month, COUNT(*) AS n
             FROM entries e
-            WHERE e.server_id = ? AND e.household_id = ? AND e.cleared_hlc IS NOT NULL
+            WHERE e.server_id = ? AND e.household_id = ? AND e.cleared_hlc IS NOT NULL AND \(notTasks)
             GROUP BY month
             ORDER BY month DESC
             """, arguments: [s.serverID, s.householdID]).map { r in
@@ -74,7 +76,7 @@ extension Queries {
             FROM entries e
             LEFT JOIN items i ON i.server_id = e.server_id AND i.household_id = e.household_id AND i.id = e.item_id
             LEFT JOIN items o ON o.server_id = i.server_id AND o.household_id = i.household_id AND o.id = i.merged_into
-            WHERE e.server_id = ? AND e.household_id = ? AND e.cleared_hlc IS NOT NULL AND \(clearedMonth) = ?
+            WHERE e.server_id = ? AND e.household_id = ? AND e.cleared_hlc IS NOT NULL AND \(notTasks) AND \(clearedMonth) = ?
             GROUP BY item_id, unit
             ORDER BY name COLLATE NOCASE, unit
             """, arguments: [s.serverID, s.householdID, month]) {
@@ -98,7 +100,7 @@ extension Queries {
             SELECT h.id, h.name, COUNT(*) AS times
             FROM entries e
             JOIN homes h ON h.server_id = e.server_id AND h.household_id = e.household_id AND h.id = e.for_home_id
-            WHERE e.server_id = ? AND e.household_id = ? AND e.cleared_hlc IS NOT NULL AND \(clearedMonth) = ?
+            WHERE e.server_id = ? AND e.household_id = ? AND e.cleared_hlc IS NOT NULL AND \(notTasks) AND \(clearedMonth) = ?
             GROUP BY h.id
             ORDER BY times DESC, h.name COLLATE NOCASE
             """, arguments: [s.serverID, s.householdID, month]).map { r in
@@ -107,7 +109,7 @@ extension Queries {
         out.people = try Row.fetchAll(db, sql: """
             SELECT e.checked_by AS person, COUNT(*) AS times
             FROM entries e
-            WHERE e.server_id = ? AND e.household_id = ? AND e.cleared_hlc IS NOT NULL AND e.checked_by IS NOT NULL AND \(clearedMonth) = ?
+            WHERE e.server_id = ? AND e.household_id = ? AND e.cleared_hlc IS NOT NULL AND \(notTasks) AND e.checked_by IS NOT NULL AND \(clearedMonth) = ?
             GROUP BY e.checked_by
             ORDER BY times DESC, person
             """, arguments: [s.serverID, s.householdID, month]).map { r in

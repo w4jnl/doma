@@ -65,6 +65,38 @@
         }
       }
     },
+    "%@, %lld to do": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld te doen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld na spravenie"
+          }
+        }
+      }
+    },
+    "%@, %lld to do, %lld new": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld te doen, %3$lld nieuw"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld na spravenie, %3$lld nových"
+          }
+        }
+      }
+    },
     "%@, %lld to get": {
       "localizations": {
         "nl": {
@@ -125,6 +157,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld dní"
+          }
+        }
+      }
+    },
+    "%lld done": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld gedaan"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld hotovo"
           }
         }
       }
@@ -237,6 +285,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld kúpiť"
+          }
+        }
+      }
+    },
+    "%lld to do": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld te doen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld na spravenie"
+          }
+        }
+      }
+    },
+    "%lld to do, %lld new": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld te doen, %2$lld nieuw"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld na spravenie, %2$lld nových"
           }
         }
       }
@@ -1953,6 +2033,22 @@
         }
       }
     },
+    "Nothing to do": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niets te doen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nič na spravenie"
+          }
+        }
+      }
+    },
     "Nothing to get": {
       "localizations": {
         "nl": {
@@ -2401,6 +2497,22 @@
         }
       }
     },
+    "Shopping": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boodschappen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nákupy"
+          }
+        }
+      }
+    },
     "Show the code to your Mac or your new phone; it joins as you.": {
       "localizations": {
         "nl": {
@@ -2689,6 +2801,22 @@
         }
       }
     },
+    "Tasks": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taken"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Úlohy"
+          }
+        }
+      }
+    },
     "Teal": {
       "localizations": {
         "nl": {
@@ -2897,6 +3025,22 @@
         }
       }
     },
+    "Type what needs doing. Return adds it.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ wat er moet gebeuren. Return voegt het toe."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napíšte, čo treba spraviť. Return to pridá."
+          }
+        }
+      }
+    },
     "Type what you need. Return adds it.": {
       "localizations": {
         "nl": {
@@ -3069,6 +3213,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Treba v %1$@ a nie je v %2$@."
+          }
+        }
+      }
+    },
+    "What goes on it": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wat erop komt"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Čo na ňom bude"
           }
         }
       }
@@ -3325,6 +3485,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "naposledy kúpené"
+          }
+        }
+      }
+    },
+    "last done": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "laatst gedaan"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "naposledy spravené"
           }
         }
       }

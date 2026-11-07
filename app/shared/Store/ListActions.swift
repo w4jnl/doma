@@ -161,11 +161,11 @@ enum ListActions {
 
     /// A new list, shared with the household or just for this person.
     @discardableResult
-    static func createList(named name: String, personal: Bool, colour: String, in session: Session) throws -> String? {
+    static func createList(named name: String, personal: Bool, tasks: Bool = false, colour: String, in session: Session) throws -> String? {
         let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !n.isEmpty, let scope = session.scope else { return nil }
         let id = ULID.make()
-        try session.record(Kind.listCreated, ListPayload(listID: id, name: n, colour: colour, ownerPersonID: personal ? scope.personID : nil, isDefault: false))
+        try session.record(Kind.listCreated, ListPayload(listID: id, name: n, colour: colour, ownerPersonID: personal ? scope.personID : nil, isDefault: false, kind: tasks ? "tasks" : nil))
         return id
     }
 

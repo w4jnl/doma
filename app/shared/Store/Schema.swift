@@ -213,6 +213,12 @@ enum Schema {
             try db.drop(table: "trips")
             try db.rename(table: "trips_new", to: "trips")
         }
+        // v4: a list's kind, '' for shopping and 'tasks' for things to do
+        m.registerMigration("v4") { db in
+            try db.alter(table: "lists") { t in
+                t.add(column: "kind", .text).notNull().defaults(to: "")
+            }
+        }
         return m
     }
 
@@ -255,12 +261,12 @@ extension ItemAlias {
 extension ShoppingList {
     init(row r: Row) {
         self.init(id: r["id"], name: r["name"], colour: r["colour"], ownerPersonID: r["owner_person_id"], sort: r["sort"],
-                  isDefault: (r["is_default"] as Int64) != 0, archivedAt: r["archived_at"], updatedHLC: HLC(column: r["updated_hlc"]))
+                  isDefault: (r["is_default"] as Int64) != 0, archivedAt: r["archived_at"], updatedHLC: HLC(column: r["updated_hlc"]), kind: r["kind"] ?? "")
     }
     func arguments(_ s: Scope) -> StatementArguments {
-        [s.serverID, s.householdID, id, name, colour, ownerPersonID, sort, isDefault ? 1 : 0, archivedAt, updatedHLC?.description]
+        [s.serverID, s.householdID, id, name, colour, ownerPersonID, sort, isDefault ? 1 : 0, archivedAt, updatedHLC?.description, kind]
     }
-    static let insert = "INSERT OR REPLACE INTO lists (server_id, household_id, id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc) VALUES (?,?,?,?,?,?,?,?,?,?)"
+    static let insert = "INSERT OR REPLACE INTO lists (server_id, household_id, id, name, colour, owner_person_id, sort, is_default, archived_at, updated_hlc, kind) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
 }
 
 extension Entry {

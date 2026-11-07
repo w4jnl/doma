@@ -131,6 +131,7 @@ type List struct {
 	IsDefault     int64
 	ArchivedAt    *int64
 	UpdatedHlc    *string
+	Kind          string
 }
 
 type Membership struct {

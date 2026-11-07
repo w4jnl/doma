@@ -6,10 +6,11 @@ type listPayload struct {
 	Colour        string  `json:"colour"`
 	OwnerPersonID *string `json:"owner_person_id"`
 	Default       bool    `json:"default"`
+	Kind          string  `json:"kind"`
 }
 
-// applyList: create is add-wins and carries the owner and the default
-// mark, which never change; name and colour are last-writer-wins on the
+// applyList: create is add-wins and carries the owner, the default
+// mark and the kind, which never change; name and colour are last-writer-wins on the
 // stamp; an archive sticks whatever arrives after it.
 func applyList(s Store, e Event) error {
 	var p listPayload
@@ -36,6 +37,9 @@ func applyList(s Store, e Event) error {
 				l.OwnerPersonID = p.OwnerPersonID
 			}
 			l.IsDefault = l.IsDefault || p.Default
+			if l.Kind == "" && p.Kind == "tasks" {
+				l.Kind = p.Kind
+			}
 		}
 		if l.UpdatedHLC == nil || l.UpdatedHLC.Less(e.HLC) {
 			if p.Name != "" {

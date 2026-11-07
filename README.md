@@ -77,7 +77,8 @@ What doma does about it:
 - **Lists** with the mechanics of the app the family already knows: type, match against
   everything ever typed, tap to add, tap to strike, clear. Quantities and units are read from
   the line ("1,5 l melk"); anything else stays in a note. Shared lists for the household,
-  personal lists that nobody else can see, even through the log.
+  personal lists that nobody else can see, even through the log. A tasks list has the same
+  mechanics for things to do; done is not bought.
 - **History** from day one: every cleared entry keeps item, quantity, who and when, for the
   export now and for overviews later.
 - **Homes, spots, flags, trips**: a flag per item per home, have, low or out, fading to unknown

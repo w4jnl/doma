@@ -221,7 +221,7 @@ func listRow(r db.List) (fold.List, error) {
 	if err != nil {
 		return fold.List{}, err
 	}
-	return fold.List{ID: r.ID, Name: r.Name, Colour: r.Colour, OwnerPersonID: r.OwnerPersonID, Sort: r.Sort, IsDefault: r.IsDefault != 0, ArchivedAt: r.ArchivedAt, UpdatedHLC: u}, nil
+	return fold.List{ID: r.ID, Name: r.Name, Colour: r.Colour, OwnerPersonID: r.OwnerPersonID, Sort: r.Sort, IsDefault: r.IsDefault != 0, ArchivedAt: r.ArchivedAt, UpdatedHLC: u, Kind: r.Kind}, nil
 }
 
 func (s *Store) List(id string) (*fold.List, error) {
@@ -243,7 +243,7 @@ func (s *Store) PutList(l fold.List) error {
 	}
 	return s.q.UpsertList(s.ctx, db.UpsertListParams{
 		ID: l.ID, HouseholdID: s.HouseholdID, Name: l.Name, Colour: l.Colour, OwnerPersonID: l.OwnerPersonID, Sort: l.Sort,
-		IsDefault: def, ArchivedAt: l.ArchivedAt, UpdatedHlc: strPtr(l.UpdatedHLC),
+		IsDefault: def, ArchivedAt: l.ArchivedAt, UpdatedHlc: strPtr(l.UpdatedHLC), Kind: l.Kind,
 	})
 }
 
