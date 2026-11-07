@@ -1553,22 +1553,6 @@
         }
       }
     },
-    "Join another household": {
-      "localizations": {
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bij een ander huishouden"
-          }
-        },
-        "sk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pridať sa k inej domácnosti"
-          }
-        }
-      }
-    },
     "Join this doma first, then scan the browser's code.": {
       "localizations": {
         "nl": {
@@ -2445,6 +2429,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Povedz položku, v jazyku %@"
+          }
+        }
+      }
+    },
+    "Scan a code": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan een code"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naskenovať kód"
           }
         }
       }

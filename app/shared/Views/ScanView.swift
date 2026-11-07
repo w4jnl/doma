@@ -20,6 +20,10 @@ struct ScanView: View {
     @State private var nameAsked = false
     /// Set once a browser's code was accepted: the one line that says so.
     @State private var vouched = false
+    /// The code the camera last handed over and when. The camera reads a code on every frame,
+    /// so the same one is not taken again for a few seconds; a browser's code is single use and
+    /// would otherwise come back as gone right after it worked.
+    @State private var lastCode: (text: String, at: Date)?
     @FocusState private var focus: Field?
 
     enum Field { case link, name }
@@ -35,6 +39,8 @@ struct ScanView: View {
                 if QRScanner.isAvailable, !pasting {
                     QRScanner { code in
                         guard scanned == nil else { return }
+                        if let last = lastCode, last.text == code, Date().timeIntervalSince(last.at) < 5 { return }
+                        lastCode = (code, Date())
                         scanned = code
                         accept(code)
                     }
@@ -141,10 +147,11 @@ struct ScanView: View {
                     try await session.vouch(v)
                     vouched = true
                     link = ""
+                    // the code is spent: the camera, still on it, must not send it again
                 } catch {
                     problem = error.localizedDescription
+                    scanned = nil
                 }
-                scanned = nil
                 busy = false
             }
             return

@@ -237,7 +237,7 @@ final class DomaUITests: XCTestCase {
         let path = try XCTUnwrap(page.range(of: #"/app/v/[A-Za-z0-9_-]+"#, options: .regularExpression).map { String(page[$0]) }, "the sign-in page shows a code")
         let token = String(path.split(separator: "/").last ?? "")
         app.tabBars.buttons["Family"].tap()
-        let join = app.buttons["Join another household"]
+        let join = app.buttons["Scan a code"]
         for _ in 0..<8 where !join.waitForExistence(timeout: 1) { app.swipeUp() }
         join.tap()
         let field = app.textFields["invite-link"]
@@ -296,7 +296,7 @@ final class DomaUITests: XCTestCase {
         let url = try mintInvite(live, household: second)
         app.tabBars.buttons["Family"].tap()
         // the button is at the foot, under every member the run's tests have joined
-        let join = app.buttons["Join another household"]
+        let join = app.buttons["Scan a code"]
         for _ in 0..<8 where !join.waitForExistence(timeout: 1) { app.swipeUp() }
         XCTAssertTrue(join.exists, "the foot of Family")
         join.tap()
