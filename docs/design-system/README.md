@@ -173,6 +173,9 @@ row, not a new screen.
   at the foot in `ink-muted`. A list with nothing on it shows the mark small and one line of
   help under the title; the title's subtitle says how many are still to get. There is no shop
   mode: one layout, the screen awake while a list is in front.
+- **Tasks lists.** The same list, with the checklist symbol in `ink-muted` after the name in
+  the overview and words of doing instead of getting: *N to do*, *N done*, *last done*. Nothing
+  else changes, not the colour dot, not the rows, not the divider.
 - **History.** A row at the foot of the Lists overview, the clock-arrow symbol in the 24pt column
   and this month's count in mono, opens it. Under the title, the month between two chevrons in
   `accent` (a chevron `ink-faint` when there is nowhere to go), the title's subtitle "N bought".

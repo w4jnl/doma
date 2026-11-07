@@ -25,6 +25,8 @@ struct ListView: View {
     @State private var hovered: String?
     #endif
     @State private var summary: Live<ListSummary?>?
+    /// Things to do rather than to buy: the words change, homes and purchases do not apply.
+    private var isTasks: Bool { summary?.value?.isTasks ?? false }
     @State private var rows: Live<[EntryRow]>?
     @State private var recent: Live<[RecentRow]>?
     @State private var homes: Live<[HomeRow]>?
@@ -197,7 +199,8 @@ struct ListView: View {
                 guard !t.isEmpty, let scope = session.scope else { matches = []; return }
                 try? await Task.sleep(for: .milliseconds(80))
                 guard !Task.isCancelled else { return }
-                let found = (try? await session.store.db.read { db in try Queries.matches(db, scope, prefix: t) }) ?? []
+                let tasks = isTasks
+                let found = (try? await session.store.db.read { db in try Queries.matches(db, scope, prefix: t, tasks: tasks) }) ?? []
                 if !Task.isCancelled { matches = found }
             }
             #if os(macOS)
@@ -289,7 +292,7 @@ struct ListView: View {
                         Spacer()
                         if let last = m.lastBought {
                             HStack(spacing: Tokens.space1) {
-                                Text("last bought").font(.footnote).foregroundStyle(Tokens.inkMuted)
+                                (isTasks ? Text("last done") : Text("last bought")).font(.footnote).foregroundStyle(Tokens.inkMuted)
                                 RelativeText(millis: last)
                             }
                         }
@@ -336,10 +339,10 @@ struct ListView: View {
         HStack(spacing: Tokens.space2) {
             ListDot(colour: summary?.value?.colour ?? "")
             Group {
-                if open == 0 {
-                    Text("Nothing to get")
+                if isTasks {
+                    open == 0 ? Text("Nothing to do") : Text("\(open) to do")
                 } else {
-                    Text("\(open) to get")
+                    open == 0 ? Text("Nothing to get") : Text("\(open) to get")
                 }
             }
             .font(.subheadline)
@@ -466,7 +469,7 @@ struct ListView: View {
         Section {
             VStack(spacing: Tokens.space3) {
                 Mark(size: 32)
-                HelpLine(text: "Type what you need. Return adds it.")
+                HelpLine(text: isTasks ? "Type what needs doing. Return adds it." : "Type what you need. Return adds it.")
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Tokens.space6)
@@ -478,7 +481,7 @@ struct ListView: View {
     /// The hairline between open and struck rows: how many are got, and Clear, armed in place.
     private func dividerRow(count: Int) -> some View {
         HStack {
-            Text("\(count) got")
+            (isTasks ? Text("\(count) done") : Text("\(count) got"))
                 .font(Tokens.mono(.footnote))
                 .foregroundStyle(Tokens.inkMuted)
                 .contentTransition(.numericText())
@@ -677,7 +680,7 @@ struct ListView: View {
                         Spacer()
                         if let last = m.lastBought {
                             HStack(spacing: Tokens.space1) {
-                                Text("last bought")
+                                (isTasks ? Text("last done") : Text("last bought"))
                                     .font(.footnote)
                                     .foregroundStyle(Tokens.inkMuted)
                                 RelativeText(millis: last)
@@ -864,7 +867,7 @@ struct ListView: View {
                 Button(checked ? "Put back" : "Got it") { toggle(row) }
                 Button("Edit") { startEdit(row) }
                 Button("Not needed") { try? ListActions.remove(row, on: listID, in: session) }
-                if let homes = homes?.value, !homes.isEmpty {
+                if !isTasks, let homes = homes?.value, !homes.isEmpty {
                     Menu("For a home") {
                         ForEach(homes) { h in
                             Button(h.name) { try? ListActions.setHome(row, h.id, on: listID, in: session) }
@@ -906,7 +909,7 @@ struct ListView: View {
                     try? ListActions.editLine(row, text: editText, home: editHome, on: listID, in: session)
                     editing = nil
                 }
-            if let homes = homes?.value, !homes.isEmpty {
+            if !isTasks, let homes = homes?.value, !homes.isEmpty {
                 Menu {
                     Button("No home") { editHome = nil }
                     ForEach(homes) { h in

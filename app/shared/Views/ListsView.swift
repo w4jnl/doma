@@ -15,6 +15,7 @@ struct ListsView: View {
     @State private var adding = false
     @State private var newName = ""
     @State private var personal = false
+    @State private var tasks = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var renaming: String?
     @State private var renameText = ""
@@ -28,7 +29,7 @@ struct ListsView: View {
         let all = lists?.value ?? []
         let shared = all.filter { !$0.isPersonal }
         let mine = all.filter(\.isPersonal)
-        let open = all.reduce(0) { $0 + $1.openCount }
+        let open = all.filter { !$0.isTasks }.reduce(0) { $0 + $1.openCount }
         List {
             if adding {
                 newListSection
@@ -199,6 +200,13 @@ struct ListsView: View {
                 .frame(width: Tokens.space5)
             Text(l.name)
                 .foregroundStyle(Tokens.ink)
+            if l.isTasks {
+                // the checklist symbol says what kind of list it is; VoiceOver says it in words
+                Image(systemName: "checklist")
+                    .font(.footnote)
+                    .foregroundStyle(Tokens.inkMuted)
+                    .accessibilityHidden(true)
+            }
             Spacer()
             if arming == l.id {
                 Button {
@@ -229,7 +237,14 @@ struct ListsView: View {
         .rowHeight()
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(unseen(l) > 0 ? Text("\(l.name), \(l.openCount) to get, \(unseen(l)) new") : Text("\(l.name), \(l.openCount) to get"))
+        .accessibilityLabel(rowLabel(l))
+    }
+
+    private func rowLabel(_ l: ListSummary) -> Text {
+        if l.isTasks {
+            return unseen(l) > 0 ? Text("\(l.name), \(l.openCount) to do, \(unseen(l)) new") : Text("\(l.name), \(l.openCount) to do")
+        }
+        return unseen(l) > 0 ? Text("\(l.name), \(l.openCount) to get, \(unseen(l)) new") : Text("\(l.name), \(l.openCount) to get")
     }
 
     private func renameRow(_ l: ListSummary) -> some View {
@@ -300,6 +315,13 @@ struct ListsView: View {
             }
             .pickerStyle(.segmented)
             .listRowBackground(Self.rowGround)
+            Picker("What goes on it", selection: $tasks) {
+                Text("Shopping").tag(false)
+                Text("Tasks").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("list-kind")
+            .listRowBackground(Self.rowGround)
         } header: {
             SectionHeader("New list")
         }
@@ -316,8 +338,9 @@ struct ListsView: View {
 
     private func create() {
         let colour = ListActions.nextColour(lists?.value ?? [])
-        guard let id = try? ListActions.createList(named: newName, personal: personal, colour: colour, in: session) else { return }
+        guard let id = try? ListActions.createList(named: newName, personal: personal, tasks: tasks, colour: colour, in: session) else { return }
         newName = ""
+        tasks = false
         adding = false
         pick?(id)
     }

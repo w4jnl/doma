@@ -13,6 +13,7 @@ enum Lists {
                 try Fold.need(e, "name", p.name)
                 if l.ownerPersonID == nil { l.ownerPersonID = p.ownerPersonID }
                 l.isDefault = l.isDefault || (p.isDefault ?? false)
+                if l.kind.isEmpty, p.kind == "tasks" { l.kind = "tasks" }
             }
             if l.updatedHLC == nil || l.updatedHLC! < e.hlc {
                 if let name = p.name, !name.isEmpty { l.name = name }

@@ -98,6 +98,13 @@ final class SnapshotTests: XCTestCase {
             ev("e4", Kind.entryAdded, EntryPayload(listID: "L1", itemID: "I4", qty: 500, unit: "g")),
             ev("c4", Kind.entryChecked, EntryPayload(listID: "L1", itemID: "I4")),
             ev("e6", Kind.entryAdded, EntryPayload(listID: "L2", itemID: "I1")),
+            // a tasks list: two things to do, one done
+            ev("l3", Kind.listCreated, ListPayload(listID: "L3", name: "Chores", colour: "list-2", kind: "tasks")),
+            ev("i9", Kind.itemNamed, ItemPayload(itemID: "I9", name: "stofzuigen")),
+            ev("i10", Kind.itemNamed, ItemPayload(itemID: "I10", name: "planten water geven")),
+            ev("e9", Kind.entryAdded, EntryPayload(listID: "L3", itemID: "I9")),
+            ev("e10", Kind.entryAdded, EntryPayload(listID: "L3", itemID: "I10")),
+            ev("c10", Kind.entryChecked, EntryPayload(listID: "L3", itemID: "I10")),
             // homes and trips: a second home, staples at both, flags of every age, two spots
             ev("h2", Kind.homeCreated, HomePayload(homeID: "H", name: "Hut")),
             ev("s1", Kind.spotCreated, SpotPayload(spotID: "P", homeID: "G", name: "Pantry")),
@@ -170,6 +177,10 @@ final class SnapshotTests: XCTestCase {
 
     func testHistory() async throws {
         try await check("history") { NavigationStack { HistoryView() } }
+    }
+
+    func testTasks() async throws {
+        try await check("tasks") { NavigationStack { ListView(listID: "L3") } }
     }
 
     func testHome() async throws {

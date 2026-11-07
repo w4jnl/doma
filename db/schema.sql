@@ -130,7 +130,7 @@ CREATE TABLE lists (
   is_default       INTEGER NOT NULL DEFAULT 0,
   archived_at      INTEGER,
   updated_hlc      TEXT
-);
+, kind TEXT NOT NULL DEFAULT '');
 CREATE INDEX lists_household ON lists(household_id);
 CREATE TABLE entries (
   id            TEXT PRIMARY KEY,
@@ -210,4 +210,5 @@ INSERT INTO "schema_migrations" (version) VALUES
   ('20261103000000'),
   ('20261104000000'),
   ('20261104010000'),
-  ('20261105000000');
+  ('20261105000000'),
+  ('20261107000000');

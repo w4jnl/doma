@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Tasks lists.** A new list can be for tasks instead of shopping: the same typing, striking
+  and clearing, with done instead of got, its own names while typing, and no purchases in
+  History or the export. The overview marks it with the checklist symbol.
 - **Not needed.** The swipe on a list row, next to Edit, takes an entry off the list without
   counting it as bought, for the mistakes and the changed minds. History, Recent and the usual
   items no longer see them. On the Mac it is in the row's menu.

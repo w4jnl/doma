@@ -211,7 +211,8 @@ struct MacMainView: View {
                 }
             }
             .badge(arming == l.id || l.openCount == 0 ? Text(verbatim: "") : Text(verbatim: String(l.openCount)).font(Tokens.mono(.footnote)))
-            .help(unseen(l) > 0 ? Text("\(l.openCount) to get, \(unseen(l)) new") : Text("\(l.openCount) to get"))
+            .help(l.isTasks ? (unseen(l) > 0 ? Text("\(l.openCount) to do, \(unseen(l)) new") : Text("\(l.openCount) to do"))
+                            : (unseen(l) > 0 ? Text("\(l.openCount) to get, \(unseen(l)) new") : Text("\(l.openCount) to get")))
             .tag(Selection.list(l.id))
             .contextMenu {
                 Button("Rename") { startRename(l) }

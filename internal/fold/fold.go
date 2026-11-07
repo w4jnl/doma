@@ -74,6 +74,8 @@ type List struct {
 	IsDefault     bool        `json:"is_default"`
 	ArchivedAt    *int64      `json:"archived_at"`
 	UpdatedHLC    *domain.HLC `json:"updated_hlc"`
+	// Kind is "" for a shopping list and "tasks" for things to do; set by list.created.
+	Kind string `json:"kind,omitempty"`
 }
 
 type Entry struct {

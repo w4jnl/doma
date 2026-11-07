@@ -204,6 +204,30 @@ system before the code; tick the phase-3 item when it is in. One branch, one PR,
 gates; stop at its gate, the family reading a month and finding it right.
 ```
 
+## 5. Tasks lists, phase 3
+
+Written 2026-11-07, after History and Not needed, as the user chose the order tasks, then
+passkeys and the web client, then flag proposals, with the Watch app and the App Store parked.
+
+```
+History is in and a mistaken entry can leave a list without counting. Next, tasks as a third
+list kind. Re-read CLAUDE.md, then in docs/design.md the lists section, the data model's lists
+row and the event table's list.created row, the apps table and "Testing, milestones, open
+decisions"; then docs/design-system/README.md for the overview rows.
+
+One column, lists.kind, '' for shopping and 'tasks' for things to do, set once by list.created
+and never changed; the fixture first, then the Go fold, the Swift fold, the schema on both
+sides, the event schema. The same list screen with different words: to do, done, last done;
+no home chips; what comes up while typing is kept apart by kind, the family's groceries do not
+surface while typing a chore; a done task is no purchase, so History, the usual items of a
+shopping list and the export's purchases leave it out; a trip cannot shop on a tasks list.
+The overview offers Shopping or Tasks when a list is made and marks a tasks list with the
+checklist symbol. A logic test for the kind, the names and the purchases, a picture of a tasks
+list on both platforms, a UI test that makes one and strikes a task as done, the strings in
+the three languages. Write it into the spec and the design system before the code; tick the
+phase-3 item when it is in. One branch, one PR, the usual gates.
+```
+
 ## Later phases
 
 Phase 3 (one designed-for feature at a time; multiple server contexts were pulled forward on

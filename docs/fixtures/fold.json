@@ -1994,6 +1994,126 @@
         ],
         "entries": []
       }
+    },
+    {
+      "name": "a tasks list is created as one and stays one under a rename; its done tasks clear like purchases but are none",
+      "events": [
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "l2",
+          "person_id": "pa",
+          "hlc": "910:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L2",
+            "name": "Klusjes",
+            "colour": "list-2",
+            "kind": "tasks"
+          }
+        },
+        {
+          "id": "l3",
+          "person_id": "pb",
+          "hlc": "920:0:b",
+          "kind": "list.renamed",
+          "payload": {
+            "list_id": "L2",
+            "name": "Taken",
+            "colour": "list-3"
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "stofzuigen"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pb",
+          "hlc": "1100:0:b",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L2",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pb",
+          "hlc": "1200:0:b",
+          "kind": "entry.cleared",
+          "payload": {
+            "list_id": "L2",
+            "before_hlc": "1150:0:b"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "stofzuigen",
+            "norm_name": "stofzuigen",
+            "use_count": 1,
+            "last_used_at": 1000,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          },
+          {
+            "id": "L2",
+            "name": "Taken",
+            "colour": "list-3",
+            "kind": "tasks",
+            "updated_hlc": "920:0:b"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L2",
+            "item_id": "I1",
+            "sort": 1000,
+            "added_hlc": "1000:0:a",
+            "added_by": "pa",
+            "checked_hlc": "1100:0:b",
+            "checked_by": "pb",
+            "cleared_hlc": "1200:0:b"
+          }
+        ]
+      }
     }
   ]
 }

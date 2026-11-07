@@ -163,12 +163,15 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 			return err
 		}
 		listName := map[string]string{}
+		tasks := map[string]bool{}
 		for _, l := range tables.Lists {
 			listName[l.ID] = l.Name
+			tasks[l.ID] = l.Kind == "tasks"
 		}
+		// a done task is not a purchase
 		var cleared []fold.Entry
 		for _, e := range tables.Entries {
-			if e.ClearedHLC != nil && !hidden[e.ListID] {
+			if e.ClearedHLC != nil && !hidden[e.ListID] && !tasks[e.ListID] {
 				cleared = append(cleared, e)
 			}
 		}

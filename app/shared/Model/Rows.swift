@@ -38,9 +38,38 @@ struct ShoppingList: Hashable, Sendable, Codable {
     var isDefault: Bool = false
     var archivedAt: Int64?
     var updatedHLC: HLC?
+    /// "" for a shopping list, "tasks" for things to do; set by list.created and never changed.
+    var kind: String = ""
+    var isTasks: Bool { kind == "tasks" }
     enum CodingKeys: String, CodingKey {
-        case id, name, colour, sort
+        case id, name, colour, sort, kind
         case ownerPersonID = "owner_person_id", isDefault = "is_default", archivedAt = "archived_at", updatedHLC = "updated_hlc"
+    }
+
+    init(id: String, name: String = "", colour: String = "", ownerPersonID: String? = nil, sort: Int64 = 0, isDefault: Bool = false, archivedAt: Int64? = nil, updatedHLC: HLC? = nil, kind: String = "") {
+        self.id = id
+        self.name = name
+        self.colour = colour
+        self.ownerPersonID = ownerPersonID
+        self.sort = sort
+        self.isDefault = isDefault
+        self.archivedAt = archivedAt
+        self.updatedHLC = updatedHLC
+        self.kind = kind
+    }
+
+    /// A snapshot from a server older than the kind column has no `kind`; it reads as shopping.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? ""
+        colour = try c.decodeIfPresent(String.self, forKey: .colour) ?? ""
+        ownerPersonID = try c.decodeIfPresent(String.self, forKey: .ownerPersonID)
+        sort = try c.decodeIfPresent(Int64.self, forKey: .sort) ?? 0
+        isDefault = try c.decodeIfPresent(Bool.self, forKey: .isDefault) ?? false
+        archivedAt = try c.decodeIfPresent(Int64.self, forKey: .archivedAt)
+        updatedHLC = try c.decodeIfPresent(HLC.self, forKey: .updatedHLC)
+        kind = try c.decodeIfPresent(String.self, forKey: .kind) ?? ""
     }
 }
 

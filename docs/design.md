@@ -22,7 +22,7 @@ This document specifies a family household app — shared and personal shopping 
 
 - Stock counts, barcodes, expiry dates, recipes, meal plans. Quantities are kept on purchases (see Shopping lists), never tracked as stock levels.
 - Overview and report screens over the purchase history: the data is kept in v1, the screens come in phase 3.
-- Tasks and chores (a later list kind, no schema change needed).
+- Tasks and chores (a later list kind, one `kind` column on `lists`; built in phase 3).
 - A full web client for members, multiple servers in one app install, passkeys: designed for, not built.
 - Photo recognition by a vision model: a later server job on the photos table.
 - Android native app; Android members use the web client when it exists, guests use the guest view now.
@@ -180,7 +180,7 @@ Eighteen tables. Four are instance-level (persons, credentials, households, admi
 | `spots` | `id`, `household_id`, `home_id`, `name`, `sort`, `archived_at` | |
 | `items` | `id`, `household_id`, `name`, `norm_name` (unique per household), `category` (nullable), `last_used_at`, `use_count`, `archived_at` | the catalog; `norm_name` = lowercased, diacritics stripped, whitespace collapsed; `use_count` drives autocomplete order |
 | `item_aliases` | `item_id`, `household_id`, `norm_name` | "olijfolie" and "olive oil" can be the same item; created only by an explicit merge in the UI |
-| `lists` | `id`, `household_id`, `name`, `colour`, `owner_person_id` (null = shared), `sort`, `archived_at` | personal lists have an owner and are filtered by scope; the server never returns another person's personal list |
+| `lists` | `id`, `household_id`, `name`, `colour`, `owner_person_id` (null = shared), `sort`, `archived_at`, `kind` (`''` shopping, `tasks`) | personal lists have an owner and are filtered by scope; the server never returns another person's personal list |
 | `entries` | `id`, `household_id`, `list_id`, `item_id`, `note` ("the small jar"), `qty` (decimal, nullable), `unit` (nullable), `for_home_id` (nullable), `added_hlc`, `added_by`, `checked_hlc` (nullable), `checked_by`, `cleared_hlc` (nullable) | one open entry per (`list_id`, `item_id`) and any number of cleared ones; re-adding an item that is checked but not cleared unchecks it; cleared entries are never deleted or pruned: they are the purchase history |
 | `flags` | `household_id`, `home_id`, `item_id`, `state` (`have` / `low` / `out`), `set_hlc`, `set_by`, `note` | primary key (`home_id`, `item_id`); staleness is computed at read time from `set_hlc`, never stored |
 | `staples` | `household_id`, `home_id`, `item_id`, `sort` | the items a home should always have; the trip view and the home view are built from this set |
@@ -223,7 +223,7 @@ The server adds `seq`, `person_id`, `credential_id` and `received_at` on append.
 | `item.named` | `item_id`, `name` | insert if `norm_name` unknown; if a different `item_id` already owns that `norm_name`, record the new id as an alias of the existing item (so two phones typing "melk" offline converge on one item) |
 | `item.renamed` | `item_id`, `name`, `hlc` | last writer wins on `hlc` |
 | `item.merged` | `keep_id`, `drop_id` | add alias, repoint entries, flags and staples; idempotent |
-| `list.created` / `list.renamed` / `list.archived` | `list_id`, `name`, `colour`, `owner_person_id` | add-wins for create; LWW on name and colour; archive wins over rename |
+| `list.created` / `list.renamed` / `list.archived` | `list_id`, `name`, `colour`, `owner_person_id`, `kind` (create only) | add-wins for create, which also fixes the kind; LWW on name and colour; archive wins over rename |
 | `entry.added` | `list_id`, `item_id`, `note`, `qty`, `unit`, `for_home_id` | add-wins among open entries on (`list_id`, `item_id`); if an open entry exists and is checked, clear `checked_hlc` (re-adding unchecks); if only cleared entries exist, a new entry row is created; LWW on `note`, `qty`, `unit` |
 | `entry.checked` / `entry.unchecked` | `list_id`, `item_id` | LWW on `hlc` between the two kinds; an `added` newer than `checked` unchecks |
 | `entry.cleared` | `list_id`, `before_hlc` | sets `cleared_hlc` on entries checked before `before_hlc`; a cleared entry is a purchase record, never changed or deleted; an `added` newer than `cleared` creates a new entry |
@@ -284,7 +284,8 @@ A list is a blank screen with one add control; the item catalog does the rest. T
 **Lists**
 
 - The Lists tab opens into the last-used list, the default shared list the first time, remembered per household on the device. A *Lists* button at the top left opens the overview, one level down, and so does a second tap on the Lists tab. The overview shows the household's lists first, then the person's own (*Just me*), each with its colour dot, name and how many are to get; `+` creates one. Badge on the app icon = what this device has not seen: entries others added to the household's lists (shared and the person's own) after each list was last in front here. Opening a list moves its seen mark to its newest entry, so the badge falls; in the list the rows others added since the last visit carry a small accent dot for that visit, and in the overview a list with unseen entries shows the dot before its count. Seen marks live on the device only; the person's own adds never count.
-- Creating a list asks for a name and *Household* or *Just me*; the list takes the first of the six list colours no list wears, changeable in *Rename*. *Share with the family* on a personal list makes a household list of the same name and colour, moves what is still open onto it and archives the personal one with its history: the family sees the list from that moment, not its past. A shared list cannot be made personal: archive it and make a new one.
+- Creating a list asks for a name, *Household* or *Just me*, and *Shopping* or *Tasks*; the list takes the first of the six list colours no list wears, changeable in *Rename*. *Share with the family* on a personal list makes a household list of the same name and colour, moves what is still open onto it and archives the personal one with its history: the family sees the list from that moment, not its past. A shared list cannot be made personal: archive it and make a new one.
+- A tasks list is a list of things to do with the same mechanics: type, strike, clear, Recent, personal or shared, a guest link. It differs in its words (*to do*, *done*, *last done*), in what comes up while typing (names used on tasks lists, not what the family buys, and the other way round), and in what a clear means: a done task is no purchase, so History, the usual items of a shopping list and the export's purchases leave it out. A tasks list has no homes and a trip cannot shop on it. The overview marks it with the checklist symbol. The kind is set when the list is made and cannot change.
 - A long-press or a swipe on a list row offers *Rename*, *Share with the family* on a personal list, and *Archive*, armed in place like every destructive action; the default list offers only *Rename*. An archived list keeps its history and leaves the screen.
 - Each household has one default shared list, created with the household, used by `flag.set out` and by guests. It can be renamed, not deleted.
 - *Recent* at the bottom of a list, collapsed by default, shows the last 30 cleared items for one-tap re-adding. This replaces ShopShop's habit of leaving struck items as memory.
@@ -351,7 +352,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | Screen | Content | Writes |
 | --- | --- | --- |
 | Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join | registers the device, accepts the invite |
-| Lists | opens into the last-used list; the Lists button or a second tab tap leads to the overview: household lists, then personal, colour dot, name, how many to get; `+` to create | `list.created` |
+| Lists | opens into the last-used list; the Lists button or a second tab tap leads to the overview: household lists, then personal, colour dot, name, the checklist symbol on a tasks list, how many to get or to do; `+` to create, shopping or tasks | `list.created` |
 | History | under the Lists overview, a row at its foot with this month's count: the month stepped back and forth, the month's purchases per item with the times and the totals of `qty` by `unit`, per home, who shopped; reads the entries table | none |
 | List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it, and the mic at its end; swipe left for Not needed and Edit, long-press to drag | `item.named`, `entry.*` |
 | Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails; `+` makes a home, Rename and Archive on the row (a trip needs a second home and nothing else makes one) | `home.*` |
@@ -586,7 +587,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 - [x] Multiple server contexts in the app (pulled forward from phase 3: a test and a production doma on one phone)
 - [ ] `flag.proposed` from a vision model over new photos, with a confirm screen
 - [x] History and overviews: purchases per item, per month and per home, totals of `qty` by `unit`; read from the entries table, no new events
-- [ ] Tasks as a third list kind
+- [x] Tasks as a third list kind: `lists.kind`, set by `list.created`; done instead of got, names kept apart while typing, no homes, no purchases
 - [ ] Watch app for lists
 - [ ] App Store, last: the listing under the qualified name, the demo household for review, submission (gate: a second family installs from the store)
 

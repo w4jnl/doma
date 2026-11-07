@@ -198,6 +198,33 @@ final class DomaUITests: XCTestCase {
                       "the cleared melk is in the month")
     }
 
+    /// A tasks list is made from the overview, speaks of doing rather than getting, and strikes
+    /// a task as done.
+    func testATasksList() throws {
+        let live = try live()
+        let app = launch(join: try mintInvite(live))
+        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15))
+        app.buttons["all-lists"].tap()
+        XCTAssertTrue(app.buttons["New list"].waitForExistence(timeout: 10))
+        app.buttons["New list"].tap()
+        let name = app.textFields["List name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Chores")
+        app.segmentedControls["list-kind"].buttons["Tasks"].tap()
+        app.buttons["Create list"].tap()
+        XCTAssertTrue(app.staticTexts["Nothing to do"].waitForExistence(timeout: 10), "the new list is up and speaks of doing")
+        let field = app.textFields["add-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("stofzuigen\n")
+        let row = app.buttons["entry-stofzuigen"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["1 to do"].waitForExistence(timeout: 5))
+        row.tap()
+        XCTAssertTrue(app.staticTexts["1 done"].waitForExistence(timeout: 10), "a struck task is done, not got")
+    }
+
     func testOfflineAddThenSync() throws {
         let live = try live()
         // joined online; then the network is away for a while and comes back by itself
