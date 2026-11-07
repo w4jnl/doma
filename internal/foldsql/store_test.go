@@ -125,7 +125,7 @@ func TestSQLMatchesMemoryAndRebuilds(t *testing.T) {
 			t.Fatalf("seed %d: SQL and memory differ\n got %s\nwant %s", seed, got, want)
 		}
 		ctx := context.Background()
-		for _, table := range []string{"entries", "flags", "staples", "item_aliases", "items", "lists", "homes", "spots", "photos", "trips"} {
+		for _, table := range []string{"entries", "flags", "staples", "proposals", "item_aliases", "items", "lists", "homes", "spots", "photos", "trips"} {
 			if _, err := d.Writer.ExecContext(ctx, "DELETE FROM "+table+" WHERE household_id = ?", household); err != nil {
 				t.Fatal(err)
 			}

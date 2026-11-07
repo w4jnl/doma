@@ -27,6 +27,9 @@ func applyFlagSet(s Store, e Event) error {
 	if err := putFlagLWW(s, Flag{HomeID: p.HomeID, ItemID: item, State: p.State, SetHLC: e.HLC, SetBy: e.PersonID, Note: p.Note}); err != nil {
 		return err
 	}
+	if err := recomputeProposals(s, p.HomeID, item); err != nil {
+		return err
+	}
 	if p.State != "out" {
 		return nil
 	}
@@ -86,9 +89,14 @@ func recomputeFlag(s Store, homeID, itemID string) error {
 		consider(Flag{HomeID: homeID, ItemID: itemID, State: "have", SetHLC: *e.ClearedHLC, SetBy: cleanedBy(e)})
 	}
 	if best == nil {
-		return s.DeleteFlag(homeID, itemID)
+		if err := s.DeleteFlag(homeID, itemID); err != nil {
+			return err
+		}
+	} else if err := s.PutFlag(*best); err != nil {
+		return err
 	}
-	return s.PutFlag(*best)
+	// a proposal closes with the flag written after it
+	return recomputeProposals(s, homeID, itemID)
 }
 
 // putFlagLWW writes f unless the stored flag is newer.
@@ -305,5 +313,13 @@ func tripFlags(s Store, e Event, p tripPayload, item string) error {
 	if err := putFlagLWW(s, Flag{HomeID: p.FromHomeID, ItemID: item, State: "out", SetHLC: e.HLC, SetBy: e.PersonID}); err != nil {
 		return err
 	}
-	return putFlagLWW(s, Flag{HomeID: p.ToHomeID, ItemID: item, State: "have", SetHLC: e.HLC, SetBy: e.PersonID})
+	if err := putFlagLWW(s, Flag{HomeID: p.ToHomeID, ItemID: item, State: "have", SetHLC: e.HLC, SetBy: e.PersonID}); err != nil {
+		return err
+	}
+	for _, home := range []string{p.FromHomeID, p.ToHomeID} {
+		if err := recomputeProposals(s, home, item); err != nil {
+			return err
+		}
+	}
+	return nil
 }

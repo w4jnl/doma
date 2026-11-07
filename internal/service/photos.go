@@ -130,6 +130,9 @@ func (s *Service) StorePhoto(ctx context.Context, sc domain.Scope, photoID strin
 	}
 	s.setPhotoBytes(sc.HouseholdID, used)
 	s.log.Info("photo stored", "household", sc.HouseholdID, "photo", photoID, "bytes", kept, "width", res.Width, "height", res.Height, "pruned", len(pruned)/2)
+	if s.vision != nil {
+		s.vision.Enqueue(sc.HouseholdID, photoID)
+	}
 	return stored, nil
 }
 

@@ -65,7 +65,7 @@ struct SQLFoldStore: FoldStore {
         guard !itemIDs.isEmpty else { return [] }
         let sql = """
             SELECT e.* FROM events e WHERE e.server_id = ? AND e.household_id = ? AND (
-              (e.kind IN ('flag.set','staple.added','staple.removed') AND e.item_id IN (\(marks(itemIDs.count))))
+              (e.kind IN ('flag.set','flag.proposed','proposal.declined','staple.added','staple.removed') AND e.item_id IN (\(marks(itemIDs.count))))
               OR (e.kind = 'trip.arrived' AND EXISTS (SELECT 1 FROM event_items ei WHERE ei.server_id = e.server_id AND ei.household_id = e.household_id AND ei.event_id = e.id AND ei.item_id IN (\(marks(itemIDs.count)))))
             ) ORDER BY e.hlc
             """
@@ -163,6 +163,22 @@ struct SQLFoldStore: FoldStore {
         return try Row.fetchAll(db, sql: "SELECT * FROM entries WHERE server_id = ? AND household_id = ? AND cleared_hlc IS NOT NULL AND for_home_id = ? AND item_id IN (\(marks(itemIDs.count))) ORDER BY id", arguments: sh + [homeID] + StatementArguments(itemIDs)).map(Entry.init(row:))
     }
 
+    // MARK: proposals
+
+    func proposals(homeID: String, itemIDs: [String]) throws -> [Proposal] {
+        guard !itemIDs.isEmpty else { return [] }
+        return try Row.fetchAll(db, sql: "SELECT * FROM proposals WHERE server_id = ? AND household_id = ? AND home_id = ? AND item_id IN (\(marks(itemIDs.count))) ORDER BY id", arguments: sh + [homeID] + StatementArguments(itemIDs)).map(Proposal.init(row:))
+    }
+
+    func replaceProposals(homeID: String, itemIDs: [String], rows: [Proposal]) throws {
+        if !itemIDs.isEmpty {
+            try db.execute(sql: "DELETE FROM proposals WHERE server_id = ? AND household_id = ? AND home_id = ? AND item_id IN (\(marks(itemIDs.count)))", arguments: sh + [homeID] + StatementArguments(itemIDs))
+        }
+        for r in rows {
+            try db.execute(sql: Proposal.insert, arguments: r.arguments(scope))
+        }
+    }
+
     // MARK: flags and staples
 
     func flag(homeID: String, itemID: String) throws -> Flag? {
@@ -250,13 +266,14 @@ struct SQLFoldStore: FoldStore {
         t.spots = try Row.fetchAll(db, sql: "SELECT * FROM spots WHERE server_id = ? AND household_id = ?", arguments: sh).map(Spot.init(row:))
         t.photos = try Row.fetchAll(db, sql: "SELECT * FROM photos WHERE server_id = ? AND household_id = ?", arguments: sh).map(Photo.init(row:))
         t.trips = try Row.fetchAll(db, sql: "SELECT * FROM trips WHERE server_id = ? AND household_id = ?", arguments: sh).map(Trip.init(row:))
+        t.proposals = try Row.fetchAll(db, sql: "SELECT * FROM proposals WHERE server_id = ? AND household_id = ?", arguments: sh).map(Proposal.init(row:))
         t.sort()
         return t
     }
 
     /// Writes a snapshot's tables in place of the household's.
     func replaceTables(_ t: Tables) throws {
-        for table in ["items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips"] {
+        for table in ["items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals"] {
             try db.execute(sql: "DELETE FROM \(table) WHERE server_id = ? AND household_id = ?", arguments: sh)
         }
         for r in t.items { try putItem(r) }
@@ -264,6 +281,7 @@ struct SQLFoldStore: FoldStore {
         for r in t.lists { try putList(r) }
         for r in t.entries { try db.execute(sql: Entry.insert, arguments: r.arguments(scope)) }
         for r in t.flags { try putFlag(r) }
+        for r in t.proposals { try db.execute(sql: Proposal.insert, arguments: r.arguments(scope)) }
         for r in t.staples { try putStaple(r) }
         for r in t.homes { try putHome(r) }
         for r in t.spots { try putSpot(r) }

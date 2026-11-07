@@ -19,7 +19,7 @@ ORDER BY hlc;
 SELECT * FROM events
 WHERE household_id = @household_id
   AND (
-    (kind IN ('flag.set', 'staple.added', 'staple.removed')
+    (kind IN ('flag.set', 'flag.proposed', 'proposal.declined', 'staple.added', 'staple.removed')
       AND json_extract(payload, '$.item_id') IN (SELECT value FROM json_each(CAST(@item_ids AS TEXT))))
     OR (kind = 'trip.arrived'
       AND EXISTS (SELECT 1 FROM json_each(payload, '$.moved') AS m

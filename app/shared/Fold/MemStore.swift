@@ -10,6 +10,7 @@ final class MemStore: FoldStore {
     private var listRows: [String: ShoppingList] = [:]
     private var entryRows: [String: Entry] = [:]
     private var flagRows: [Key: Flag] = [:]
+    private var proposalRows: [String: Proposal] = [:]
     private var stapleRows: [Key: Staple] = [:]
     private var homeRows: [String: Home] = [:]
     private var spotRows: [String: Spot] = [:]
@@ -27,6 +28,7 @@ final class MemStore: FoldStore {
         for r in base.lists { listRows[r.id] = r }
         for r in base.entries { entryRows[r.id] = r }
         for r in base.flags { flagRows[Key(home: r.homeID, item: r.itemID)] = r }
+        for r in base.proposals { proposalRows[r.id] = r }
         for r in base.staples { stapleRows[Key(home: r.homeID, item: r.itemID)] = r }
         for r in base.homes { homeRows[r.id] = r }
         for r in base.spots { spotRows[r.id] = r }
@@ -84,7 +86,7 @@ final class MemStore: FoldStore {
         for ev in log {
             guard let p = try? ev.decode(ItemRefs.self) else { continue }
             switch ev.kind {
-            case Kind.flagSet, Kind.stapleAdded, Kind.stapleRemoved:
+            case Kind.flagSet, Kind.flagProposed, Kind.proposalDeclined, Kind.stapleAdded, Kind.stapleRemoved:
                 if let id = p.itemID, itemIDs.contains(id) { out.append(ev) }
             case Kind.tripArrived:
                 if (p.moved ?? []).contains(where: itemIDs.contains) { out.append(ev) }
@@ -172,6 +174,14 @@ final class MemStore: FoldStore {
         flagRows.values.filter { itemIDs.contains($0.itemID) }.sorted { ($0.homeID, $0.itemID) < ($1.homeID, $1.itemID) }
     }
 
+    func proposals(homeID: String, itemIDs: [String]) throws -> [Proposal] {
+        proposalRows.values.filter { $0.homeID == homeID && itemIDs.contains($0.itemID) }.sorted { $0.id < $1.id }
+    }
+    func replaceProposals(homeID: String, itemIDs: [String], rows: [Proposal]) throws {
+        for (k, p) in proposalRows where p.homeID == homeID && itemIDs.contains(p.itemID) { proposalRows[k] = nil }
+        for r in rows { proposalRows[r.id] = r }
+    }
+
     func staple(homeID: String, itemID: String) throws -> Staple? { stapleRows[Key(home: homeID, item: itemID)] }
     func putStaple(_ staple: Staple) throws { stapleRows[Key(home: staple.homeID, item: staple.itemID)] = staple }
     func deleteStaples(forItems itemIDs: [String]) throws {
@@ -198,7 +208,8 @@ final class MemStore: FoldStore {
     var tables: Tables {
         var t = Tables(items: Array(itemRows.values), aliases: Array(aliasRows.values), lists: Array(listRows.values),
                        entries: Array(entryRows.values), flags: Array(flagRows.values), staples: Array(stapleRows.values),
-                       homes: Array(homeRows.values), spots: Array(spotRows.values), photos: Array(photoRows.values), trips: Array(tripRows.values))
+                       homes: Array(homeRows.values), spots: Array(spotRows.values), photos: Array(photoRows.values), trips: Array(tripRows.values),
+                       proposals: Array(proposalRows.values))
         t.sort()
         return t
     }

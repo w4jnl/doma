@@ -22,9 +22,11 @@ The attack surface is small and named; what an attacker can reach, and what stan
   admin's.
 - **The admin login** is argon2id with a `Secure, HttpOnly, SameSite=Lax` session cookie, CSRF
   double-submit on every form, a login rate limit and optional TOTP.
-- **Outbound.** The server makes no outbound connection except to APNs, and none at all when
-  `push.enabled` is false. No update check, no telemetry, no CDN; CI greps for dials outside
-  the push package.
+- **Outbound.** The server makes no outbound connection except to APNs when `push.enabled` is
+  on and to the vision model the operator names when `vision.enabled` is on, and none at all
+  with both off. The model is sent a picture and the names of the home's staples, nothing about
+  the people. No update check, no telemetry, no CDN; CI greps for dials outside the push and
+  vision packages.
 - **Secrets at rest.** The APNs key and the admin TOTP secret are encrypted under
   `secrets.key_file`. Back it up with the database.
 

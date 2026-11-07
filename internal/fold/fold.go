@@ -205,6 +205,11 @@ type Store interface {
 	DeleteFlag(homeID, itemID string) error
 	DeleteFlagsForItems(itemIDs []string) error
 
+	// ReplaceProposals deletes the proposals of the home for the item ids
+	// and inserts rows.
+	ReplaceProposals(homeID string, itemIDs []string, rows []Proposal) error
+	DeleteProposalsForItems(itemIDs []string) error
+
 	Staple(homeID, itemID string) (*Staple, error)
 	PutStaple(Staple) error
 	DeleteStaplesForItems(itemIDs []string) error
@@ -224,7 +229,7 @@ var Kinds = []string{
 	"item.named", "item.renamed", "item.merged",
 	"list.created", "list.renamed", "list.archived",
 	"entry.added", "entry.edited", "entry.checked", "entry.unchecked", "entry.cleared", "entry.moved", "entry.removed",
-	"flag.set",
+	"flag.set", "flag.proposed", "proposal.declined",
 	"staple.added", "staple.removed",
 	"home.created", "home.renamed", "home.archived",
 	"spot.created", "spot.renamed", "spot.archived",
@@ -251,6 +256,8 @@ func Apply(s Store, e Event) error {
 		return applyEntryCleared(s, e)
 	case "flag.set":
 		return applyFlagSet(s, e)
+	case "flag.proposed", "proposal.declined":
+		return applyProposalEvent(s, e)
 	case "staple.added", "staple.removed":
 		return applyStaple(s, e)
 	case "home.created", "home.renamed", "home.archived":

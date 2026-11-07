@@ -11,6 +11,7 @@ pattern='http\.Client{|http\.Get\(|http\.Post\(|http\.Head\(|http\.DefaultClient
 # file:reason — the code the gate accepts
 allow='
 internal/push/apns.go:the APNs client, built only when push.enabled is true
+internal/vision/client.go:the vision model client, built only when vision.enabled is true
 internal/client/client.go:the Go client of a doma server, used by tests and the e2e smoke
 cmd/domaload/main.go:the load check, many Go clients of the doma under test
 '
@@ -18,7 +19,7 @@ cmd/domaload/main.go:the load check, many Go clients of the doma under test
 status=0
 for f in $(grep -rlE "$pattern" --include='*.go' internal cmd 2>/dev/null | grep -v '_test\.go$' | sort); do
   if ! printf '%s\n' "$allow" | grep -q "^$f:"; then
-    echo "egress gate: $f opens connections outside internal/push:" >&2
+    echo "egress gate: $f opens connections outside internal/push and internal/vision:" >&2
     grep -nE "$pattern" "$f" >&2
     status=1
   fi

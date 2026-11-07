@@ -18,6 +18,8 @@ type Tables struct {
 	Spots   []Spot   `json:"spots"`
 	Photos  []Photo  `json:"photos"`
 	Trips   []Trip   `json:"trips"`
+	// Proposals are what a vision model suggested, open or closed.
+	Proposals []Proposal `json:"proposals"`
 }
 
 // Sort orders every table by its key.
@@ -42,6 +44,7 @@ func (t *Tables) Sort() {
 	sort.Slice(t.Spots, func(i, j int) bool { return t.Spots[i].ID < t.Spots[j].ID })
 	sort.Slice(t.Photos, func(i, j int) bool { return t.Photos[i].ID < t.Photos[j].ID })
 	sort.Slice(t.Trips, func(i, j int) bool { return t.Trips[i].ID < t.Trips[j].ID })
+	sort.Slice(t.Proposals, func(i, j int) bool { return t.Proposals[i].ID < t.Proposals[j].ID })
 }
 
 // Canonical renders the tables as JSON with every null, empty, zero and

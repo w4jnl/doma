@@ -219,11 +219,27 @@ enum Schema {
                 t.add(column: "kind", .text).notNull().defaults(to: "")
             }
         }
+        // v5: what a vision model proposed after a photo, open until answered
+        m.registerMigration("v5") { db in
+            try db.create(table: "proposals") { t in
+                t.column("server_id", .text).notNull()
+                t.column("household_id", .text).notNull()
+                t.column("id", .text).notNull()
+                t.column("home_id", .text).notNull()
+                t.column("item_id", .text).notNull()
+                t.column("state", .text).notNull()
+                t.column("photo_id", .text).notNull().defaults(to: "")
+                t.column("proposed_hlc", .text).notNull()
+                t.column("closed_hlc", .text)
+                t.primaryKey(["server_id", "household_id", "id"])
+            }
+            try db.create(indexOn: "proposals", columns: ["server_id", "household_id", "home_id", "item_id"])
+        }
         return m
     }
 
     /// The household tables, in the order a wipe deletes them.
-    static let householdTables = ["event_items", "events", "outbox", "cursors", "items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips"]
+    static let householdTables = ["event_items", "events", "outbox", "cursors", "items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals"]
 }
 
 /// One household on one server, as every query is scoped.
@@ -289,6 +305,17 @@ extension Flag {
         [s.serverID, s.householdID, homeID, itemID, state, setHLC.description, setBy, note]
     }
     static let insert = "INSERT OR REPLACE INTO flags (server_id, household_id, home_id, item_id, state, set_hlc, set_by, note) VALUES (?,?,?,?,?,?,?,?)"
+}
+
+extension Proposal {
+    init(row r: Row) {
+        self.init(id: r["id"], homeID: r["home_id"], itemID: r["item_id"], state: r["state"], photoID: r["photo_id"] ?? "",
+                  proposedHLC: HLC(column: r["proposed_hlc"]) ?? HLC(wall: 0, device: "-"), closedHLC: HLC(column: r["closed_hlc"]))
+    }
+    func arguments(_ s: Scope) -> StatementArguments {
+        [s.serverID, s.householdID, id, homeID, itemID, state, photoID, proposedHLC.description, closedHLC?.description]
+    }
+    static let insert = "INSERT OR REPLACE INTO proposals (server_id, household_id, id, home_id, item_id, state, photo_id, proposed_hlc, closed_hlc) VALUES (?,?,?,?,?,?,?,?,?)"
 }
 
 extension Staple {

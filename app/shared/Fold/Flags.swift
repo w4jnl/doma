@@ -13,6 +13,7 @@ enum Flags {
         }
         let item = try Fold.resolveItem(s, p.itemID)
         try putLWW(s, Flag(homeID: p.homeID, itemID: item, state: p.state, setHLC: e.hlc, setBy: e.personID, note: p.note ?? ""))
+        try recomputeProposals(s, homeID: p.homeID, itemID: item)
         guard p.state == "out", let def = try s.defaultListID() else { return }
         try Entries.replay(s, listID: def, itemID: item)
     }
@@ -56,11 +57,65 @@ enum Flags {
             standing.itemID = itemID
             consider(standing)
         }
-        guard let best else {
+        if let best {
+            try s.putFlag(best)
+        } else {
             try s.deleteFlag(homeID: homeID, itemID: itemID)
-            return
         }
-        try s.putFlag(best)
+        // a proposal closes with the flag written after it
+        try recomputeProposals(s, homeID: homeID, itemID: itemID)
+    }
+
+    /// flag.proposed and proposal.declined: both name the home and the item, and the key is
+    /// derived again (internal/fold/proposals.go).
+    static func applyProposal(_ s: some FoldStore, _ e: Event) throws {
+        let p = try e.decode(ProposalPayload.self)
+        try Fold.need(e, "home_id", p.homeID)
+        try Fold.need(e, "item_id", p.itemID)
+        if e.kind == Kind.flagProposed, !Fold.flagStates.contains(p.state ?? "") {
+            throw FoldError.badPayload(kind: e.kind, id: e.id, reason: "state \(p.state ?? "")")
+        }
+        if e.kind == Kind.proposalDeclined {
+            try Fold.need(e, "proposal_id", p.proposalID)
+        }
+        let item = try Fold.resolveItem(s, p.itemID)
+        try recomputeProposals(s, homeID: p.homeID, itemID: item)
+    }
+
+    /// Derives the proposals of one (home, item): every flag.proposed for it, closed by the flag
+    /// as it stands when that is at or after the proposal, by a decline, or by a newer
+    /// proposal. A row whose event the log does not hold is a snapshot's base and stays.
+    static func recomputeProposals(_ s: some FoldStore, homeID: String, itemID: String) throws {
+        let ids = try s.mergedIDs(itemID)
+        let flag = try s.flag(homeID: homeID, itemID: itemID)
+        var declined: [String: HLC] = [:]
+        var rows: [Proposal] = []
+        for ev in try s.itemEvents(for: ids) where ev.kind == Kind.flagProposed || ev.kind == Kind.proposalDeclined {
+            let p = try ev.decode(ProposalPayload.self)
+            guard p.homeID == homeID else { continue }
+            if ev.kind == Kind.proposalDeclined, let id = p.proposalID {
+                if declined[id] == nil || ev.hlc < declined[id]! { declined[id] = ev.hlc }
+            } else if ev.kind == Kind.flagProposed, let state = p.state, Fold.flagStates.contains(state) {
+                rows.append(Proposal(id: ev.id, homeID: homeID, itemID: itemID, state: state, photoID: p.photoID ?? "", proposedHLC: ev.hlc))
+            }
+        }
+        for var base in try s.proposals(homeID: homeID, itemIDs: ids) where try !s.hasEvent(base.id) {
+            if !rows.contains(where: { $0.id == base.id }) {
+                base.itemID = itemID
+                base.closedHLC = nil
+                rows.append(base)
+            }
+        }
+        rows.sort { $0.proposedHLC < $1.proposedHLC }
+        for i in rows.indices {
+            func close(_ h: HLC) {
+                if rows[i].closedHLC == nil || h < rows[i].closedHLC! { rows[i].closedHLC = h }
+            }
+            if let h = declined[rows[i].id] { close(h) }
+            if let flag, !(flag.setHLC < rows[i].proposedHLC) { close(flag.setHLC) }
+            if i + 1 < rows.count { close(rows[i + 1].proposedHLC) }
+        }
+        try s.replaceProposals(homeID: homeID, itemIDs: ids, rows: rows)
     }
 
     /// Writes f unless the stored flag is newer.
@@ -160,6 +215,8 @@ enum Flags {
             let item = try Fold.resolveItem(s, raw)
             try putLWW(s, Flag(homeID: p.fromHomeID, itemID: item, state: "out", setHLC: e.hlc, setBy: e.personID))
             try putLWW(s, Flag(homeID: p.toHomeID, itemID: item, state: "have", setHLC: e.hlc, setBy: e.personID))
+            try recomputeProposals(s, homeID: p.fromHomeID, itemID: item)
+            try recomputeProposals(s, homeID: p.toHomeID, itemID: item)
             if let def {
                 try Entries.replay(s, listID: def, itemID: item)
             }

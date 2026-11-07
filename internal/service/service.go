@@ -70,6 +70,8 @@ type Service struct {
 	vouches vouches
 	// webauthn is the relying party for passkeys, nil without a base URL.
 	webauthn *webauthn.WebAuthn
+	// vision is told about each photo that landed, when vision.enabled is on.
+	vision Proposer
 }
 
 // New builds the service. The server's own events carry the device id

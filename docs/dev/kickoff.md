@@ -254,6 +254,31 @@ SECURITY.md, the README and the changelog say it before the code; the phase-3 it
 when the second step is in. One branch and one PR per step, the usual gates.
 ```
 
+## 7. Proposals from the pictures, phase 3
+
+Written 2026-11-07, the third of the three features the user asked for in one go.
+
+```
+The web client is in. Next, flag proposals from a vision model. Re-read CLAUDE.md, then in
+docs/design.md the Spots and photos bullets, the event table, the Security checklist's Outbound
+bullet and the configuration listing; then internal/push for the shape of a worker behind a
+switch with one dialer, and the fold's flags for how a key is derived again.
+
+One switch, vision.enabled, off by default, and an OpenAI-compatible endpoint the operator
+names, self-hosted or not: the second and last outbound call, built only when on, with its own
+dialer the no-egress test wires to fail and a line in the egress gate. A worker takes each photo
+as it lands with the names of the home's staples and proposes a flag per item the model judged
+with confidence 0.6 or more and differently from the flag: one event kind, flag.proposed, the
+server's; and proposal.declined for the answer no. A proposals table on both sides, derived per
+(home, item) with the key's other events, so a flag written after it, a decline, or a newer
+proposal closes it in any order. The fixture first, then both folds. The home screen shows From
+the pictures first, Accept sets the flag, Keep declines. A Go test of the client against a
+stand-in model, of the worker's threshold and matching, and of the whole flow through the
+router; a logic test and the home pictures on both platforms; the strings in three languages.
+The spec, SECURITY.md, the README, the example config and the changelog say it before the
+code; tick the phase-3 item when it is in. One branch, one PR, the usual gates.
+```
+
 ## Later phases
 
 Phase 3 (one designed-for feature at a time; multiple server contexts were pulled forward on

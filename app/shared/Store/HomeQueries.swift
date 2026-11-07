@@ -95,6 +95,18 @@ struct FlagRow: Identifiable, Hashable, Sendable {
     var sort: Int64 = 0
 }
 
+/// What a picture suggested about an item at a home, still waiting for an answer.
+struct ProposalRow: Identifiable, Hashable, Sendable {
+    var id: String
+    var itemID: String
+    var name: String
+    var state: FlagState
+    /// The flag as it stands, after staleness.
+    var current: FlagState
+    var photoID: String
+    var proposedAt: Int64
+}
+
 struct HomeCard: Identifiable, Hashable, Sendable {
     var id: String
     var name: String
@@ -171,6 +183,25 @@ extension Queries {
             let setAt: Int64? = r["set_at"]
             let isStaple: Int64 = r["is_staple"]
             return FlagRow(itemID: r["id"], name: r["name"], state: staleness.state(r["state"], setAt: setAt), setAt: setAt, setBy: r["set_by"], note: r["note"] ?? "", isStaple: isStaple == 1, ageShown: staleness.showsAge(setAt), sort: r["sort"])
+        }
+    }
+
+    /// The home's open proposals, newest first, with the flag as it stands next to each.
+    static func proposals(_ db: Database, _ s: Scope, homeID: String, staleness: Staleness) throws -> [ProposalRow] {
+        try Row.fetchAll(db, sql: """
+            SELECT p.id, p.item_id, COALESCE(o.name, i.name, '') AS name, p.state, p.photo_id,
+              CAST(substr(p.proposed_hlc, 1, 13) AS INTEGER) AS proposed_at,
+              f.state AS cur, CAST(substr(f.set_hlc, 1, 13) AS INTEGER) AS set_at
+            FROM proposals p
+            LEFT JOIN items i ON i.server_id = p.server_id AND i.household_id = p.household_id AND i.id = p.item_id
+            LEFT JOIN items o ON o.server_id = i.server_id AND o.household_id = i.household_id AND o.id = i.merged_into
+            LEFT JOIN flags f ON f.server_id = p.server_id AND f.household_id = p.household_id AND f.home_id = p.home_id AND f.item_id = p.item_id
+            WHERE p.server_id = ? AND p.household_id = ? AND p.home_id = ? AND p.closed_hlc IS NULL
+            ORDER BY proposed_at DESC, p.id
+            """, arguments: [s.serverID, s.householdID, homeID]).map { r in
+            let setAt: Int64? = r["set_at"]
+            return ProposalRow(id: r["id"], itemID: r["item_id"], name: r["name"], state: FlagState(rawValue: r["state"]) ?? .unknown,
+                               current: staleness.state(r["cur"], setAt: setAt), photoID: r["photo_id"], proposedAt: r["proposed_at"])
         }
     }
 

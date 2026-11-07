@@ -256,7 +256,7 @@ const itemEventsFor = `-- name: ItemEventsFor :many
 SELECT household_id, seq, id, person_id, credential_id, hlc, kind, payload, received_at FROM events
 WHERE household_id = ?1
   AND (
-    (kind IN ('flag.set', 'staple.added', 'staple.removed')
+    (kind IN ('flag.set', 'flag.proposed', 'proposal.declined', 'staple.added', 'staple.removed')
       AND json_extract(payload, '$.item_id') IN (SELECT value FROM json_each(CAST(?2 AS TEXT))))
     OR (kind = 'trip.arrived'
       AND EXISTS (SELECT 1 FROM json_each(payload, '$.moved') AS m

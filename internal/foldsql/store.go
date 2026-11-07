@@ -384,6 +384,34 @@ func (s *Store) DeleteFlagsForItems(itemIDs []string) error {
 	return s.q.DeleteFlagsForItems(s.ctx, db.DeleteFlagsForItemsParams{HouseholdID: s.HouseholdID, ItemIds: idsJSON(itemIDs)})
 }
 
+func (s *Store) ReplaceProposals(homeID string, itemIDs []string, rows []fold.Proposal) error {
+	if err := s.q.DeleteProposalsForKey(s.ctx, db.DeleteProposalsForKeyParams{HouseholdID: s.HouseholdID, HomeID: homeID, ItemIds: idsJSON(itemIDs)}); err != nil {
+		return err
+	}
+	for _, p := range rows {
+		if err := s.q.InsertProposal(s.ctx, db.InsertProposalParams{ID: p.ID, HouseholdID: s.HouseholdID, HomeID: p.HomeID, ItemID: p.ItemID, State: p.State, PhotoID: p.PhotoID, ProposedHlc: p.ProposedHLC.String(), ClosedHlc: strPtr(p.ClosedHLC)}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Store) DeleteProposalsForItems(itemIDs []string) error {
+	return s.q.DeleteProposalsForItems(s.ctx, db.DeleteProposalsForItemsParams{HouseholdID: s.HouseholdID, ItemIds: idsJSON(itemIDs)})
+}
+
+func proposalRow(r db.Proposal) (fold.Proposal, error) {
+	h, err := domain.ParseHLC(r.ProposedHlc)
+	if err != nil {
+		return fold.Proposal{}, err
+	}
+	c, err := hlcPtr(r.ClosedHlc)
+	if err != nil {
+		return fold.Proposal{}, err
+	}
+	return fold.Proposal{ID: r.ID, HomeID: r.HomeID, ItemID: r.ItemID, State: r.State, PhotoID: r.PhotoID, ProposedHLC: h, ClosedHLC: c}, nil
+}
+
 func stapleRow(r db.Staple) (fold.Staple, error) {
 	a, err := hlcPtr(r.AddedHlc)
 	if err != nil {
@@ -588,6 +616,17 @@ func (s *Store) Tables() (fold.Tables, error) {
 		t.Trips = append(t.Trips, tr)
 	}
 	t.Sort()
+	props, err := s.q.ListProposals(s.ctx, s.HouseholdID)
+	if err != nil {
+		return t, err
+	}
+	for _, r := range props {
+		p, err := proposalRow(r)
+		if err != nil {
+			return t, err
+		}
+		t.Proposals = append(t.Proposals, p)
+	}
 	return t, nil
 }
 

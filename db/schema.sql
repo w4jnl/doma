@@ -204,6 +204,17 @@ CREATE TABLE "trips" (
   cancelled_at  INTEGER
 );
 CREATE INDEX trips_household ON trips(household_id);
+CREATE TABLE proposals (
+  id            TEXT PRIMARY KEY,
+  household_id  TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  home_id       TEXT NOT NULL,
+  item_id       TEXT NOT NULL,
+  state         TEXT NOT NULL,
+  photo_id      TEXT NOT NULL DEFAULT '',
+  proposed_hlc  TEXT NOT NULL,
+  closed_hlc    TEXT
+);
+CREATE INDEX proposals_key ON proposals(household_id, home_id, item_id);
 -- Dbmate schema migrations
 INSERT INTO "schema_migrations" (version) VALUES
   ('20261101000000'),
@@ -211,4 +222,5 @@ INSERT INTO "schema_migrations" (version) VALUES
   ('20261104000000'),
   ('20261104010000'),
   ('20261105000000'),
-  ('20261107000000');
+  ('20261107000000'),
+  ('20261107010000');

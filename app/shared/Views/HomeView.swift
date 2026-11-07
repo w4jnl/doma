@@ -18,6 +18,7 @@ struct HomeView: View {
     @State private var text = ""
     @State private var selection: TextSelection?
     @State private var matches: [Match] = []
+    @State private var proposals: Live<[ProposalRow]>?
     @State private var micTaps = 0
     @State private var voiceProblem: String?
     /// The staple whose row is a field now, and what it says.
@@ -47,6 +48,16 @@ struct HomeView: View {
         let staples = all.filter(\.isStaple)
         let others = all.filter { !$0.isStaple }
         List {
+            if let ps = proposals?.value, !ps.isEmpty {
+                // what the pictures suggested, each answered in its row
+                Section {
+                    ForEach(ps) { p in
+                        proposalRow(p)
+                    }
+                } header: {
+                    SectionHeader("From the pictures")
+                }
+            }
             Section {
                 ForEach(staples) { row in
                     if renaming == row.itemID {
@@ -178,6 +189,7 @@ struct HomeView: View {
         home = Live(session.store, initial: nil) { db in try Queries.homeCards(db, scope, staleness: staleness).first { $0.id == id } }
         rows = Live(session.store, initial: []) { db in try Queries.flagRows(db, scope, homeID: id, staleness: staleness) }
         trips = Live(session.store, initial: []) { db in try Queries.trips(db, scope, homeID: id) }
+        proposals = Live(session.store, initial: []) { db in try Queries.proposals(db, scope, homeID: id, staleness: staleness) }
     }
 
     private func subtitle(_ card: HomeCard?) -> Text {
@@ -502,6 +514,42 @@ struct HomeView: View {
             }
             .onTapGesture(count: 2) { startRename(row) }
             #endif
+    }
+
+    /// One proposal: the suggested flag, the item, the flag as it stands, Accept and Keep.
+    private func proposalRow(_ p: ProposalRow) -> some View {
+        HStack(spacing: Tokens.space3) {
+            FlagMark(state: p.state)
+                .frame(minWidth: Tokens.space7, alignment: .leading)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(p.name)
+                    .foregroundStyle(Tokens.ink)
+                HStack(spacing: Tokens.space1) {
+                    Text("now")
+                        .font(.footnote)
+                        .foregroundStyle(Tokens.inkMuted)
+                    FlagMark(state: p.current)
+                        .font(.footnote)
+                }
+            }
+            Spacer(minLength: Tokens.space2)
+            Button("Accept") { try? HomeActions.accept(p, home: homeID, in: session) }
+                .buttonStyle(.borderless)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Tokens.accent)
+                .accessibilityIdentifier("accept-" + p.name)
+            Button("Keep") { try? HomeActions.decline(p, home: homeID, in: session) }
+                .buttonStyle(.borderless)
+                .font(.subheadline)
+                .foregroundStyle(Tokens.inkMuted)
+                .accessibilityIdentifier("keep-" + p.name)
+        }
+        .frame(minHeight: ListView.rowHeight)
+        .listRowBackground(Tokens.ground)
+        .listRowSeparatorTint(Tokens.line)
+        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("proposal-" + p.name)
     }
 
     private func startRename(_ row: FlagRow) {

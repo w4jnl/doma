@@ -29,6 +29,7 @@ import (
 	"github.com/w4jnl/doma/internal/secrets"
 	"github.com/w4jnl/doma/internal/service"
 	"github.com/w4jnl/doma/internal/version"
+	"github.com/w4jnl/doma/internal/vision"
 )
 
 const usage = `doma: what to buy, what is there, what to bring
@@ -144,6 +145,14 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 	}
 	svc.SetKeyring(keyring)
 	pusher := push.New(push.ServiceRegistry{Svc: svc}, sender, cfg.BaseURL(), logging.Sub(log, "push"), m)
+	// the vision worker exists only when vision.enabled is on; with it off nothing in the
+	// process can reach the model
+	var looker *vision.Worker
+	if cfg.Vision.Enabled {
+		client := vision.NewClient(vision.Config{URL: cfg.Vision.URL, Model: cfg.Vision.Model, APIKey: cfg.Vision.APIKey, Timeout: time.Duration(cfg.Vision.TimeoutSeconds) * time.Second})
+		looker = vision.New(svc, client, logging.Sub(log, "vision"))
+		svc.SetVision(looker)
+	}
 	started := time.Now()
 	redacted, _ := cfg.Redacted().TOML()
 	facts := &web.ServerFacts{
@@ -184,6 +193,9 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 	}
 	run("snapshots", func(ctx context.Context) error { return svc.SnapshotJob(ctx, cfg.Retention.SnapshotHour) })
 	run("push", func(ctx context.Context) error { return pusher.Run(ctx, changes.Subscribe()) })
+	if looker != nil {
+		run("vision", looker.Run)
+	}
 	run("http", func(ctx context.Context) error { return dhttp.Run(ctx, log, cfg.Server.Listen, h) })
 	var firstErr error
 	select {

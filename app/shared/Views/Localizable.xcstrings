@@ -529,6 +529,22 @@
         }
       }
     },
+    "Accept": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overnemen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijať"
+          }
+        }
+      }
+    },
     "Add": {
       "localizations": {
         "nl": {
@@ -1201,6 +1217,22 @@
         }
       }
     },
+    "From the pictures": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Van de foto's"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Z fotiek"
+          }
+        }
+      }
+    },
     "Getting the %@ speech model, once": {
       "localizations": {
         "nl": {
@@ -1565,6 +1597,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Len ja"
+          }
+        }
+      }
+    },
+    "Keep": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laten"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nechať"
           }
         }
       }
@@ -3645,6 +3693,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "nové"
+          }
+        }
+      }
+    },
+    "now": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nu"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "teraz"
           }
         }
       }
