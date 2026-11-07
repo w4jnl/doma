@@ -75,7 +75,7 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   client under `internal/http/web/app.go` and `app2.go` (sign-in by the phone's vouch or a passkey;
   Lists, List, Homes, Home, Trip, Family) over `internal/service/web.go` and `webhome.go`, with
   the vouch route on the API and Scan reading a browser's code; vision proposals: `internal/vision`
-  (an OpenAI-compatible client and a worker behind `vision.enabled`), `flag.proposed` and
+  (an OpenAI-compatible client and an Anthropic one, chosen by `vision.provider`, and a worker behind `vision.enabled`), `flag.proposed` and
   `proposal.declined` in both folds with the `proposals` table, *From the pictures* on the home
   screen.
   Check `git log` and `ls` before assuming otherwise.

@@ -335,7 +335,7 @@ Any tap sets any flag directly; the drawn arrows are the paths the app takes on 
 - A home has spots (pantry, fridge, bathroom). A spot has one current photo and a history of `retention.photos_per_spot` (default 5). The home screen shows the current photo as a thumbnail per spot; tap to view full size with the taken-by and age.
 - *Departure sweep*: from the home screen, *Take photos* walks through the spots in order with the camera open and one tap per spot. Two minutes before locking up; nothing else to fill in.
 - Photos are uploaded as JPEG, long edge 1600 px, quality 0.8, by the app after the `photo.added` event is accepted; the server stores the original and a 320 px thumbnail; upload retries ride the outbox. A photo is shown as pending until the upload lands.
-- Vision-model proposals: when `vision.enabled` is on, a server job takes each photo as it lands, with the names of the home's staples, to the model at `vision.url` (an OpenAI-compatible chat completions endpoint, self-hosted or not, the operator's choice) and appends one `flag.proposed` per item the model judged with confidence 0.6 or more and differently from the flag as it stands. The home screen shows them under *From the pictures*, each with *Accept*, which sets the flag, and *Keep*, which declines; a flag written by anyone after the proposal closes it as well, and a newer proposal replaces an older one. The model sees the picture and the item names, nothing else; with `vision.enabled = false` nothing in the process can reach it.
+- Vision-model proposals: when `vision.enabled` is on, a server job takes each photo as it lands, with the names of the home's staples, to the model at `vision.url` (`vision.provider = "openai"`: an OpenAI-compatible chat completions endpoint, self-hosted or not; `"anthropic"`: Claude through the Messages API at `api.anthropic.com` with `vision.api_key`; the operator's choice) and appends one `flag.proposed` per item the model judged with confidence 0.6 or more and differently from the flag as it stands. The home screen shows them under *From the pictures*, each with *Accept*, which sets the flag, and *Keep*, which declines; a flag written by anyone after the proposal closes it as well, and a newer proposal replaces an older one. The model sees the picture and the item names, nothing else; with `vision.enabled = false` nothing in the process can reach it.
 
 **Trips**
 
@@ -537,9 +537,10 @@ token = ""
 key_file = "/var/lib/doma/secret.key"
 [vision]
 enabled = false            # a vision model looks at new photos and proposes flag changes
-url = ""                   # an OpenAI-compatible chat completions base, e.g. http://ollama:11434/v1
-model = ""
-api_key = ""               # env:DOMA_VISION_API_KEY when the endpoint wants one; redacted on the server page
+provider = "openai"        # openai: a chat completions endpoint; anthropic: Claude's Messages API
+url = ""                   # openai: the base, e.g. http://ollama:11434/v1; anthropic: empty means https://api.anthropic.com
+model = ""                 # e.g. qwen2.5vl, or claude-opus-5-5
+api_key = ""               # env:DOMA_VISION_API_KEY when the endpoint wants one, required for anthropic; redacted on the server page
 timeout_seconds = 60
 
 [admin]
@@ -632,4 +633,4 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 | Admin TOTP | in v1 | phase 2 |
 | Licence and repo visibility | public, MIT, as vink (opened 2026-11-03) | private until the public install |
 | Passkeys | go-webauthn/webauthn, the one authentication library, pinned (decided 2026-11-07) | a hand-written verifier for ES256 and none attestation; fewer modules, more to get wrong |
-| Vision model | an OpenAI-compatible endpoint the operator names, self-hosted (Ollama, LM Studio, vLLM) or hosted, behind `vision.enabled`, off by default (decided 2026-11-07) | a model on the phone; no server job, weaker models, every phone its own |
+| Vision model | an endpoint the operator names, behind `vision.enabled`, off by default: an OpenAI-compatible one, self-hosted (Ollama, LM Studio, vLLM) or hosted, or Claude through Anthropic's Messages API with `vision.provider = "anthropic"` (decided 2026-11-07) | a model on the phone; no server job, weaker models, every phone its own |

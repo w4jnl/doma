@@ -98,7 +98,7 @@ What doma does about it:
 - **Push**: one silent notification per phone per thirty seconds through Apple, behind
   `push.enabled`, and provably no outbound connection when it is off.
 - **A second pair of eyes**, if you want one: behind `vision.enabled`, a vision model you point
-  the server at, in your own network or not, looks at each new picture of a spot and suggests
+  the server at, in your own network or not, or Claude with an API key, looks at each new picture of a spot and suggests
   which staples look low or out. The family accepts or keeps each suggestion on the home screen;
   nothing changes by itself.
 

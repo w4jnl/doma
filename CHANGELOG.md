@@ -9,7 +9,8 @@ updates this file first. Dates are the tag dates.
 - **From the pictures.** Behind `vision.enabled`, a vision model the server is pointed at looks
   at each new photo of a spot and suggests which staples look low or out. The home screen shows
   the suggestions first, each with Accept and Keep. Off by default; nothing reaches the model
-  otherwise.
+  otherwise. The model is an OpenAI-compatible endpoint, in your own network or not, or Claude
+  with `vision.provider = "anthropic"` and an API key.
 - **The web client.** The family's lists in a browser at `/app`: the first sign-in by scanning
   the browser's code with the app, then a passkey. Lists and a list with add, strike, Not needed
   and Clear; homes with their staples and flags; trips planned, derived and arrived; Family with

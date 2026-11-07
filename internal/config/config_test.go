@@ -127,6 +127,10 @@ func TestValidate(t *testing.T) {
 		{"log format", map[string]string{"DOMA_LOG_FORMAT": "xml"}, "log.format"},
 		{"bad bool", map[string]string{"DOMA_PUSH_ENABLED": "yes"}, "expected true or false"},
 		{"bad size", map[string]string{"DOMA_PHOTOS_MAX_BYTES_PER_UPLOAD": "big"}, "invalid size"},
+		{"vision provider", map[string]string{"DOMA_VISION_PROVIDER": "gemini"}, "openai or anthropic"},
+		{"vision without url", map[string]string{"DOMA_VISION_ENABLED": "true", "DOMA_VISION_MODEL": "m"}, "vision.url"},
+		{"vision without model", map[string]string{"DOMA_VISION_ENABLED": "true", "DOMA_VISION_URL": "http://ollama:11434/v1"}, "vision.model"},
+		{"anthropic without key", map[string]string{"DOMA_VISION_ENABLED": "true", "DOMA_VISION_PROVIDER": "anthropic", "DOMA_VISION_MODEL": "claude-opus-5-5"}, "vision.api_key"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -149,7 +149,7 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 	// process can reach the model
 	var looker *vision.Worker
 	if cfg.Vision.Enabled {
-		client := vision.NewClient(vision.Config{URL: cfg.Vision.URL, Model: cfg.Vision.Model, APIKey: cfg.Vision.APIKey, Timeout: time.Duration(cfg.Vision.TimeoutSeconds) * time.Second})
+		client := vision.NewLooker(vision.Config{Provider: cfg.Vision.Provider, URL: cfg.Vision.URL, Model: cfg.Vision.Model, APIKey: cfg.Vision.APIKey, Timeout: time.Duration(cfg.Vision.TimeoutSeconds) * time.Second})
 		looker = vision.New(svc, client, logging.Sub(log, "vision"))
 		svc.SetVision(looker)
 	}

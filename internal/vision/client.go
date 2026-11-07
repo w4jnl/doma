@@ -2,7 +2,9 @@
 // home's staples and turns the answer into flag proposals for a member to
 // accept or decline. It is the second place in doma that opens an outbound
 // connection, after APNs: to the endpoint in vision.url, only when
-// vision.enabled is true, and the client is built only then.
+// vision.enabled is true, and the client is built only then. Two wire
+// formats are spoken, chosen by vision.provider: OpenAI's chat completions
+// (Client) and Anthropic's Messages API (Anthropic).
 package vision
 
 import (
@@ -24,10 +26,14 @@ import (
 var DialContext = (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext
 
 // Config names the model: an OpenAI-compatible chat completions endpoint,
-// self-hosted (Ollama, LM Studio, vLLM) or not, which is the operator's call.
+// self-hosted (Ollama, LM Studio, vLLM) or not, or Anthropic's API, which is
+// the operator's call.
 type Config struct {
-	// URL is the API's base, such as http://ollama:11434/v1; the client posts
-	// to URL + /chat/completions.
+	// Provider is the wire format: "openai" (the default) or "anthropic".
+	Provider string
+	// URL is the API's base, such as http://ollama:11434/v1; the OpenAI client
+	// posts to URL + /chat/completions, the Anthropic one to URL + /v1/messages
+	// and takes https://api.anthropic.com when URL is empty.
 	URL    string
 	Model  string
 	APIKey string
@@ -49,34 +55,60 @@ type Client struct {
 	http *http.Client
 }
 
-// NewClient builds the client; nothing dials until Look is called.
-func NewClient(cfg Config) *Client {
-	if cfg.Timeout <= 0 {
-		cfg.Timeout = 60 * time.Second
+// NewLooker builds the client for cfg.Provider: the OpenAI-compatible one
+// unless it says "anthropic". Nothing dials until Look is called.
+func NewLooker(cfg Config) Looker {
+	if cfg.Provider == "anthropic" {
+		return NewAnthropic(cfg)
 	}
+	return NewClient(cfg)
+}
+
+// NewClient builds the OpenAI-compatible client; nothing dials until Look is
+// called.
+func NewClient(cfg Config) *Client {
+	cfg.Timeout = timeout(cfg.Timeout)
+	return &Client{cfg: cfg, http: newHTTP(cfg.Timeout)}
+}
+
+func timeout(d time.Duration) time.Duration {
+	if d <= 0 {
+		return 60 * time.Second
+	}
+	return d
+}
+
+// newHTTP is the one http.Client both providers use, over DialContext.
+func newHTTP(d time.Duration) *http.Client {
 	transport := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return DialContext(ctx, network, addr)
 		},
 		ForceAttemptHTTP2: true,
 	}
-	return &Client{cfg: cfg, http: &http.Client{Transport: transport, Timeout: cfg.Timeout}}
+	return &http.Client{Transport: transport, Timeout: d}
+}
+
+// systemPrompt and userPrompt are the same words for both providers.
+const systemPrompt = "You look at one photo of a spot in a family's home and say how much of each listed item is there. You answer with JSON and nothing else."
+
+func userPrompt(spot, home string, names []string) string {
+	return fmt.Sprintf("This is a photo of the %q at the home %q. Judge these household items, and only these: %s. "+
+		"For each one you can see or whose place you can see, give its state: \"have\" when there is plenty, \"low\" when little is left, \"out\" when its place is empty. "+
+		"Leave out what the picture does not show. Answer with JSON only, in this shape: {\"items\":[{\"name\":\"melk\",\"state\":\"low\",\"confidence\":0.8}]}. "+
+		"Use the names exactly as given; confidence is 0 to 1.", spot, home, strings.Join(names, ", "))
 }
 
 // Look sends the picture with the names of the spot's staples and returns
 // what the model saw: a state per item it could judge, with its confidence.
 func (c *Client) Look(ctx context.Context, jpeg []byte, spot, home string, names []string) ([]Seen, error) {
-	prompt := fmt.Sprintf("This is a photo of the %q at the home %q. Judge these household items, and only these: %s. "+
-		"For each one you can see or whose place you can see, give its state: \"have\" when there is plenty, \"low\" when little is left, \"out\" when its place is empty. "+
-		"Leave out what the picture does not show. Answer with JSON only, in this shape: {\"items\":[{\"name\":\"melk\",\"state\":\"low\",\"confidence\":0.8}]}. "+
-		"Use the names exactly as given; confidence is 0 to 1.", spot, home, strings.Join(names, ", "))
 	body := map[string]any{
 		"model":       c.cfg.Model,
 		"temperature": 0,
 		"messages": []any{
-			map[string]any{"role": "system", "content": "You look at one photo of a spot in a family's home and say how much of each listed item is there. You answer with JSON and nothing else."},
+			map[string]any{"role": "system", "content": systemPrompt},
 			map[string]any{"role": "user", "content": []any{
-				map[string]any{"type": "text", "text": prompt},
+				map[string]any{"type": "text", "text": userPrompt(spot, home, names)},
 				map[string]any{"type": "image_url", "image_url": map[string]any{"url": "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(jpeg)}},
 			}},
 		},
@@ -125,7 +157,12 @@ func parseAnswer(raw []byte) ([]Seen, error) {
 	if len(env.Choices) == 0 {
 		return nil, errors.New("the model answered with no choice")
 	}
-	content := env.Choices[0].Message.Content
+	return parseItems(env.Choices[0].Message.Content)
+}
+
+// parseItems reads the JSON the model put in its text, tolerating prose or a
+// code fence around it, and keeps the judgements with a known state.
+func parseItems(content string) ([]Seen, error) {
 	start, end := strings.Index(content, "{"), strings.LastIndex(content, "}")
 	if start < 0 || end <= start {
 		return nil, fmt.Errorf("no JSON in the model's answer: %s", firstLine([]byte(content)))
