@@ -30,6 +30,7 @@ struct MacMainView: View {
         case home(String)
         case trip
         case family
+        case history
     }
 
     var body: some View {
@@ -49,6 +50,10 @@ struct MacMainView: View {
                     } header: {
                         Text("Just me")
                     }
+                }
+                Section {
+                    Label("History", systemImage: "clock.arrow.circlepath")
+                        .tag(Selection.history)
                 }
                 Section {
                     ForEach(homes?.value ?? []) { h in
@@ -88,6 +93,8 @@ struct MacMainView: View {
                 NavigationStack { TripsView() }
             case .family:
                 NavigationStack { FamilyView() }
+            case .history:
+                NavigationStack { HistoryView() }
             default:
                 VStack(spacing: Tokens.space3) {
                     Mark(size: 40)
@@ -112,6 +119,8 @@ struct MacMainView: View {
                     selection = .trip
                 } else if remembered == "homes" {
                     selection = .homes
+                } else if remembered == "history" {
+                    selection = .history
                 } else if let r = remembered, r.hasPrefix("home:"), homes?.value.contains(where: { $0.id == String(r.dropFirst(5)) }) == true {
                     selection = .home(String(r.dropFirst(5)))
                 } else if let id = remembered, lists?.value.contains(where: { $0.id == id }) == true {
@@ -129,6 +138,7 @@ struct MacMainView: View {
             case .homes: UserDefaults.standard.set("homes", forKey: "mac.selection." + h)
             case .trip: UserDefaults.standard.set("trip", forKey: "mac.selection." + h)
             case .family: UserDefaults.standard.set("family", forKey: "mac.selection." + h)
+            case .history: UserDefaults.standard.set("history", forKey: "mac.selection." + h)
             default: break
             }
         }

@@ -179,6 +179,15 @@ final class DomaUITests: XCTestCase {
         XCTAssertTrue(app.buttons["New list"].waitForExistence(timeout: 10), "the tab's second tap opens the overview")
         lists.tap()
         XCTAssertTrue(app.textFields["add-field"].waitForExistence(timeout: 10), "and its third tap comes back")
+        // History, the overview's last row, opens on the month the melk was bought in
+        lists.tap()
+        XCTAssertTrue(app.buttons["New list"].waitForExistence(timeout: 10))
+        let history = app.descendants(matching: .any)["history"].firstMatch
+        for _ in 0..<4 where !history.waitForExistence(timeout: 1) { app.swipeUp() }
+        history.tap()
+        XCTAssertTrue(app.buttons["history-previous"].waitForExistence(timeout: 10), "the History screen is up")
+        XCTAssertTrue(app.descendants(matching: .any)["history-melk"].firstMatch.waitForExistence(timeout: 5),
+                      "the cleared melk is in the month")
     }
 
     func testOfflineAddThenSync() throws {

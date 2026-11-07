@@ -97,6 +97,22 @@
         }
       }
     },
+    "%lld bought": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld gehaald"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kúpených"
+          }
+        }
+      }
+    },
     "%lld days": {
       "localizations": {
         "nl": {
@@ -157,6 +173,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$lld z %2$lld"
+          }
+        }
+      }
+    },
+    "%lld this month": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld deze maand"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld tento mesiac"
+          }
+        }
+      }
+    },
+    "%lld times, last %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld keer, laatst %@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld-krát, naposledy %@"
           }
         }
       }
@@ -1361,6 +1409,22 @@
         }
       }
     },
+    "Items": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Artikelen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Položky"
+          }
+        }
+      }
+    },
     "Join": {
       "localizations": {
         "nl": {
@@ -1713,6 +1777,22 @@
         }
       }
     },
+    "Next month": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volgende maand"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nasledujúci mesiac"
+          }
+        }
+      }
+    },
     "No camera here": {
       "localizations": {
         "nl": {
@@ -1805,6 +1885,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Neprijaté"
+          }
+        }
+      }
+    },
+    "Nothing bought": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niets gehaald"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nič nekúpené"
+          }
+        }
+      }
+    },
+    "Nothing bought this month.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze maand is er niets gehaald."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tento mesiac sa nič nekúpilo."
           }
         }
       }
@@ -1933,6 +2045,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Slivková"
+          }
+        }
+      }
+    },
+    "Previous month": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorige maand"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Predchádzajúci mesiac"
           }
         }
       }
@@ -2301,6 +2429,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Blankytná"
+          }
+        }
+      }
+    },
+    "Someone": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iemand"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niekto"
           }
         }
       }
@@ -2961,6 +3105,22 @@
         }
       }
     },
+    "Who shopped": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie heeft gehaald"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kto nakupoval"
+          }
+        }
+      }
+    },
     "You": {
       "localizations": {
         "nl": {
@@ -3245,6 +3405,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "na zozname"
+          }
+        }
+      }
+    },
+    "once, %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "één keer, %@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "raz, %@"
           }
         }
       }

@@ -173,6 +173,13 @@ row, not a new screen.
   at the foot in `ink-muted`. A list with nothing on it shows the mark small and one line of
   help under the title; the title's subtitle says how many are still to get. There is no shop
   mode: one layout, the screen awake while a list is in front.
+- **History.** A row at the foot of the Lists overview, the clock-arrow symbol in the 24pt column
+  and this month's count in mono, opens it. Under the title, the month between two chevrons in
+  `accent` (a chevron `ink-faint` when there is nowhere to go), the title's subtitle "N bought".
+  Then Items, each row the name in `ink` with "N times, last …" in footnote `ink-muted` under it
+  and the totals per unit in mono `ink-muted` at the right; Homes and Who shopped as name and a
+  mono count. Rows take the list's height, insets and `ground`; an empty month is one line of
+  help. Numbers only, never a chart: the family reads what was bought, it does not analyse it.
 - **A home.** Staples first, in their order, in rows of a list's height and insets on `ground`,
   each row the flag glyph and word at the right, the item at the left, and the flag's age in mono
   `ink-muted` once it passes half the staleness threshold. An unknown staple shows three small

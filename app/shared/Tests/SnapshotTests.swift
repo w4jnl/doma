@@ -85,6 +85,13 @@ final class SnapshotTests: XCTestCase {
             ev("e5", Kind.entryAdded, EntryPayload(listID: "L1", itemID: "I5")),
             ev("c5", Kind.entryChecked, EntryPayload(listID: "L1", itemID: "I5")),
             ev("x1", Kind.entryCleared, EntryPayload(listID: "L1", beforeHLC: "\(wall + 500):0:a")),
+            // two purchases for History: melk for Gouda, where it is a staple already flagged
+            // have, so the clear changes no other picture; brood for nobody in particular
+            ev("e7", Kind.entryAdded, EntryPayload(listID: "L1", itemID: "I1", qty: 2, unit: "x", forHomeID: "G")),
+            ev("c7", Kind.entryChecked, EntryPayload(listID: "L1", itemID: "I1")),
+            ev("e8", Kind.entryAdded, EntryPayload(listID: "L1", itemID: "I2")),
+            ev("c8", Kind.entryChecked, EntryPayload(listID: "L1", itemID: "I2")),
+            ev("x2", Kind.entryCleared, EntryPayload(listID: "L1", beforeHLC: "\(wall + 500):0:a")),
             ev("e1", Kind.entryAdded, EntryPayload(listID: "L1", itemID: "I1", qty: 2, unit: "x")),
             ev("e2", Kind.entryAdded, EntryPayload(listID: "L1", itemID: "I2", forHomeID: "G")),
             ev("e3", Kind.entryAdded, EntryPayload(listID: "L1", itemID: "I3", note: "vrije uitloop", qty: 12, unit: "x")),
@@ -159,6 +166,10 @@ final class SnapshotTests: XCTestCase {
 
     func testHomes() async throws {
         try await check("homes") { NavigationStack { HomesView() } }
+    }
+
+    func testHistory() async throws {
+        try await check("history") { NavigationStack { HistoryView() } }
     }
 
     func testHome() async throws {

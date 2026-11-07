@@ -42,6 +42,11 @@ struct EntryRow: Identifiable, Hashable, Sendable {
     /// "2x", "500 g", "1.5 l": the quantity and unit, or empty.
     var quantity: String {
         guard let q = qty else { return "" }
+        return Self.quantity(q, unit)
+    }
+
+    /// A quantity with its unit as the rows show it: "2x", "500 g", "1.5 l".
+    static func quantity(_ q: Double, _ unit: String?) -> String {
         let n = q == q.rounded() ? String(Int64(q)) : String(q)
         let u = unit ?? "x"
         return u == "x" ? n + "x" : n + " " + u

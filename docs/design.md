@@ -292,7 +292,7 @@ A list is a blank screen with one add control; the item catalog does the rest. T
 
 - A purchase is an entry that was checked and then cleared. It keeps item, `qty`, `unit`, `note`, `for_home_id`, who added it, who checked it and both times. Entries are never deleted, never pruned, and never reused: re-adding an item after clearing creates a new entry.
 - Quantities are parsed on add as described above and can be corrected with *Bought…* before clearing. Unparsed text stays in `note`, so nothing typed is lost.
-- In v1 the history surfaces in two places only: *Recent* under each list, and the *last bought* hint on autocomplete rows. Overview screens come in phase 3 and read the same rows: purchases per item and per month, totals of `qty` by `unit`, per home, who shops what. No new events are needed for them.
+- The history surfaces in *Recent* under each list, in the *last bought* hint on autocomplete rows, and on the History screen, one level under the Lists overview: one month at a time, stepped back and forth under the title, opening on the latest month with a purchase, with the month's purchases per item (how many times, the totals of `qty` by `unit`, when last), per home, and who shopped, named as the family knows them. It reads the same cleared rows on the device; no event is made for it, so every phone and the Mac show the same.
 - The history is in every export as `purchases.csv` (one row per cleared entry) and in the household snapshot, so pruning old events loses nothing a family can see.
 
 **In the shop**
@@ -350,6 +350,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | --- | --- | --- |
 | Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join | registers the device, accepts the invite |
 | Lists | opens into the last-used list; the Lists button or a second tab tap leads to the overview: household lists, then personal, colour dot, name, how many to get; `+` to create | `list.created` |
+| History | under the Lists overview, a row at its foot with this month's count: the month stepped back and forth, the month's purchases per item with the times and the totals of `qty` by `unit`, per home, who shopped; reads the entries table | none |
 | List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it, and the mic at its end; swipe left for Edit, long-press to drag | `item.named`, `entry.*` |
 | Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails; `+` makes a home, Rename and Archive on the row (a trip needs a second home and nothing else makes one) | `home.*` |
 | Home | staples with flag buttons in rows as a list's, typed into a bar at the bottom as entries are on a list, Rename and Remove on a swipe, a long-press is drag to reorder (the `sort` on `staple.added`); other flagged items; the spots' pictures below with `+` for a new one, Rename and Remove on a long-press; the trips through the home; *Take photos* | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
@@ -582,7 +583,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 - [ ] Passkeys and the member web client
 - [x] Multiple server contexts in the app (pulled forward from phase 3: a test and a production doma on one phone)
 - [ ] `flag.proposed` from a vision model over new photos, with a confirm screen
-- [ ] History and overviews: purchases per item, per month and per home, totals of `qty` by `unit`; read from the entries table, no new events
+- [x] History and overviews: purchases per item, per month and per home, totals of `qty` by `unit`; read from the entries table, no new events
 - [ ] Tasks as a third list kind
 - [ ] Watch app for lists
 - [ ] App Store, last: the listing under the qualified name, the demo household for review, submission (gate: a second family installs from the store)
