@@ -1,0 +1,13 @@
+{{define "appform"}}
+<form class="dm-add" method="post" action="{{.Data.Base}}/add" hx-post="{{.Data.Base}}/add" hx-target="#panel" hx-swap="outerHTML">
+  <input type="hidden" name="_csrf" value="{{.CSRF}}">
+  <input class="dm-input" id="add" name="text" placeholder="Add" autocomplete="off" autofocus required>
+  <button class="dm-button" type="submit">Add</button>
+</form>
+{{end}}
+{{define "apppanel"}}
+<div id="panel">
+  {{template "appform" .}}
+  {{template "approws" .}}
+</div>
+{{end}}

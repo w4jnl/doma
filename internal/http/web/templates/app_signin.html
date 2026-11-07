@@ -1,0 +1,12 @@
+{{define "content"}}
+<div class="dm-card dm-signin">
+  <h1>Sign in</h1>
+  <p>Open doma on your phone, go to Family, tap Add, and scan this code. This browser is then yours.</p>
+  <div class="dm-qr" id="vouch" hx-get="/app/wait/{{.Data.Token}}" hx-trigger="every 2s [document.visibilityState === 'visible']" hx-swap="none">{{.Data.QR}}</div>
+  <p class="dm-muted">Or paste this where the app scans: <span class="dm-mono dm-break">{{.Data.Link}}</span></p>
+  {{if .Passkeys}}
+  <p><button class="dm-button dm-button-quiet" type="button" data-passkey="login" id="passkey-login">Use a passkey</button></p>
+  <p class="dm-error" id="passkey-error" hidden></p>
+  {{end}}
+</div>
+{{end}}

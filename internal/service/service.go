@@ -9,8 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"sync"
 	"time"
+
+	"github.com/go-webauthn/webauthn/webauthn"
 
 	"github.com/w4jnl/doma/internal/bus"
 	"github.com/w4jnl/doma/internal/db"
@@ -63,6 +66,10 @@ type Service struct {
 	// linkKeyBytes signs photo links, derived from the keyring on first use.
 	linkMu       sync.Mutex
 	linkKeyBytes []byte
+	// vouches are browsers waiting for a phone to name who sits at them.
+	vouches vouches
+	// webauthn is the relying party for passkeys, nil without a base URL.
+	webauthn *webauthn.WebAuthn
 }
 
 // New builds the service. The server's own events carry the device id
@@ -97,6 +104,14 @@ func New(d *db.DB, cfg Config, log *slog.Logger) *Service {
 	}
 	s := &Service{db: d, cfg: cfg, log: log, now: func() time.Time { return time.Now().UTC() }}
 	s.clock, _ = domain.NewClock(domain.SystemPerson, s.now)
+	if u, err := url.Parse(cfg.BaseURL); err == nil && u.Hostname() != "" {
+		// the relying party is the server's host; a browser only offers a passkey to the origin
+		// it was made for, so the base URL must be the one the family opens
+		s.webauthn, err = webauthn.New(&webauthn.Config{RPID: u.Hostname(), RPDisplayName: "doma", RPOrigins: []string{u.Scheme + "://" + u.Host}})
+		if err != nil {
+			log.Warn("passkeys off", "err", err)
+		}
+	}
 	return s
 }
 

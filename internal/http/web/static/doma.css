@@ -70,3 +70,28 @@ code, .dm-mono { font-family: var(--font-mono); font-size: 0.9375rem; }
 .dm-row-button .dm-glyph { color: var(--accent); }
 .dm-done .dm-row-button { color: var(--ink-muted); text-decoration: line-through; }
 .dm-done .dm-row-button .dm-glyph { color: var(--ink-muted); }
+
+/* the web client: the family's lists in a browser */
+.dm-app h2 { margin-top: var(--space-5); }
+.dm-signin .dm-qr { margin: var(--space-4) auto; }
+.dm-break { word-break: break-all; }
+.dm-switch { display: flex; gap: var(--space-3); font-size: 0.875rem; }
+.dm-switch a { color: var(--ink-muted); text-decoration: none; }
+.dm-switch a[aria-current="true"] { color: var(--ink); font-weight: 600; }
+.dm-row-link { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: var(--row-h); color: var(--ink); text-decoration: none; }
+.dm-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--ink-faint); }
+.dm-dot-list-1 { background: var(--list-1); }
+.dm-dot-list-2 { background: var(--list-2); }
+.dm-dot-list-3 { background: var(--list-3); }
+.dm-dot-list-4 { background: var(--list-4); }
+.dm-dot-list-5 { background: var(--list-5); }
+.dm-dot-list-6 { background: var(--list-6); }
+.dm-count { display: flex; align-items: center; gap: var(--space-2); }
+.dm-newlist .dm-choice { border: 0; padding: 0; margin: 0 0 var(--space-4); display: flex; gap: var(--space-4); flex-wrap: wrap; }
+.dm-newlist legend { font-size: 0.875rem; color: var(--ink-muted); margin-bottom: var(--space-1); padding: 0; }
+.dm-list li { display: flex; align-items: center; gap: var(--space-3); }
+.dm-list li form:first-child { flex: 1; min-width: 0; }
+.dm-list li form:last-child:not(:first-child) { width: auto; }
+.dm-quiet-link { font: inherit; font-size: 0.875rem; color: var(--ink-muted); background: none; border: 0; padding: var(--space-1) var(--space-2); cursor: pointer; white-space: nowrap; }
+.dm-quiet-link:hover { color: var(--ink); }
+.dm-divider { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) 0; border-top: 1px solid var(--line); }

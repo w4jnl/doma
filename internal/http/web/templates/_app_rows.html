@@ -1,0 +1,38 @@
+{{define "approws"}}
+<div id="rows" hx-get="{{.Data.Base}}/rows" hx-trigger="every 10s [document.visibilityState === 'visible']" hx-swap="outerHTML">
+  {{$base := .Data.Base}}{{$csrf := .CSRF}}{{$tasks := .Data.View.List.IsTasks}}
+  {{if .Data.View.Entries}}
+  <ul class="dm-rows dm-list">
+    {{range .Data.View.Entries}}
+    <li class="{{if .Checked}}dm-done{{end}}">
+      <form method="post" action="{{$base}}/check/{{.ID}}" hx-post="{{$base}}/check/{{.ID}}" hx-target="#rows" hx-swap="outerHTML">
+        <input type="hidden" name="_csrf" value="{{$csrf}}">
+        <button class="dm-row-button" type="submit" aria-pressed="{{.Checked}}">
+          <svg class="dm-glyph" aria-hidden="true"><use href="#i-{{if .Checked}}done{{else}}open{{end}}"/></svg>
+          <span class="dm-grow">{{.ItemName}}{{if .Qty}} <span class="dm-meta">{{qty .Qty}} {{.Unit}}</span>{{end}}{{if .Note}} <span class="dm-meta">{{.Note}}</span>{{end}}</span>
+          {{if .Checked}}<span class="dm-meta">{{.CheckedBy}}</span>{{end}}
+        </button>
+      </form>
+      {{if not .Checked}}
+      <form method="post" action="{{$base}}/remove/{{.ID}}" hx-post="{{$base}}/remove/{{.ID}}" hx-target="#rows" hx-swap="outerHTML">
+        <input type="hidden" name="_csrf" value="{{$csrf}}">
+        <button class="dm-quiet-link" type="submit">Not needed</button>
+      </form>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{if .Data.View.AnyChecked}}
+  <div class="dm-divider">
+    <span class="dm-mono dm-meta">{{.Data.View.Checked}} {{if $tasks}}done{{else}}got{{end}}</span>
+    <form method="post" action="{{$base}}/clear" hx-post="{{$base}}/clear" hx-target="#rows" hx-swap="outerHTML" hx-confirm="Really clear?">
+      <input type="hidden" name="_csrf" value="{{$csrf}}">
+      <button class="dm-button dm-button-quiet" type="submit">Clear</button>
+    </form>
+  </div>
+  {{end}}
+  {{else}}
+  <p class="dm-muted">{{if $tasks}}Nothing to do. Type what needs doing.{{else}}Nothing on the list. Type what you need.{{end}}</p>
+  {{end}}
+</div>
+{{end}}

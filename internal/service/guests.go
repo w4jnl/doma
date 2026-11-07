@@ -168,6 +168,7 @@ type MissingItem struct {
 // GuestEntry is one row of the guest's list.
 type GuestEntry struct {
 	ID        string
+	ItemID    string
 	ItemName  string
 	Qty       *float64
 	Unit      string
@@ -247,43 +248,52 @@ func (s *Service) GuestView(ctx context.Context, sc domain.Scope) (*GuestView, e
 			}
 			return v.Missing[i].ItemName < v.Missing[j].ItemName
 		})
-		var open []fold.Entry
-		for _, e := range tables.Entries {
-			if e.ListID == sc.ListID && e.ClearedHLC == nil {
-				open = append(open, e)
-			}
-		}
-		sort.Slice(open, func(i, j int) bool {
-			ci, cj := open[i].CheckedHLC != nil, open[j].CheckedHLC != nil
-			if ci != cj {
-				return !ci
-			}
-			if ci && cj {
-				return open[j].CheckedHLC.Less(*open[i].CheckedHLC)
-			}
-			return open[i].Sort < open[j].Sort
-		})
-		for _, e := range open {
-			ge := GuestEntry{ID: e.ID, ItemName: nameOf(names, e.ItemID), Qty: e.Qty, Note: e.Note, Checked: e.CheckedHLC != nil}
-			if e.Unit != nil {
-				ge.Unit = *e.Unit
-			}
-			if e.CheckedBy != nil {
-				if _, ok := persons[*e.CheckedBy]; !ok {
-					if p, err := q.GetPerson(ctx, *e.CheckedBy); err == nil {
-						persons[*e.CheckedBy] = p.DisplayName
-					}
-				}
-				ge.CheckedBy = persons[*e.CheckedBy]
-			}
-			v.Entries = append(v.Entries, ge)
-		}
+		v.Entries = s.openEntries(ctx, q, tables, sc.ListID, names, persons)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &v, nil
+}
+
+// openEntries is a list's rows that are not cleared: the open ones in their
+// order, then the struck ones newest first, named from the catalog and the
+// persons, which it fills as it goes.
+func (s *Service) openEntries(ctx context.Context, q *db.Queries, tables fold.Tables, listID string, names, persons map[string]string) []GuestEntry {
+	var open []fold.Entry
+	for _, e := range tables.Entries {
+		if e.ListID == listID && e.ClearedHLC == nil {
+			open = append(open, e)
+		}
+	}
+	sort.Slice(open, func(i, j int) bool {
+		ci, cj := open[i].CheckedHLC != nil, open[j].CheckedHLC != nil
+		if ci != cj {
+			return !ci
+		}
+		if ci && cj {
+			return open[j].CheckedHLC.Less(*open[i].CheckedHLC)
+		}
+		return open[i].Sort < open[j].Sort
+	})
+	var out []GuestEntry
+	for _, e := range open {
+		ge := GuestEntry{ID: e.ID, ItemID: e.ItemID, ItemName: nameOf(names, e.ItemID), Qty: e.Qty, Note: e.Note, Checked: e.CheckedHLC != nil}
+		if e.Unit != nil {
+			ge.Unit = *e.Unit
+		}
+		if e.CheckedBy != nil {
+			if _, ok := persons[*e.CheckedBy]; !ok {
+				if p, err := q.GetPerson(ctx, *e.CheckedBy); err == nil {
+					persons[*e.CheckedBy] = p.DisplayName
+				}
+			}
+			ge.CheckedBy = persons[*e.CheckedBy]
+		}
+		out = append(out, ge)
+	}
+	return out
 }
 
 func rank(state string) int {
@@ -316,6 +326,12 @@ func (s *Service) GuestAdd(ctx context.Context, sc domain.Scope, credentialID, t
 	if !sc.IsGuest() {
 		return domain.ErrForbidden
 	}
+	return s.addLine(ctx, sc, credentialID, sc.ListID, text)
+}
+
+// addLine is the typed line of the guest page and the web client: the item
+// by normalised name or alias, else a new one, and the entry on the list.
+func (s *Service) addLine(ctx context.Context, sc domain.Scope, credentialID, listID, text string) error {
 	parsed := domain.ParseEntry(text)
 	if parsed.Name == "" || len(parsed.Name) > 200 {
 		return domain.Invalid("text", "type what to get")
@@ -351,7 +367,7 @@ func (s *Service) GuestAdd(ctx context.Context, sc domain.Scope, credentialID, t
 			itemID = domain.NewID()
 			evs = append(evs, s.guestEvent(sc, "item.named", map[string]any{"item_id": itemID, "name": parsed.Name}))
 		}
-		payload := map[string]any{"list_id": sc.ListID, "item_id": itemID, "note": parsed.Note}
+		payload := map[string]any{"list_id": listID, "item_id": itemID, "note": parsed.Note}
 		if parsed.Qty != nil {
 			payload["qty"] = *parsed.Qty
 			payload["unit"] = parsed.Unit

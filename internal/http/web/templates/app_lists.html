@@ -1,0 +1,54 @@
+{{define "content"}}
+<div class="dm-app">
+  <h1>Lists</h1>
+  {{if .Data.OfferPasskey}}
+  <div class="dm-notice dm-row-actions"><span class="dm-grow">Add a passkey to this browser and the next sign-in is a touch.</span><button class="dm-button dm-button-quiet" type="button" data-passkey="register">Add a passkey</button></div>
+  <p class="dm-error" id="passkey-error" hidden></p>
+  {{end}}
+  {{if .Data.Error}}<p class="dm-error">{{.Data.Error}}</p>{{end}}
+  {{$base := .Data.Base}}
+  {{$shared := 0}}{{$mine := 0}}
+  {{range .Data.Lists}}{{if .Personal}}{{$mine = 1}}{{else}}{{$shared = 1}}{{end}}{{end}}
+  <section>
+    <h2>Household</h2>
+    <ul class="dm-rows">
+      {{range .Data.Lists}}{{if not .Personal}}{{template "listrow" (dict "Base" $base "L" .)}}{{end}}{{end}}
+    </ul>
+  </section>
+  <section>
+    <h2>Just me</h2>
+    {{if $mine}}
+    <ul class="dm-rows">
+      {{range .Data.Lists}}{{if .Personal}}{{template "listrow" (dict "Base" $base "L" .)}}{{end}}{{end}}
+    </ul>
+    {{else}}
+    <p class="dm-muted">A list only you see. Make one below and choose Just me.</p>
+    {{end}}
+  </section>
+  <section class="dm-panel">
+    <h2>New list</h2>
+    <form method="post" action="{{$base}}/lists" class="dm-newlist">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      <label class="dm-field"><span>Name</span><input class="dm-input" name="name" required maxlength="200" autocomplete="off"></label>
+      <fieldset class="dm-choice"><legend>Who sees it</legend>
+        <label><input type="radio" name="who" value="household" checked> Household</label>
+        <label><input type="radio" name="who" value="me"> Just me</label>
+      </fieldset>
+      <fieldset class="dm-choice"><legend>What goes on it</legend>
+        <label><input type="radio" name="what" value="shopping" checked> Shopping</label>
+        <label><input type="radio" name="what" value="tasks"> Tasks</label>
+      </fieldset>
+      <button class="dm-button" type="submit">Create list</button>
+    </form>
+  </section>
+</div>
+{{end}}
+{{define "listrow"}}
+<li>
+  <a class="dm-row-link" href="{{.Base}}/l/{{.L.ID}}">
+    <span class="dm-dot dm-dot-{{.L.Colour}}" aria-hidden="true"></span>
+    <span class="dm-grow">{{.L.Name}}{{if .L.IsTasks}} <span class="dm-meta">tasks</span>{{end}}</span>
+    {{if .L.Open}}<span class="dm-meta dm-mono">{{.L.Open}}</span>{{end}}
+  </a>
+</li>
+{{end}}

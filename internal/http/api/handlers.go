@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -110,6 +111,22 @@ func (a *API) me(w http.ResponseWriter, r *http.Request, c *Caller) error {
 		out.Memberships = append(out.Memberships, membershipDTO{HouseholdID: m.HouseholdID, HouseholdName: m.HouseholdName, Role: string(m.Role)})
 	}
 	writeJSON(w, http.StatusOK, out)
+	return nil
+}
+
+// vouch: POST /api/v1/vouch, the phone naming who sits at a browser that
+// shows a web sign-in code; the body is {token}.
+func (a *API) vouch(w http.ResponseWriter, r *http.Request, c *Caller) error {
+	var in struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(c.Body, &in); err != nil || in.Token == "" {
+		return domain.Invalid("token", "give the code from the browser")
+	}
+	if err := a.svc.Vouch(in.Token, c.Credential.PersonID, c.Credential.ID); err != nil {
+		return err
+	}
+	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
 

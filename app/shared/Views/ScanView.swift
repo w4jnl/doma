@@ -16,6 +16,8 @@ struct ScanView: View {
     @State private var busy = false
     @State private var scanned: String?
     @State private var nameAsked = false
+    /// Set once a browser's code was accepted: the one line that says so.
+    @State private var vouched = false
     @FocusState private var focus: Field?
 
     enum Field { case link, name }
@@ -40,7 +42,12 @@ struct ScanView: View {
                     .padding(.horizontal, Tokens.space4)
                     .accessibilityLabel(Text("Camera"))
                 }
-                HelpLine(text: asSheet ? "Scan the invite the owner shows you." : "Scan your family's invite.")
+                if vouched {
+                    HelpLine(text: "The browser is signed in. Go back to it.")
+                        .accessibilityIdentifier("vouched")
+                } else {
+                    HelpLine(text: asSheet ? "Scan the invite the owner shows you, or the code a browser shows to sign in." : "Scan your family's invite.")
+                }
                 if pasting || !QRScanner.isAvailable {
                     VStack(spacing: Tokens.space3) {
                         TextField("Invite link or code", text: $link)
@@ -70,6 +77,8 @@ struct ScanView: View {
                         } label: {
                             if busy {
                                 ProgressView()
+                            } else if VouchLink(link) != nil {
+                                Text("Sign in the browser")
                             } else {
                                 Text("Join")
                             }
@@ -116,6 +125,23 @@ struct ScanView: View {
 
     private func accept(_ text: String) {
         guard !busy else { return }
+        if let v = VouchLink(text) {
+            busy = true
+            problem = nil
+            vouched = false
+            Task {
+                do {
+                    try await session.vouch(v)
+                    vouched = true
+                    link = ""
+                } catch {
+                    problem = error.localizedDescription
+                }
+                scanned = nil
+                busy = false
+            }
+            return
+        }
         // a first join, here or to another family's doma, asks the name once: the field, with the
         // code in it and the name used so far
         if session.needsName(for: text), !nameAsked {

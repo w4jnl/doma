@@ -1,0 +1,7 @@
+{{define "content"}}
+<div class="dm-app">
+  <h1>{{.Data.View.List.Name}}</h1>
+  <p class="dm-muted dm-count"><span class="dm-dot dm-dot-{{.Data.View.List.Colour}}" aria-hidden="true"></span>{{if .Data.View.List.IsTasks}}{{if .Data.View.Open}}{{.Data.View.Open}} to do{{else}}Nothing to do{{end}}{{else}}{{if .Data.View.Open}}{{.Data.View.Open}} to get{{else}}Nothing to get{{end}}{{end}}</p>
+  {{template "apppanel" .}}
+</div>
+{{end}}

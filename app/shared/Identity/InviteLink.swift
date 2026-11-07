@@ -46,3 +46,24 @@ struct InviteLink: Hashable, Sendable {
         t.count >= 16 && t.count <= 128 && t.unicodeScalars.allSatisfy { tokenCharacters.contains($0) }
     }
 }
+
+/// The code a browser shows to be signed in: "https://host/app/v/<token>", scanned or pasted on
+/// Scan. The phone, already a member of that doma, tells the server who sits at the browser.
+struct VouchLink: Hashable, Sendable {
+    var server: URL
+    var token: String
+
+    init?(_ text: String) {
+        let s = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: s), let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
+              let host = url.host, url.pathComponents.count == 4, url.pathComponents[1] == "app", url.pathComponents[2] == "v",
+              InviteLink.isToken(url.pathComponents[3]) else { return nil }
+        var c = URLComponents()
+        c.scheme = scheme
+        c.host = host
+        c.port = url.port
+        guard let server = c.url else { return nil }
+        self.server = server
+        self.token = url.pathComponents[3]
+    }
+}

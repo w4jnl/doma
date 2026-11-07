@@ -202,6 +202,22 @@ final class Session {
         }
     }
 
+    /// Signs a browser in: the code it shows names this device's doma, and the device, a member
+    /// there, tells the server who sits at it. A doma this device has not joined is refused.
+    func vouch(_ link: VouchLink) async throws {
+        guard let c = contexts.first(where: { $0.baseURL.host == link.server.host && $0.baseURL.port == link.server.port }), let client = client(for: c) else {
+            throw AcceptError.server(String(localized: "Join this doma first, then scan the browser's code."))
+        }
+        struct Body: Encodable { var token: String }
+        do {
+            let _: SyncClient.Empty = try await client.post("/api/v1/vouch", Body(token: link.token))
+        } catch let e as ClientError {
+            if case .problem(let p) = e, p.status == 404 { throw AcceptError.server(String(localized: "That code is gone. Reload the page in the browser and scan again.")) }
+            if case .problem(let p) = e { throw AcceptError.server(p.message) }
+            throw AcceptError.server(String(localized: "Could not reach the family's doma."))
+        }
+    }
+
     /// The doma an invite is for, when the device already belongs to it: the link's address, or
     /// the current household's doma for a bare code.
     func context(for link: InviteLink) -> ServerContext? {

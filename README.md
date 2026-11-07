@@ -32,6 +32,8 @@ the iPhone app from TestFlight. Linux on amd64 and arm64 for the server.
 4. Scan the QR with the doma app. The phone is in, as owner. Owners invite the rest of the
    family from the app's Family screen; the lists appear on each phone as it joins. A Mac joins
    the same way: `brew install --cask w4jnl/tap/doma`, then an invite from Settings, Add a device.
+   A browser, on a laptop or an Android phone, opens `/app`: it shows a code, the member scans
+   it with the app, and from then on a passkey signs that browser in.
 
 Put the server behind the reverse proxy you already run, terminating TLS. doma authenticates
 every route itself, and the invite and guest links must open from a phone on mobile data, so

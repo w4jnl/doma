@@ -47,6 +47,9 @@ func TestOpenPathsNeedNoBrowserSession(t *testing.T) {
 		{http.MethodGet, "/healthz"},
 		{http.MethodGet, "/readyz"},
 		{http.MethodGet, "/metrics"},
+		{http.MethodGet, "/app"},
+		{http.MethodGet, "/app/v/nope"},
+		{http.MethodGet, "/app/passkey/login/begin"},
 	}
 	for _, c := range open {
 		matched := false

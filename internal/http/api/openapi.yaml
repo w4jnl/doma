@@ -86,6 +86,12 @@ paths:
       summary: The person, their devices and their households with roles
       responses:
         "200": {description: me}
+  /api/v1/vouch:
+    post:
+      summary: The phone names the person at a browser that shows a web sign-in code; body {token}
+      responses:
+        "204": {description: vouched}
+        "404": {description: unknown, expired or used code}
   /api/v1/credentials/{id}:
     delete:
       summary: Revoke a device, one's own or that of a member of a household the caller owns
