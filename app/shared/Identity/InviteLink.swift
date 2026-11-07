@@ -48,13 +48,29 @@ struct InviteLink: Hashable, Sendable {
 }
 
 /// The code a browser shows to be signed in: "https://host/app/v/<token>", scanned or pasted on
-/// Scan. The phone, already a member of that doma, tells the server who sits at the browser.
+/// Scan, or "doma://vouch/<host>#<token>", the button on that page when a camera read the code
+/// instead. The phone, already a member of that doma, tells the server who sits at the browser.
 struct VouchLink: Hashable, Sendable {
     var server: URL
     var token: String
 
     init?(_ text: String) {
         let s = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URL(string: s), url.scheme?.lowercased() == "doma", url.host?.lowercased() == "vouch",
+           url.pathComponents.count == 2, let t = url.fragment, InviteLink.isToken(t) {
+            // the host rides in the path, with its port when it has one; the scheme is the
+            // server's own, matched by host and port alone
+            var c = URLComponents()
+            c.scheme = "https"
+            let hp = url.pathComponents[1].split(separator: ":", maxSplits: 1)
+            guard let h = hp.first, !h.isEmpty else { return nil }
+            c.host = String(h)
+            if hp.count == 2 { c.port = Int(hp[1]) }
+            guard let server = c.url else { return nil }
+            self.server = server
+            self.token = t
+            return
+        }
         guard let url = URL(string: s), let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
               let host = url.host, url.pathComponents.count == 4, url.pathComponents[1] == "app", url.pathComponents[2] == "v",
               InviteLink.isToken(url.pathComponents[3]) else { return nil }

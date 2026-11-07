@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -174,11 +175,29 @@ func (h *Web) appWait(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// vouchData is the vouch page: the link as the code carries it and the app
+// link that hands it to doma.
+type vouchData struct {
+	Link string
+	// AppLink is doma://vouch/<host>#<code>; html/template would otherwise
+	// refuse the scheme. The host is base_url's and the code is base64url and
+	// ours; the code rides in the fragment, which never reaches a log.
+	AppLink template.URL
+}
+
 // appVouchPage is where a phone's camera lands when it reads the code with
-// something other than doma: say where to scan it instead.
+// something other than doma: a button that opens doma on it, and the words
+// for scanning it there instead.
 func (h *Web) appVouchPage(w http.ResponseWriter, r *http.Request) {
-	link := h.svc.BaseURL() + "/app/v/" + r.PathValue("token")
-	h.render(w, http.StatusOK, "app_vouch", page{Title: "Sign in", Bare: true, Data: map[string]string{"Link": link}})
+	token := r.PathValue("token")
+	host := ""
+	if u, err := url.Parse(h.svc.BaseURL()); err == nil {
+		host = u.Host
+	}
+	h.render(w, http.StatusOK, "app_vouch", page{Title: "Sign in", Bare: true, Data: vouchData{
+		Link:    h.svc.BaseURL() + "/app/v/" + token,
+		AppLink: template.URL("doma://vouch/" + host + "#" + token), //nolint:gosec // G203: see vouchData
+	}})
 }
 
 func (h *Web) appSignOut(w http.ResponseWriter, r *http.Request, _ *auth.Session) {

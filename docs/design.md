@@ -428,7 +428,7 @@ Server-rendered htmx pages on the same service layer, for a member at a laptop o
 | Route | Content |
 | --- | --- |
 | `/app` | signed in: the household last in front, else the first; not signed in: the sign-in page, a code to scan with the app and *Use a passkey* |
-| `/app/v/{code}` | what the code links to, for a camera that read it instead of doma: open the app's Scan and scan again, or paste the link there |
+| `/app/v/{code}` | what the code links to, for a camera that read it instead of doma: *Open in doma* (`doma://vouch/<host>#<code>`, which opens Scan on it), or scan again in the app, or paste the link there |
 | `/app/h/{household}/lists` | the household's lists and the person's own, with their counts; a new list, shared or *Just me*, shopping or tasks; a switcher in the top bar when the person is in more than one household |
 | `/app/h/{household}/l/{list}` | the list: add, strike, *Not needed*, Clear, in the family's words; the rows poll every 10 s like the guest view |
 | `/app/h/{household}/homes`, `…/home/{home}` | one row per home with its out, low and unknown counts, and a new home; the home's staples with Have, Low and Out on the row, a staple typed into a bar, Remove, the other flagged items, the spots with their newest picture, the trips through it; pictures are taken with the phone |

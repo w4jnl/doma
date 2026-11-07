@@ -9,6 +9,8 @@ struct ScanView: View {
     @Environment(Session.self) private var session
     @Environment(\.dismiss) private var dismiss
     var asSheet = false
+    /// A link the system opened in doma, from the browser's Almost page: taken as if scanned.
+    var opened: String?
     @State private var pasting = false
     @State private var link = ""
     @State private var name = ""
@@ -108,6 +110,11 @@ struct ScanView: View {
             if !QRScanner.isAvailable { focus = .link }
         }
         .task {
+            if let opened, scanned == nil {
+                scanned = opened
+                accept(opened)
+                return
+            }
             // a UI test's QR, read as the camera would read it
             if let png = UITestHooks.qrPNG, scanned == nil, let code = UITestHooks.decodeQR(png: png) {
                 scanned = code

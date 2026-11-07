@@ -12,7 +12,8 @@ updates this file first. Dates are the tag dates.
   otherwise. The model is an OpenAI-compatible endpoint, in your own network or not, or Claude
   with `vision.provider = "anthropic"` and an API key.
 - **The web client.** The family's lists in a browser at `/app`: the first sign-in by scanning
-  the browser's code with the app, then a passkey. Lists and a list with add, strike, Not needed
+  the browser's code with the app, or with the camera, whose page hands the code to doma with
+  one tap, then a passkey. Lists and a list with add, strike, Not needed
   and Clear; homes with their staples and flags; trips planned, derived and arrived; Family with
   invites, guest links and the person's devices.
 - **Tasks lists.** A new list can be for tasks instead of shopping: the same typing, striking
