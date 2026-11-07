@@ -4,6 +4,13 @@ User-facing changes per release, newest first. `scripts/release.sh` refuses to t
 that has no section here and uses the section as the GitHub release notes, so every release
 updates this file first. Dates are the tag dates.
 
+## 0.6.1 (2026-11-07)
+
+- **Fixed: the admin pages behind the proxy on a server that never had a password admin.** With
+  `admin.auth = "proxy"` from the first day, the root page sent the admin to Set up doma and the
+  Server page failed, both because the password admin's row was missing. The root goes to the
+  admin pages, Set up is gone, and the Server page renders without the row.
+
 ## 0.6.0 (2026-11-07)
 
 - **From the pictures.** Behind `vision.enabled`, a vision model the server is pointed at looks

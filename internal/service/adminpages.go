@@ -161,8 +161,12 @@ func (s *Service) SetQuotas(ctx context.Context, id string, devices, photoBytes 
 // TOTPEnabled reports whether the admin has a second factor.
 func (s *Service) TOTPEnabled(ctx context.Context) (bool, error) {
 	a, err := s.db.Read().GetAdmin(ctx)
+	if errors.Is(notFound(err), domain.ErrNotFound) {
+		// no password admin, as under proxy sign-in: no second step either
+		return false, nil
+	}
 	if err != nil {
-		return false, notFound(err)
+		return false, err
 	}
 	return len(a.TotpSecret) > 0, nil
 }

@@ -409,7 +409,7 @@ The server renders three page sets with `html/template` and htmx on the same ser
 
 No household name beyond the list's title, no other homes, no members, no photos. The guest's events carry the guest person's id, so the family sees *added by guest (cleaner)* with the label the owner gave the link.
 
-**Admin pages** (`/admin`; the admin signs in with the password, TOTP optional, or through the proxy in front when `admin.auth = "proxy"`)
+**Admin pages** (`/admin`; the admin signs in with the password, TOTP optional, or through the proxy in front when `admin.auth = "proxy"`, in which case no password admin need exist: `/` goes to the admin pages and `/setup` is gone)
 
 | Page | Content |
 | --- | --- |
