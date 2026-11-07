@@ -180,7 +180,7 @@ func (m *MemStore) EntryEvents(listID string, itemIDs []string, isDefault bool) 
 			continue
 		}
 		switch ev.Kind {
-		case "entry.added", "entry.edited", "entry.checked", "entry.unchecked", "entry.moved":
+		case "entry.added", "entry.edited", "entry.checked", "entry.unchecked", "entry.moved", "entry.removed":
 			if p.ListID == listID && match(p.ItemID) {
 				out = append(out, ev)
 			}

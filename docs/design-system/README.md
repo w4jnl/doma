@@ -249,7 +249,7 @@ row, not a new screen.
   field for the list. The add row is the last row of the open items, the plus in the symbol
   column and the field after it; matches drop down under it, best first; the field is live only
   on an empty list, and typing with the list in front starts an entry. A right-click on a row
-  offers *Got it* or *Put back*, then *Edit*. Settings is the Settings window (`⌘,`); the Family
+  offers *Got it* or *Put back*, then *Edit* and *Not needed*. Settings is the Settings window (`⌘,`); the Family
   toolbar has no gear on the Mac, and an invite or a guest link opens as a popover from its
   button. Tooltips say what a symbol does. Mono sizes follow the platform's text styles: the
   Mac's body is 13pt, subheadline 11, footnote 10.

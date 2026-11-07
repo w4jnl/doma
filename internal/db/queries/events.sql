@@ -35,7 +35,7 @@ ORDER BY hlc;
 SELECT * FROM events
 WHERE household_id = @household_id
   AND (
-    (kind IN ('entry.added', 'entry.edited', 'entry.checked', 'entry.unchecked', 'entry.moved')
+    (kind IN ('entry.added', 'entry.edited', 'entry.checked', 'entry.unchecked', 'entry.moved', 'entry.removed')
       AND json_extract(payload, '$.list_id') = @list_id
       AND (CAST(@any_item AS INTEGER) = 1
            OR json_extract(payload, '$.item_id') IN (SELECT value FROM json_each(CAST(@item_ids AS TEXT)))))

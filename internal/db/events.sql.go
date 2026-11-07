@@ -33,7 +33,7 @@ const entryEventsForKey = `-- name: EntryEventsForKey :many
 SELECT household_id, seq, id, person_id, credential_id, hlc, kind, payload, received_at FROM events
 WHERE household_id = ?1
   AND (
-    (kind IN ('entry.added', 'entry.edited', 'entry.checked', 'entry.unchecked', 'entry.moved')
+    (kind IN ('entry.added', 'entry.edited', 'entry.checked', 'entry.unchecked', 'entry.moved', 'entry.removed')
       AND json_extract(payload, '$.list_id') = ?2
       AND (CAST(?3 AS INTEGER) = 1
            OR json_extract(payload, '$.item_id') IN (SELECT value FROM json_each(CAST(?4 AS TEXT)))))

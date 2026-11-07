@@ -224,7 +224,7 @@ func Generate(rnd *rand.Rand, n int) []fold.Event {
 		case 9, 10:
 			add(dev, "entry.checked", map[string]any{"list_id": pick(listIDs), "item_id": pick(itemIDs)})
 		case 11:
-			add(dev, "entry.unchecked", map[string]any{"list_id": pick(listIDs), "item_id": pick(itemIDs)})
+			add(dev, pick([]string{"entry.unchecked", "entry.removed"}), map[string]any{"list_id": pick(listIDs), "item_id": pick(itemIDs)})
 		case 12, 13:
 			before := domain.HLC{Wall: wall - int64(rnd.IntN(80)), Device: string(rune('a' + dev))}
 			add(dev, "entry.cleared", map[string]any{"list_id": pick(listIDs), "before_hlc": before.String()})

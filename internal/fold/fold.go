@@ -221,7 +221,7 @@ type Store interface {
 var Kinds = []string{
 	"item.named", "item.renamed", "item.merged",
 	"list.created", "list.renamed", "list.archived",
-	"entry.added", "entry.edited", "entry.checked", "entry.unchecked", "entry.cleared", "entry.moved",
+	"entry.added", "entry.edited", "entry.checked", "entry.unchecked", "entry.cleared", "entry.moved", "entry.removed",
 	"flag.set",
 	"staple.added", "staple.removed",
 	"home.created", "home.renamed", "home.archived",
@@ -243,7 +243,7 @@ func Apply(s Store, e Event) error {
 		return replayCatalog(s)
 	case "list.created", "list.renamed", "list.archived":
 		return applyList(s, e)
-	case "entry.added", "entry.edited", "entry.checked", "entry.unchecked", "entry.moved":
+	case "entry.added", "entry.edited", "entry.checked", "entry.unchecked", "entry.moved", "entry.removed":
 		return applyEntryEvent(s, e)
 	case "entry.cleared":
 		return applyEntryCleared(s, e)

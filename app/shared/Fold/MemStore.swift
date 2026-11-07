@@ -123,7 +123,7 @@ final class MemStore: FoldStore {
         for ev in log {
             guard let p = try? ev.decode(ItemRefs.self) else { continue }
             switch ev.kind {
-            case Kind.entryAdded, Kind.entryEdited, Kind.entryChecked, Kind.entryUnchecked, Kind.entryMoved:
+            case Kind.entryAdded, Kind.entryEdited, Kind.entryChecked, Kind.entryUnchecked, Kind.entryMoved, Kind.entryRemoved:
                 if p.listID == listID, match(p.itemID) { out.append(ev) }
             case Kind.entryCleared:
                 if p.listID == listID { out.append(ev) }

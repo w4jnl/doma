@@ -839,6 +839,8 @@ struct ListView: View {
             .alignmentGuide(.listRowSeparatorLeading) { d in d[.leading] + Tokens.space5 + Tokens.space3 }
             .animation(.easeOut(duration: Tokens.motionBase), value: flashed.contains(row.id))
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button("Not needed") { try? ListActions.remove(row, on: listID, in: session) }
+                    .tint(Tokens.inkMuted)
                 Button("Edit") { startEdit(row) }
                     .tint(Tokens.accent)
             }
@@ -861,6 +863,7 @@ struct ListView: View {
             .contextMenu {
                 Button(checked ? "Put back" : "Got it") { toggle(row) }
                 Button("Edit") { startEdit(row) }
+                Button("Not needed") { try? ListActions.remove(row, on: listID, in: session) }
                 if let homes = homes?.value, !homes.isEmpty {
                     Menu("For a home") {
                         ForEach(homes) { h in

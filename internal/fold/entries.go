@@ -123,8 +123,9 @@ type tripPayload struct {
 // replayEntries derives the rows of one (list, item) key from the key's
 // events in stamp order. An era opens with an add (or an out flag or a
 // trip on the default list), may be checked and unchecked, and closes when
-// a clear sees it checked; a cleared era is a purchase record and the next
-// add opens a new one.
+// a clear sees it checked or a remove takes it off the list; a cleared era is
+// a purchase record, a removed one leaves no row, and the next add opens a
+// new one either way.
 func replayEntries(s Store, listID, itemID string) error {
 	l, err := s.List(listID)
 	if err != nil {
@@ -218,6 +219,13 @@ func replayEntries(s Store, listID, itemID string) error {
 			}
 			if cur.CheckedHLC.Less(before) {
 				cur.ClearedHLC = ptr(ev.HLC)
+				cur = nil
+			}
+		case "entry.removed":
+			// not needed after all: the era goes without a record; a remove older
+			// than the add that opened the era has nothing to take
+			if cur != nil {
+				eras = eras[:len(eras)-1]
 				cur = nil
 			}
 		case "flag.set":

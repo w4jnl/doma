@@ -68,9 +68,10 @@ enum Entries {
 
     /// Derives the rows of one (list, item) key from the key's events in stamp order. An era
     /// opens with an add (or an out flag or a trip on the default list), may be checked and
-    /// unchecked, and closes when a clear sees it checked; a cleared era is a purchase record
-    /// and the next add opens a new one. Rows whose opening event the log does not hold are a
-    /// base the replay starts from.
+    /// unchecked, and closes when a clear sees it checked or a remove takes it off the list; a
+    /// cleared era is a purchase record, a removed one leaves no row, and the next add opens a
+    /// new one either way. Rows whose opening event the log does not hold are a base the replay
+    /// starts from.
     static func replay(_ s: some FoldStore, listID: String, itemID: String) throws {
         let l = try s.list(listID)
         let isDefault = l?.isDefault ?? false
@@ -157,6 +158,13 @@ enum Entries {
                 guard let b = p.beforeHLC, let before = HLC(parsing: b) else { continue }
                 if checked < before {
                     eras[i].clearedHLC = ev.hlc
+                    cur = nil
+                }
+            case Kind.entryRemoved:
+                // not needed after all: the era goes without a record; a remove older than the
+                // add that opened the era has nothing to take
+                if cur != nil {
+                    eras.removeLast()
                     cur = nil
                 }
             case Kind.flagSet:

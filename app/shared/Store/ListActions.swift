@@ -57,6 +57,11 @@ enum ListActions {
         try session.record(row.isChecked ? Kind.entryUnchecked : Kind.entryChecked, EntryPayload(listID: listID, itemID: row.itemID))
     }
 
+    /// Takes a row off the list as not needed: no purchase record, nothing counted.
+    static func remove(_ row: EntryRow, on listID: String, in session: Session) throws {
+        try session.record(Kind.entryRemoved, EntryPayload(listID: listID, itemID: row.itemID))
+    }
+
     /// Clears the struck rows: everything checked before now.
     static func clear(_ listID: String, in session: Session) throws {
         guard let clock = session.clock else { return }

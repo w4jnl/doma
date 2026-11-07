@@ -97,7 +97,7 @@ struct SQLFoldStore: FoldStore {
     // MARK: entries
 
     /// The entry kinds a key's replay reads, spelled out so the (kind, list_id) index serves.
-    static let entryKinds = "('entry.added','entry.edited','entry.checked','entry.unchecked','entry.moved')"
+    static let entryKinds = "('entry.added','entry.edited','entry.checked','entry.unchecked','entry.moved','entry.removed')"
 
     func checkedItemIDs(listID: String, before: HLC) throws -> [String] {
         try String.fetchAll(db, sql: "SELECT DISTINCT item_id FROM events WHERE server_id = ? AND household_id = ? AND kind = 'entry.checked' AND list_id = ? AND hlc < ? AND item_id IS NOT NULL",

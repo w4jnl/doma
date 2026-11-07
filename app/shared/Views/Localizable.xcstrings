@@ -1889,6 +1889,22 @@
         }
       }
     },
+    "Not needed": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niet nodig"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Netreba"
+          }
+        }
+      }
+    },
     "Nothing bought": {
       "localizations": {
         "nl": {
