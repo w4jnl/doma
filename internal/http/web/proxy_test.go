@@ -18,8 +18,16 @@ import (
 )
 
 // newProxyWeb is newWeb with admin.auth = proxy: peers in 192.0.2.0/24
-// (httptest's default) with the secret "s3" are believed.
+// (httptest's default) with the secret "s3" are believed. The password admin
+// exists as well, as on a server that switched to the proxy later.
 func newProxyWeb(t *testing.T, logoutURL string) http.Handler {
+	t.Helper()
+	return newProxyWebWith(t, logoutURL, true)
+}
+
+// newProxyWebWith is newProxyWeb with or without the password admin; a
+// server set up behind the proxy from the first day never made one.
+func newProxyWebWith(t *testing.T, logoutURL string, passwordAdmin bool) http.Handler {
 	t.Helper()
 	auth.FastParamsForTests()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -31,10 +39,34 @@ func newProxyWeb(t *testing.T, logoutURL string) http.Handler {
 	h.SetProxyAuth(auth.NewProxy([]string{"192.0.2.0/24"}, "s3", logoutURL))
 	mux := http.NewServeMux()
 	h.Mount(mux)
+	if !passwordAdmin {
+		return mux
+	}
 	if err := svc.Setup(context.Background(), "j", "long enough password"); err != nil {
 		t.Fatal(err)
 	}
 	return mux
+}
+
+// A server behind the proxy from the first day has no password admin: the
+// root goes to the admin pages, not to setup, setup is gone, and the Server
+// page, which asks the admin row about the second step, renders.
+func TestProxyNeedsNoPasswordAdmin(t *testing.T) {
+	mux := newProxyWebWith(t, "", false)
+	rec := serve(mux, vouched(http.MethodGet, "/", "jaro"))
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/admin" {
+		t.Errorf("GET / without a password admin: %d %s, want 303 /admin", rec.Code, rec.Header().Get("Location"))
+	}
+	if rec := serve(mux, vouched(http.MethodGet, "/setup", "jaro")); rec.Code != http.StatusNotFound {
+		t.Errorf("GET /setup under proxy sign-in: %d, want 404", rec.Code)
+	}
+	if rec := post(mux, "/setup", url.Values{"login": {"j"}, "password": {"long enough password"}, "password2": {"long enough password"}}); rec.Code != http.StatusNotFound {
+		t.Errorf("POST /setup under proxy sign-in: %d, want 404", rec.Code)
+	}
+	rec = serve(mux, vouched(http.MethodGet, "/admin/server", "jaro"))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "The proxy in front signs the admin in") {
+		t.Errorf("GET /admin/server without a password admin: %d", rec.Code)
+	}
 }
 
 // vouched is a request as the proxy sends it: from a trusted peer, with the

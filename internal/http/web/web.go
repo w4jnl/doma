@@ -287,8 +287,14 @@ func (h *Web) render(w http.ResponseWriter, status int, name string, p page) {
 	_, _ = w.Write(body)
 }
 
-// root sends a browser to setup, to the admin pages or to the login.
+// root sends a browser to setup, to the admin pages or to the login. Under
+// proxy sign-in there is nothing to set up: the proxy is the login, and a
+// server that never had a password admin is as set up as it gets.
 func (h *Web) root(w http.ResponseWriter, r *http.Request) {
+	if h.proxy != nil {
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
 	ok, err := h.svc.AdminExists(r.Context())
 	if err != nil {
 		h.fail(w, r, err)
@@ -311,6 +317,10 @@ func (h *Web) fail(w http.ResponseWriter, r *http.Request, err error) {
 type setupData struct{ Login string }
 
 func (h *Web) setupForm(w http.ResponseWriter, r *http.Request) {
+	if h.proxy != nil {
+		http.NotFound(w, r)
+		return
+	}
 	ok, err := h.svc.AdminExists(r.Context())
 	if err != nil {
 		h.fail(w, r, err)
@@ -324,6 +334,10 @@ func (h *Web) setupForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Web) setup(w http.ResponseWriter, r *http.Request) {
+	if h.proxy != nil {
+		http.NotFound(w, r)
+		return
+	}
 	ok, err := h.svc.AdminExists(r.Context())
 	if err != nil {
 		h.fail(w, r, err)
