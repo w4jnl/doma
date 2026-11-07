@@ -1537,6 +1537,22 @@
         }
       }
     },
+    "Join this doma first, then scan the browser's code.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word eerst lid van deze doma, scan dan de code van de browser."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najprv sa pridajte k tejto dome, potom naskenujte kód z prehliadača."
+          }
+        }
+      }
+    },
     "Just me": {
       "localizations": {
         "nl": {
@@ -2385,6 +2401,22 @@
         }
       }
     },
+    "Scan the invite the owner shows you, or the code a browser shows to sign in.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan de uitnodiging die de eigenaar laat zien, of de code waarmee een browser zich aanmeldt."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naskenujte pozvánku od vlastníka alebo kód, ktorým sa prihlasuje prehliadač."
+          }
+        }
+      }
+    },
     "Scan the invite the owner shows you.": {
       "localizations": {
         "nl": {
@@ -2525,6 +2557,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ukáž kód svojmu Macu alebo novému telefónu; pripojí sa ako ty."
+          }
+        }
+      }
+    },
+    "Sign in the browser": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browser aanmelden"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prihlásiť prehliadač"
           }
         }
       }
@@ -2833,6 +2881,22 @@
         }
       }
     },
+    "That code is gone. Reload the page in the browser and scan again.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die code is weg. Laad de pagina in de browser opnieuw en scan nog eens."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten kód už neplatí. Obnovte stránku v prehliadači a naskenujte znova."
+          }
+        }
+      }
+    },
     "That is not an invite. Ask for the link or the code again.": {
       "localizations": {
         "nl": {
@@ -2861,6 +2925,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rečový model pre %@ neprijíma zvuk z tohto zariadenia"
+          }
+        }
+      }
+    },
+    "The browser is signed in. Go back to it.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De browser is aangemeld. Ga ernaar terug."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prehliadač je prihlásený. Vráťte sa doň."
           }
         }
       }

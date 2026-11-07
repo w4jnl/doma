@@ -71,6 +71,10 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   (`Tests/HomeLogicTests.swift`) and UI tests (a flag, a picture, a trip). Trips are planned and
   shared: `trip.planned` and `trip.cancelled` in the fold (last-writer-wins plan, earliest cancel),
   `trips` with `list_id`, `updated_hlc`, nullable `arrived_at` and `cancelled_at`.
+  Phase 3: History and Not needed in the apps, tasks lists (`lists.kind`), and the member web
+  client under `internal/http/web/app.go` and `app2.go` (sign-in by the phone's vouch or a passkey;
+  Lists, List, Homes, Home, Trip, Family) over `internal/service/web.go` and `webhome.go`, with
+  the vouch route on the API and Scan reading a browser's code.
   Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;
@@ -96,7 +100,7 @@ hybrid logical clock, never device wall time; ids are ULIDs; the materialised ta
 the fold can rebuild from the log, and a test proves it.
 
 ## House conventions
-- Go 1.23+, cgo-free, `internal/` packages, stdlib first. `net/http` ServeMux with method
+- Go 1.23+, cgo-free, `internal/` packages, stdlib first; go-webauthn is the one authentication library, for passkeys. `net/http` ServeMux with method
   patterns; middleware as `func(http.Handler) http.Handler`. One subcommand, `serve`; no CLI for
   anyone else, the admin works in the browser.
 - SQLite through `modernc.org/sqlite` in WAL mode with one writer; every query through `sqlc`

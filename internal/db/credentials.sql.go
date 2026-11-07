@@ -264,3 +264,17 @@ func (q *Queries) TouchCredential(ctx context.Context, arg TouchCredentialParams
 	_, err := q.db.ExecContext(ctx, touchCredential, arg.LastUsedAt, arg.ID)
 	return err
 }
+
+const updateCredentialPublicKey = `-- name: UpdateCredentialPublicKey :exec
+UPDATE credentials SET public_key = ? WHERE id = ?
+`
+
+type UpdateCredentialPublicKeyParams struct {
+	PublicKey *string
+	ID        string
+}
+
+func (q *Queries) UpdateCredentialPublicKey(ctx context.Context, arg UpdateCredentialPublicKeyParams) error {
+	_, err := q.db.ExecContext(ctx, updateCredentialPublicKey, arg.PublicKey, arg.ID)
+	return err
+}

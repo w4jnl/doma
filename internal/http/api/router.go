@@ -114,6 +114,7 @@ func (a *API) Mount(mux *http.ServeMux) {
 		return err
 	})
 	a.handle(mux, "GET "+Prefix+"/me", modeDevice, a.me)
+	a.handle(mux, "POST "+Prefix+"/vouch", modeDevice, a.vouch)
 	a.handle(mux, "DELETE "+Prefix+"/credentials/{id}", modeDevice, a.revokeCredential)
 	a.handle(mux, "POST "+Prefix+"/devices/{credential}/apns", modeDevice, a.registerAPNS)
 	a.handle(mux, "PUT "+Prefix+"/devices/{credential}/notify", modeDevice, a.setNotify)

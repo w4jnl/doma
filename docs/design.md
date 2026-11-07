@@ -23,7 +23,7 @@ This document specifies a family household app — shared and personal shopping 
 - Stock counts, barcodes, expiry dates, recipes, meal plans. Quantities are kept on purchases (see Shopping lists), never tracked as stock levels.
 - Overview and report screens over the purchase history: the data is kept in v1, the screens come in phase 3.
 - Tasks and chores (a later list kind, one `kind` column on `lists`; built in phase 3).
-- A full web client for members, multiple servers in one app install, passkeys: designed for, not built.
+- A full web client for members, multiple servers in one app install, passkeys: designed for, built in phase 3.
 - Photo recognition by a vision model: a later server job on the photos table.
 - Android native app; Android members use the web client when it exists, guests use the guest view now.
 
@@ -351,7 +351,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 
 | Screen | Content | Writes |
 | --- | --- | --- |
-| Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join | registers the device, accepts the invite |
+| Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join; a browser's sign-in code, scanned or pasted, signs that browser in | registers the device, accepts the invite |
 | Lists | opens into the last-used list; the Lists button or a second tab tap leads to the overview: household lists, then personal, colour dot, name, the checklist symbol on a tasks list, how many to get or to do; `+` to create, shopping or tasks | `list.created` |
 | History | under the Lists overview, a row at its foot with this month's count: the month stepped back and forth, the month's purchases per item with the times and the totals of `qty` by `unit`, per home, who shopped; reads the entries table | none |
 | List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it, and the mic at its end; swipe left for Not needed and Edit, long-press to drag | `item.named`, `entry.*` |
@@ -418,9 +418,22 @@ No household name beyond the list's title, no other homes, no members, no photos
 
 Admin pages never read family content: no list entries, no item names, no photos. The operator sees counts and metadata only.
 
-**Later web client for members**
+**Web client for members** (`/app`)
 
-Designed, not built: `/app` as server-rendered htmx pages for Lists, List, Homes, Home, Trip and Family, signed in with a passkey (`credentials.kind = passkey`). First sign-in is *scan this QR with your phone*, which lets the app vouch for the browser and register the passkey. No offline support; the sync endpoint stays the apps' path. This needs the `credentials` table and the service layer as designed here and nothing else in the schema.
+Server-rendered htmx pages on the same service layer, for a member at a laptop or on a phone without the app. No offline support; the sync endpoint stays the apps' path. It needed the `credentials` table and the service layer as designed and nothing else in the schema.
+
+| Route | Content |
+| --- | --- |
+| `/app` | signed in: the household last in front, else the first; not signed in: the sign-in page, a code to scan with the app and *Use a passkey* |
+| `/app/v/{code}` | what the code links to, for a camera that read it instead of doma: open the app's Scan and scan again, or paste the link there |
+| `/app/h/{household}/lists` | the household's lists and the person's own, with their counts; a new list, shared or *Just me*, shopping or tasks; a switcher in the top bar when the person is in more than one household |
+| `/app/h/{household}/l/{list}` | the list: add, strike, *Not needed*, Clear, in the family's words; the rows poll every 10 s like the guest view |
+| `/app/h/{household}/homes`, `…/home/{home}` | one row per home with its out, low and unknown counts, and a new home; the home's staples with Have, Low and Out on the row, a staple typed into a bar, Remove, the other flagged items, the spots with their newest picture, the trips through it; pictures are taken with the phone |
+| `/app/h/{household}/trips`, `…/trip/{trip}` | upcoming trips, Plan a trip (from, to, day, list), past trips; a trip's Bring, Buy with *Add to list*, Check on arrival, *Arrived* and *Cancel the trip*, derived as on the phone |
+| `/app/h/{household}/family` | the household's members with role and last seen, Remove for owners; Invite with its QR and link shown once; guest links made and revoked; the person's devices and passkeys with Revoke |
+| `/app/passkey/…` | the two WebAuthn ceremonies as JSON, driven by `static/passkey.js`, our own file under the page's CSP |
+
+**Signing in.** The first time, the browser shows a code; the member opens Scan on their phone (Family, *Join another household*, or Paste a link) and the app, signed with its device key, tells the server who sits at the browser (`POST /api/v1/vouch`). The code lives five minutes, once. The browser's session then belongs to the phone's credential, and the lists page offers *Add a passkey*: a discoverable WebAuthn credential, stored in `credentials` as kind `passkey` with the record as its public key and the hash of its id for the lookup, labelled after the browser, revocable from Settings like a phone. From then on *Use a passkey* signs the browser in with a touch, and the session is the passkey's. Sessions are in memory, a month sliding; a restart signs browsers out. The relying party is the host of `server.base_url`, so the family opens the address the server was told.
 
 ## HTTP API
 
@@ -432,6 +445,7 @@ Three surfaces on one router: the sync endpoint for the apps, a REST API for eve
 | --- | --- | --- |
 | app | device key signature (headers `Doma-Credential`, `Doma-Timestamp`, `Doma-Signature` over method, path, timestamp, body hash) | every household the credential's person is a member of; a request names the household in the path or body |
 | guest | token in `/g/{token}` then a cookie | one home and one list |
+| member in a browser | session cookie after a passkey, or after the phone vouched for the browser | every household the person is a member of; the household is in the path |
 | admin | session cookie after password (+ TOTP) | instance pages only |
 
 **Endpoints**
@@ -444,6 +458,7 @@ Three surfaces on one router: the sync endpoint for the apps, a REST API for eve
 | `GET /photos/v1/{household}/{photo_id}[/thumb]` | signed, cacheable 1 h |
 | `POST /i/{token}` | accept an invite: body `{public_key, platform, label, display_name}`; returns `{server, person_id, credential_id, display_name, household, role}`; for a device invite the person's name wins over the typed one; 413 when the household's `quota_devices` has no seat for the devices coming in (a rejoin takes no seat); `GET /i/{token}` renders the App Store page with the deep link |
 | `GET /api/v1/me` | person, credentials, memberships with roles |
+| `POST /api/v1/vouch` | the phone names the person at a browser that shows a web sign-in code; body `{token}`; 404 for a code unknown, expired or used |
 | `GET` and `POST /api/v1/h/{household}/invites` · `DELETE /api/v1/h/{household}/invites/{id}` | owners; `POST` with `{device: true}` is any member's, for a device of their own, valid a day, not listed among the household's |
 | `GET` and `POST /api/v1/h/{household}/guests` · `DELETE …/guests/{id}` | owners; body `{home_id, list_id, label, days}` |
 | `GET /api/v1/h/{household}/members` · `DELETE …/members/{person}` · `PUT …/members/{person}/role` | owners; the last owner cannot be removed or demoted |
@@ -470,6 +485,7 @@ The attack surface is small and named: invite and guest links, the sync signatur
 - **Guests.** A guest scope is `(household, home, list)`; the sync filter and every query add those predicates; a guest cannot call `/sync/v1` at all, only the web routes.
 - **Photos.** Decoded and re-encoded server-side (JPEG only) to strip metadata and defuse malformed files; served with `Content-Type: image/jpeg`, `X-Content-Type-Options: nosniff`, from a signed URL valid 1 h. Quota is enforced before the body is read (`Content-Length`) and again after.
 - **Admin.** argon2id (`t=2, m=64MB, p=1`), session cookie `HttpOnly, Secure, SameSite=Lax`, CSRF double-submit on every form, 5 failed logins per minute per IP, optional TOTP in v1 since it is one screen. Either that or the proxy's sign-in, never both: with `admin.auth = "proxy"` the reverse proxy in front (Authelia) signs the admin in and names them in `Remote-User`, which the server believes only from a peer in `admin.proxy_cidrs` that also sends `admin.proxy_secret` in `X-Auth-Proxy-Secret`, on every request; the password form is then not served. A proxy sign-in may stand in front of the admin pages only, never the family's links or the apps' paths.
+- **Passkeys and the web client.** WebAuthn through go-webauthn, the server's one authentication library; discoverable credentials, user verification preferred, no attestation asked; the challenge lives five minutes in memory behind a cookie; the sign count is kept and a clone warning refuses. The browser session is a `HttpOnly, Secure, SameSite=Lax` cookie with CSRF double-submit on every form and htmx request, like the admin's. The vouch code is 256 bits, five minutes, single use, and only a signed device request can redeem it.
 - **Headers on every page.** `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`.
 - **Outbound.** The server makes no outbound connection except APNs (`api.push.apple.com`) and nothing at all when `push.enabled = false`. No update check, no telemetry, no CDN.
 - **Secrets at rest.** The APNs `.p8` key and the admin TOTP secret are encrypted with XChaCha20-Poly1305 under `secrets.key_file` (32 bytes, created on first run). Back it up with the database: without it the APNs key must be re-uploaded, nothing else is lost.
@@ -583,7 +599,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 
 **Phase 3 — designed-for features** (each its own gate)
 
-- [ ] Passkeys and the member web client
+- [x] Passkeys and the member web client: `/app`, signed in by the phone's vouch and then a passkey; Lists, List, Homes, Home, Trip and Family
 - [x] Multiple server contexts in the app (pulled forward from phase 3: a test and a production doma on one phone)
 - [ ] `flag.proposed` from a vision model over new photos, with a confirm screen
 - [x] History and overviews: purchases per item, per month and per home, totals of `qty` by `unit`; read from the entries table, no new events
@@ -605,3 +621,4 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 | Second server in one app | supported (decided 2026-11-04): a second context, the switcher grouped by doma, no picker on Scan since a link names its doma and a bare code goes to the household in front's | refused with a message, as the first builds did |
 | Admin TOTP | in v1 | phase 2 |
 | Licence and repo visibility | public, MIT, as vink (opened 2026-11-03) | private until the public install |
+| Passkeys | go-webauthn/webauthn, the one authentication library, pinned (decided 2026-11-07) | a hand-written verifier for ES256 and none attestation; fewer modules, more to get wrong |

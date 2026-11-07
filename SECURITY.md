@@ -16,6 +16,10 @@ The attack surface is small and named; what an attacker can reach, and what stan
   never a 403, so households cannot be enumerated.
 - **Photos** are re-encoded server-side to strip metadata and served with `nosniff` from signed
   URLs; the quota is enforced before the body is read.
+- **The web client** signs a family member's browser in by a passkey (WebAuthn, discoverable,
+  through go-webauthn) or, the first time, by their phone vouching for the browser with a signed
+  request and a single-use five minute code. Its session cookie and forms are guarded like the
+  admin's.
 - **The admin login** is argon2id with a `Secure, HttpOnly, SameSite=Lax` session cookie, CSRF
   double-submit on every form, a login rate limit and optional TOTP.
 - **Outbound.** The server makes no outbound connection except to APNs, and none at all when

@@ -11,6 +11,7 @@ must work from a phone on mobile data without a browser sign-in.
 | a family member's phone browser, from an invite QR or link | `/i/…`, `/static/` | no |
 | a guest with no app | `/g/…`, `/static/` | no |
 | the apps | `/api/…`, `/sync/…`, `/photos/…` | no |
+| a family member's browser | `/app` and everything under it, which has its own sign-in | no |
 | probes and Prometheus | `/healthz`, `/readyz`, `/metrics` | no |
 
 `traefik.yaml` has the two routers: `doma-open` at a higher priority with the open paths and no
@@ -94,6 +95,8 @@ drift apart.
   `doma-admin`, or the rule's `domain` does not match `DOMA_HOST`.
 - Pictures stay pending in the app and never show on another phone: `/photos/` is missing from
   the `doma-open` rule, so the uploads and downloads land on Authelia's sign-in.
+- The family's web client at `/app` lands on Authelia: `/app` is missing from the `doma-open` rule.
+  It signs the family in itself, by passkey or by the phone; Authelia is for the operator.
 - `/metrics` answers anyone: `DOMA_METRICS_TOKEN` is empty.
 - After Authelia, doma shows "Sign in first": the name or the secret did not arrive. The log says
   which: the peer is outside `admin.proxy_cidrs`, `X-Auth-Proxy-Secret` differs from

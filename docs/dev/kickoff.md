@@ -228,6 +228,32 @@ the three languages. Write it into the spec and the design system before the cod
 phase-3 item when it is in. One branch, one PR, the usual gates.
 ```
 
+## 6. Passkeys and the web client, phase 3
+
+Written 2026-11-07, after tasks lists, the second of the three features the user asked for in
+one go (tasks, passkeys and the web client, flag proposals; the Watch app and the App Store
+parked).
+
+```
+Tasks lists are in. Next, the member web client with passkeys. Re-read CLAUDE.md, then in
+docs/design.md "Web: guest view, admin pages, later web client", the HTTP API's authentication
+table, the Security checklist and the credentials row of the data model; then the guest view's
+handlers and templates, which are the shape to follow.
+
+Server-rendered htmx pages under /app on the same service layer, no offline support, the sync
+endpoint stays the apps' path. Sign-in the first time by the phone: the browser shows a code,
+Scan reads it, the app tells the server who sits there with a signed request; then a passkey,
+a discoverable WebAuthn credential stored in the credentials table as kind passkey, through
+go-webauthn, the one library, pinned. Sessions in memory like the admin's, CSRF on every form
+and htmx request, the member cookie its own. Two steps: first the sign-in, the passkeys, Lists
+and List with add, strike, Not needed and Clear, the vouch route on the API, Scan handling the
+code on both platforms; then Homes, Home, Trip and Family. A Go test drives the whole flow with
+a synthetic authenticator; a UI test pastes the code on Scan and sees the browser signed in.
+The spec's web section, API tables and Security checklist, the Authelia example's open router,
+SECURITY.md, the README and the changelog say it before the code; the phase-3 item is ticked
+when the second step is in. One branch and one PR per step, the usual gates.
+```
+
 ## Later phases
 
 Phase 3 (one designed-for feature at a time; multiple server contexts were pulled forward on

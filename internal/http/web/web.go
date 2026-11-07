@@ -54,6 +54,11 @@ type Web struct {
 	// proxy, when set, signs the admin in instead of the password form
 	// (admin.auth = proxy).
 	proxy *auth.Proxy
+	// members are the web client's sessions; ceremonies the passkey
+	// registrations and sign-ins between their two halves.
+	members    *auth.Sessions
+	ceremonies map[string]ceremony
+	cerMu      sync.Mutex
 }
 
 // New parses the templates. secure marks the admin cookie Secure.
@@ -83,6 +88,16 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 			}
 			return strconv.FormatFloat(*q, 'f', -1, 64)
 		},
+		// dict passes more than one value into a defined template
+		"dict": func(kv ...any) map[string]any {
+			m := map[string]any{}
+			for i := 0; i+1 < len(kv); i += 2 {
+				if k, ok := kv[i].(string); ok {
+					m[k] = kv[i+1]
+				}
+			}
+			return m
+		},
 	}
 	for _, name := range names {
 		base := strings.TrimPrefix(name, "templates/")
@@ -92,6 +107,9 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 		files := []string{"templates/layout.html", name}
 		if strings.HasPrefix(base, "guest") || base == "_guest_fragment.html" {
 			files = append(files, "templates/_guest_list.html", "templates/_guest_panel.html")
+		}
+		if base == "app_list.html" {
+			files = append(files, "templates/_app_rows.html", "templates/_app_panel.html")
 		}
 		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, files...)
 		if err != nil {
@@ -111,7 +129,18 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 		return nil, fmt.Errorf("guest panel: %w", err)
 	}
 	pages["_guest_panel"] = panel
-	*w = Web{svc: svc, log: log, sessions: auth.NewSessions(secure), logins: ratelimit.New(LoginsPerMinute, LoginsPerMinute), pages: pages, now: func() time.Time { return time.Now().UTC() }, secure: secure, challenges: map[string]time.Time{}, InviteDays: 7}
+	// the web client's polled rows and its panel after an add
+	rows, err := template.New("_app_rows_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_rows_fragment.html", "templates/_app_rows.html")
+	if err != nil {
+		return nil, fmt.Errorf("app rows: %w", err)
+	}
+	pages["_app_rows"] = rows
+	apanel, err := template.New("_app_panel_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_panel_fragment.html", "templates/_app_panel.html", "templates/_app_rows.html")
+	if err != nil {
+		return nil, fmt.Errorf("app panel: %w", err)
+	}
+	pages["_app_panel"] = apanel
+	*w = Web{svc: svc, log: log, sessions: auth.NewSessions(secure), logins: ratelimit.New(LoginsPerMinute, LoginsPerMinute), pages: pages, now: func() time.Time { return time.Now().UTC() }, secure: secure, challenges: map[string]time.Time{}, InviteDays: 7, members: auth.NewMemberSessions(secure), ceremonies: map[string]ceremony{}}
 	return w, nil
 }
 
@@ -124,6 +153,7 @@ func (h *Web) SetProxyAuth(p *auth.Proxy) { h.proxy = p }
 func (h *Web) SetClock(now func() time.Time) {
 	h.now = now
 	h.sessions.Now = now
+	h.members.Now = now
 }
 
 // Mount registers every page.
@@ -161,6 +191,7 @@ func (h *Web) Mount(mux *http.ServeMux) {
 	mux.HandleFunc("POST /g/{token}/add", h.guest(h.guestAdd))
 	mux.HandleFunc("POST /g/{token}/check/{entry}", h.guest(h.guestCheck))
 	mux.HandleFunc("POST /g/{token}/clear", h.guest(h.guestClear))
+	h.mountApp(mux)
 }
 
 // inlineMark is the brand mark from assets/brand, inlined so it takes the
@@ -220,6 +251,12 @@ type page struct {
 	// where Sign out goes; renderBytes fills them.
 	ProxyAuth bool
 	LogoutURL string
+	// Member pages are the web client's: its top bar, the household switcher
+	// when there is more than one, and Sign out; Passkeys loads the script.
+	Member     bool
+	Households []service.WebHousehold
+	Household  string
+	Passkeys   bool
 }
 
 func (h *Web) renderBytes(name string, p page) ([]byte, error) {

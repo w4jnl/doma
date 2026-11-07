@@ -1,0 +1,9 @@
+{{define "content"}}
+<div class="dm-app">
+  <h1>{{.Data.Title}}</h1>
+  <p>{{.Data.What}}</p>
+  <div class="dm-qr">{{.Data.QR}}</div>
+  <p class="dm-mono dm-break">{{.Data.URL}}</p>
+  <p><a class="dm-button dm-button-quiet" href="{{.Data.Back}}">Back to Family</a></p>
+</div>
+{{end}}

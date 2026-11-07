@@ -1,0 +1,29 @@
+{{define "content"}}
+<div class="dm-app">
+  <h1>{{.Data.View.Trip.FromName}} to {{.Data.View.Trip.ToName}}</h1>
+  <p class="dm-muted">{{date .Data.View.Trip.Date}}{{if .Data.View.Trip.ListName}}, shopping on {{.Data.View.Trip.ListName}}{{end}}{{if .Data.View.Trip.Arrived}}. Arrived.{{else if .Data.View.Trip.Cancelled}}. Cancelled.{{end}}</p>
+  {{$page := .Data.Page}}{{$csrf := .CSRF}}
+  {{if .Data.View.Trip.Open}}
+    {{if not .Data.View.Carries}}
+    <p class="dm-muted">A nearer trip to {{.Data.View.Trip.ToName}} carries what it needs.</p>
+    {{else}}
+    <section>
+      <h2>Bring</h2>
+      {{if .Data.View.Bring}}<ul class="dm-rows">{{range .Data.View.Bring}}<li><span class="dm-grow">{{.Name}}</span><span class="dm-meta">{{.ToState}} there, have here</span></li>{{end}}</ul>{{else}}<p class="dm-muted">Nothing to bring.</p>{{end}}
+    </section>
+    <section>
+      <h2>Buy</h2>
+      {{if .Data.View.Buy}}<ul class="dm-rows">{{range .Data.View.Buy}}<li><span class="dm-grow">{{.Name}}</span>{{if .OnList}}<span class="dm-meta">on the list</span>{{else}}<form method="post" action="{{$page}}/add/{{.ItemID}}"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-quiet-link" type="submit">Add to list</button></form>{{end}}</li>{{end}}</ul>{{else}}<p class="dm-muted">Nothing to buy.</p>{{end}}
+    </section>
+    <section>
+      <h2>Check on arrival</h2>
+      {{if .Data.View.Check}}<ul class="dm-rows">{{range .Data.View.Check}}<li><span class="dm-grow">{{.Name}}</span><span class="dm-meta">unknown</span></li>{{end}}</ul>{{else}}<p class="dm-muted">Nothing unknown.</p>{{end}}
+    </section>
+    {{end}}
+    <div class="dm-row-actions">
+      <form method="post" action="{{$page}}/arrived"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-button" type="submit">Arrived</button></form>
+      <form method="post" action="{{$page}}/cancel"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-button dm-button-quiet" type="submit">Cancel the trip</button></form>
+    </div>
+  {{end}}
+</div>
+{{end}}

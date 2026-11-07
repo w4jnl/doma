@@ -225,6 +225,36 @@ final class DomaUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["1 done"].waitForExistence(timeout: 10), "a struck task is done, not got")
     }
 
+    /// A browser shows its sign-in code; the phone pastes it on Scan, from Family, and the
+    /// browser is in.
+    func testTheBrowserIsSignedInByThePhone() throws {
+        let live = try live()
+        let app = launch(join: try mintInvite(live))
+        XCTAssertTrue(app.staticTexts["Shopping"].waitForExistence(timeout: 15))
+        let base = URL(string: live.baseURL)!
+        let browser = URLSession(configuration: .ephemeral)
+        let page = String(decoding: try fetch(browser, URLRequest(url: base.appendingPathComponent("/app"))).data, as: UTF8.self)
+        let path = try XCTUnwrap(page.range(of: #"/app/v/[A-Za-z0-9_-]+"#, options: .regularExpression).map { String(page[$0]) }, "the sign-in page shows a code")
+        let token = String(path.split(separator: "/").last ?? "")
+        app.tabBars.buttons["Family"].tap()
+        let join = app.buttons["Join another household"]
+        for _ in 0..<8 where !join.waitForExistence(timeout: 1) { app.swipeUp() }
+        join.tap()
+        let field = app.textFields["invite-link"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        field.tap()
+        field.typeText(live.baseURL + path)
+        let button = app.buttons["join"]
+        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertEqual(button.label, "Sign in the browser", "the button says what the code does")
+        button.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["vouched"].waitForExistence(timeout: 20), "the phone says the browser is in")
+        let (data, response) = try fetch(browser, URLRequest(url: base.appendingPathComponent("/app/wait/\(token)")))
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        let html = String(decoding: data, as: UTF8.self)
+        XCTAssertTrue(html.contains("Household") && html.contains("Sign out"), "the browser followed its session to the lists")
+    }
+
     func testOfflineAddThenSync() throws {
         let live = try live()
         // joined online; then the network is away for a while and comes back by itself

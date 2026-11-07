@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The web client.** The family's lists in a browser at `/app`: the first sign-in by scanning
+  the browser's code with the app, then a passkey. Lists and a list with add, strike, Not needed
+  and Clear; homes with their staples and flags; trips planned, derived and arrived; Family with
+  invites, guest links and the person's devices.
 - **Tasks lists.** A new list can be for tasks instead of shopping: the same typing, striking
   and clearing, with done instead of got, its own names while typing, and no purchases in
   History or the export. The overview marks it with the checklist symbol.

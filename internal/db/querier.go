@@ -121,6 +121,7 @@ type Querier interface {
 	SetPhotoFile(ctx context.Context, arg SetPhotoFileParams) error
 	TouchCredential(ctx context.Context, arg TouchCredentialParams) error
 	TouchPerson(ctx context.Context, arg TouchPersonParams) error
+	UpdateCredentialPublicKey(ctx context.Context, arg UpdateCredentialPublicKeyParams) error
 	UpdateHousehold(ctx context.Context, arg UpdateHouseholdParams) error
 	UpdateHouseholdQuotas(ctx context.Context, arg UpdateHouseholdQuotasParams) error
 	UpdateMembershipRole(ctx context.Context, arg UpdateMembershipRoleParams) (int64, error)

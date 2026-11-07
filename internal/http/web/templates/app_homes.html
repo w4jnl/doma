@@ -1,0 +1,31 @@
+{{define "content"}}
+<div class="dm-app">
+  <h1>Homes</h1>
+  {{if .Data.Error}}<p class="dm-error">{{.Data.Error}}</p>{{end}}
+  {{$base := .Data.Base}}
+  {{if .Data.Homes}}
+  <ul class="dm-rows">
+    {{range .Data.Homes}}
+    <li>
+      <a class="dm-row-link" href="{{$base}}/home/{{.ID}}">
+        <span class="dm-grow">{{.Name}}</span>
+        {{if .Out}}<span class="dm-flag dm-flag-out"><svg class="dm-glyph" aria-hidden="true"><use href="#i-out"/></svg>{{.Out}} out</span>{{end}}
+        {{if .Low}}<span class="dm-flag dm-flag-low"><svg class="dm-glyph" aria-hidden="true"><use href="#i-low"/></svg>{{.Low}} low</span>{{end}}
+        {{if .Unknown}}<span class="dm-flag dm-flag-unknown"><svg class="dm-glyph" aria-hidden="true"><use href="#i-unknown"/></svg>{{.Unknown}} unknown</span>{{end}}
+      </a>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="dm-muted">No home yet. A trip needs two.</p>
+  {{end}}
+  <section class="dm-panel">
+    <h2>New home</h2>
+    <form method="post" action="{{$base}}/homes" class="dm-add">
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      <input class="dm-input" name="name" placeholder="Name" required maxlength="200" autocomplete="off">
+      <button class="dm-button" type="submit">Create home</button>
+    </form>
+  </section>
+</div>
+{{end}}
