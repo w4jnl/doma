@@ -35,6 +35,7 @@
     "entry.checked": {"type": "object", "required": ["list_id", "item_id"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}}},
     "entry.unchecked": {"type": "object", "required": ["list_id", "item_id"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}}},
     "entry.cleared": {"type": "object", "required": ["list_id", "before_hlc"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "before_hlc": {"$ref": "#/$defs/hlc"}}},
+    "entry.removed": {"type": "object", "required": ["list_id", "item_id"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}}},
     "entry.moved": {"type": "object", "required": ["list_id", "item_id", "sort"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "sort": {"type": "number"}}},
     "flag.set": {"type": "object", "required": ["home_id", "item_id", "state"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "state": {"enum": ["have", "low", "out"]}, "note": {"$ref": "#/$defs/note"}}},
     "staple.added": {"type": "object", "required": ["home_id", "item_id"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "sort": {"type": "integer"}}},

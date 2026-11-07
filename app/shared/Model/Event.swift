@@ -51,6 +51,7 @@ enum Kind {
     static let listCreated = "list.created", listRenamed = "list.renamed", listArchived = "list.archived"
     static let entryAdded = "entry.added", entryEdited = "entry.edited", entryChecked = "entry.checked"
     static let entryUnchecked = "entry.unchecked", entryCleared = "entry.cleared", entryMoved = "entry.moved"
+    static let entryRemoved = "entry.removed"
     static let flagSet = "flag.set"
     static let stapleAdded = "staple.added", stapleRemoved = "staple.removed"
     static let homeCreated = "home.created", homeRenamed = "home.renamed", homeArchived = "home.archived"
@@ -60,7 +61,7 @@ enum Kind {
     static let memberRemoved = "member.removed", deviceRevoked = "device.revoked"
 
     static let all = [itemNamed, itemRenamed, itemMerged, listCreated, listRenamed, listArchived,
-                      entryAdded, entryEdited, entryChecked, entryUnchecked, entryCleared, entryMoved,
+                      entryAdded, entryEdited, entryChecked, entryUnchecked, entryCleared, entryMoved, entryRemoved,
                       flagSet, stapleAdded, stapleRemoved, homeCreated, homeRenamed, homeArchived,
                       spotCreated, spotRenamed, spotArchived, photoAdded, tripPlanned, tripCancelled, tripArrived, memberRemoved, deviceRevoked]
 }

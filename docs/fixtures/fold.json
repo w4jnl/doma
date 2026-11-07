@@ -1808,6 +1808,192 @@
           }
         ]
       }
+    },
+    {
+      "name": "not needed takes the open entry off the list without a purchase record; the next add opens a new era",
+      "events": [
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1",
+            "qty": 2,
+            "unit": "x"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pb",
+          "hlc": "1100:0:b",
+          "kind": "entry.removed",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pa",
+          "hlc": "1200:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "use_count": 1,
+            "last_used_at": 1200,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e3",
+            "list_id": "L1",
+            "item_id": "I1",
+            "sort": 1200,
+            "added_hlc": "1200:0:a",
+            "added_by": "pa"
+          }
+        ]
+      }
+    },
+    {
+      "name": "a remove closes a struck era as well, the clear after it finds nothing, and a remove older than the add loses",
+      "events": [
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "e0",
+          "person_id": "pb",
+          "hlc": "990:0:b",
+          "kind": "entry.removed",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e2",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "entry.checked",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e3",
+          "person_id": "pb",
+          "hlc": "1150:0:b",
+          "kind": "entry.removed",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "e4",
+          "person_id": "pa",
+          "hlc": "1200:0:a",
+          "kind": "entry.cleared",
+          "payload": {
+            "list_id": "L1",
+            "before_hlc": "1180:0:a"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "use_count": 0,
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "entries": []
+      }
     }
   ]
 }

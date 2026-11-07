@@ -154,6 +154,14 @@ final class DomaUITests: XCTestCase {
         field.typeText("Melk\n")
         sleep(1)
         XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier == 'entry-melk'")).count, 1)
+        // kaas was a mistake: a swipe offers Not needed and the row goes without a purchase
+        field.typeText("kaas\n")
+        let kaas = app.buttons["entry-kaas"]
+        XCTAssertTrue(kaas.waitForExistence(timeout: 5))
+        kaas.swipeLeft()
+        XCTAssertTrue(app.buttons["Not needed"].waitForExistence(timeout: 3))
+        app.buttons["Not needed"].tap()
+        XCTAssertFalse(kaas.waitForExistence(timeout: 3), "the row is gone")
         row.tap()
         // the row answers from the store's observation, one hop after the tap; the runner is slow
         let struck = expectation(for: NSPredicate(format: "label BEGINSWITH 'checked'"), evaluatedWith: row)

@@ -24,7 +24,7 @@ enum Fold {
             try Catalog.replay(s)
         case Kind.listCreated, Kind.listRenamed, Kind.listArchived:
             try Lists.applyList(s, e)
-        case Kind.entryAdded, Kind.entryEdited, Kind.entryChecked, Kind.entryUnchecked, Kind.entryMoved:
+        case Kind.entryAdded, Kind.entryEdited, Kind.entryChecked, Kind.entryUnchecked, Kind.entryMoved, Kind.entryRemoved:
             try Entries.applyEntryEvent(s, e)
         case Kind.entryCleared:
             try Entries.applyEntryCleared(s, e)

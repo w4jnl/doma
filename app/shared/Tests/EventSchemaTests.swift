@@ -25,6 +25,7 @@ final class EventSchemaTests: XCTestCase {
         (Kind.entryUnchecked, EntryPayload(listID: "L1", itemID: "I1")),
         (Kind.entryCleared, EntryPayload(listID: "L1", beforeHLC: HLC(wall: 1_700_000_000_000, counter: 3, device: "01JBX0000000000000000000AA").description)),
         (Kind.entryMoved, EntryPayload(listID: "L1", itemID: "I1", sort: 1234.5)),
+        (Kind.entryRemoved, EntryPayload(listID: "L1", itemID: "I1")),
         (Kind.flagSet, FlagPayload(homeID: "H1", itemID: "I1", state: "out", note: "")),
         (Kind.stapleAdded, StaplePayload(homeID: "H1", itemID: "I1", sort: 3)),
         (Kind.stapleRemoved, StaplePayload(homeID: "H1", itemID: "I1")),
