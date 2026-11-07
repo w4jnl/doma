@@ -512,3 +512,21 @@ func TestWebClientHomesTripsAndFamily(t *testing.T) {
 		}
 	}
 }
+
+// A camera that read the browser's code lands on a page with a button that
+// hands the code to doma on the phone.
+func TestVouchPageOpensTheApp(t *testing.T) {
+	s := newSuite(t)
+	b := newBrowser(t, s.srv.URL)
+	_, body := b.get("/app")
+	m := vouchLink.FindStringSubmatch(body)
+	if m == nil {
+		t.Fatalf("no code on the sign-in page: %s", body)
+	}
+	// the host is base_url's, which is what the phone knows the doma by
+	res, page := b.get("/app/v/" + m[1])
+	want := `href="doma://vouch/doma.test#` + m[1] + `"`
+	if res.StatusCode != http.StatusOK || !strings.Contains(page, want) || !strings.Contains(page, "Open in doma") {
+		t.Fatalf("vouch page %d lacks %s: %s", res.StatusCode, want, page)
+	}
+}

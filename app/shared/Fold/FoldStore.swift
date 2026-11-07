@@ -17,7 +17,8 @@ protocol FoldStore {
     func recountItemUsage(_ id: String) throws
     /// Every item.* event.
     func itemEvents() throws -> [Event]
-    /// The flag.set, staple.added, staple.removed and trip.arrived events naming one of the ids.
+    /// The flag.set, flag.proposed, proposal.declined, staple.added, staple.removed and
+    /// trip.arrived events naming one of the ids.
     func itemEvents(for itemIDs: [String]) throws -> [Event]
     /// Whether the log holds an event with this id. Rows whose opening event is not in the log
     /// came from a snapshot and are a base the replays start from.
@@ -50,6 +51,11 @@ protocol FoldStore {
     func deleteFlag(homeID: String, itemID: String) throws
     func deleteFlags(forItems itemIDs: [String]) throws
     func flags(forItems itemIDs: [String]) throws -> [Flag]
+
+    /// The proposals of the home for the item ids, open or closed.
+    func proposals(homeID: String, itemIDs: [String]) throws -> [Proposal]
+    /// Deletes the proposals of the home for the item ids and inserts rows.
+    func replaceProposals(homeID: String, itemIDs: [String], rows: [Proposal]) throws
 
     func staple(homeID: String, itemID: String) throws -> Staple?
     func putStaple(_ staple: Staple) throws

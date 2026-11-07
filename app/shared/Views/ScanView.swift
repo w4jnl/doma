@@ -9,6 +9,8 @@ struct ScanView: View {
     @Environment(Session.self) private var session
     @Environment(\.dismiss) private var dismiss
     var asSheet = false
+    /// A link the system opened in doma, from the browser's Almost page: taken as if scanned.
+    var opened: String?
     @State private var pasting = false
     @State private var link = ""
     @State private var name = ""
@@ -18,6 +20,10 @@ struct ScanView: View {
     @State private var nameAsked = false
     /// Set once a browser's code was accepted: the one line that says so.
     @State private var vouched = false
+    /// The code the camera last handed over and when. The camera reads a code on every frame,
+    /// so the same one is not taken again for a few seconds; a browser's code is single use and
+    /// would otherwise come back as gone right after it worked.
+    @State private var lastCode: (text: String, at: Date)?
     @FocusState private var focus: Field?
 
     enum Field { case link, name }
@@ -33,6 +39,8 @@ struct ScanView: View {
                 if QRScanner.isAvailable, !pasting {
                     QRScanner { code in
                         guard scanned == nil else { return }
+                        if let last = lastCode, last.text == code, Date().timeIntervalSince(last.at) < 5 { return }
+                        lastCode = (code, Date())
                         scanned = code
                         accept(code)
                     }
@@ -108,6 +116,11 @@ struct ScanView: View {
             if !QRScanner.isAvailable { focus = .link }
         }
         .task {
+            if let opened, scanned == nil {
+                scanned = opened
+                accept(opened)
+                return
+            }
             // a UI test's QR, read as the camera would read it
             if let png = UITestHooks.qrPNG, scanned == nil, let code = UITestHooks.decodeQR(png: png) {
                 scanned = code
@@ -134,10 +147,11 @@ struct ScanView: View {
                     try await session.vouch(v)
                     vouched = true
                     link = ""
+                    // the code is spent: the camera, still on it, must not send it again
                 } catch {
                     problem = error.localizedDescription
+                    scanned = nil
                 }
-                scanned = nil
                 busy = false
             }
             return

@@ -13,6 +13,16 @@ enum HomeActions {
         try session.record(Kind.flagSet, FlagPayload(homeID: homeID, itemID: itemID, state: state.rawValue))
     }
 
+    /// Accepts what a picture suggested: the flag is set to the proposed state, which closes it.
+    static func accept(_ p: ProposalRow, home homeID: String, in session: Session) throws {
+        try setFlag(p.state, home: homeID, item: p.itemID, in: session)
+    }
+
+    /// Keeps the flag as it is: the proposal is declined and leaves the screen.
+    static func decline(_ p: ProposalRow, home homeID: String, in session: Session) throws {
+        try session.record(Kind.proposalDeclined, ProposalPayload(proposalID: p.id, homeID: homeID, itemID: p.itemID))
+    }
+
     /// Adds a staple by a typed or spoken line: read as a list's line is, so a quantity or a
     /// note said with it does not become part of the name; an exact name reuses the item,
     /// anything else creates one.

@@ -137,6 +137,8 @@ final class SnapshotTests: XCTestCase {
         try store.applyRemote([
             SyncEvent(seq: seq + 1, id: "p1", personID: "pa", hlc: "\(millis(Self.now) - 1000):0:a", kind: Kind.tripPlanned, payload: TripPlanPayload(tripID: "T1", fromHomeID: "G", toHomeID: "H", date: millis(Self.now) + 3 * day, listID: "L1").jsonValue),
             SyncEvent(seq: seq + 2, id: "p2", personID: "pb", hlc: "\(millis(Self.now) - 900):0:b", kind: Kind.tripPlanned, payload: TripPlanPayload(tripID: "T2", fromHomeID: "H", toHomeID: "G", date: millis(Self.now) + 10 * day, listID: "L1").jsonValue),
+            // a picture of the fridge, just now, suggested the milk is low; newer than its flag
+            SyncEvent(seq: seq + 3, id: "v1", personID: "doma", hlc: "\(millis(Self.now) - 800):0:doma", kind: Kind.flagProposed, payload: ProposalPayload(homeID: "G", itemID: "I1", state: "low", photoID: "PH1").jsonValue),
         ], scope: session.scope!, clock: nil)
     }
 

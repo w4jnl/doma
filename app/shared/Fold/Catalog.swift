@@ -300,6 +300,9 @@ enum Catalog {
             case Kind.flagSet:
                 let p = try ev.decode(FlagPayload.self)
                 homes.insert(p.homeID)
+            case Kind.flagProposed, Kind.proposalDeclined:
+                let p = try ev.decode(ProposalPayload.self)
+                homes.insert(p.homeID)
             case Kind.stapleAdded, Kind.stapleRemoved:
                 let p = try ev.decode(StaplePayload.self)
                 try Flags.putStaple(s, ev, p, item: itemID)

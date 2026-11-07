@@ -120,7 +120,7 @@ struct FamilyView: View {
                     }
                 }
                 Section {
-                    Button("Join another household") { scanning = true }
+                    Button("Scan a code") { scanning = true }
                         .buttonStyle(.plain)
                         .foregroundStyle(Tokens.accent)
                         .listRowBackground(Self.rowGround)

@@ -36,6 +36,8 @@ type Querier interface {
 	DeleteMembership(ctx context.Context, arg DeleteMembershipParams) (int64, error)
 	// A person with no household left goes, and their devices and device invites with them.
 	DeleteOrphanPersons(ctx context.Context) error
+	DeleteProposalsForItems(ctx context.Context, arg DeleteProposalsForItemsParams) error
+	DeleteProposalsForKey(ctx context.Context, arg DeleteProposalsForKeyParams) error
 	DeleteSnapshot(ctx context.Context, arg DeleteSnapshotParams) error
 	DeleteStaplesForItems(ctx context.Context, arg DeleteStaplesForItemsParams) error
 	EntriesForKey(ctx context.Context, arg EntriesForKeyParams) ([]Entry, error)
@@ -77,6 +79,7 @@ type Querier interface {
 	InsertMembership(ctx context.Context, arg InsertMembershipParams) error
 	InsertPerson(ctx context.Context, arg InsertPersonParams) error
 	InsertPhoto(ctx context.Context, arg InsertPhotoParams) error
+	InsertProposal(ctx context.Context, arg InsertProposalParams) error
 	InsertSnapshot(ctx context.Context, arg InsertSnapshotParams) error
 	// the household's pending invites; a device invite is its person's and is not among them
 	InvitesForHousehold(ctx context.Context, arg InvitesForHouseholdParams) ([]Invite, error)
@@ -94,6 +97,7 @@ type Querier interface {
 	ListItems(ctx context.Context, householdID string) ([]Item, error)
 	ListLists(ctx context.Context, householdID string) ([]List, error)
 	ListPhotos(ctx context.Context, householdID string) ([]Photo, error)
+	ListProposals(ctx context.Context, householdID string) ([]Proposal, error)
 	ListSnapshots(ctx context.Context, householdID string) ([]Snapshot, error)
 	ListSpotPhotos(ctx context.Context, arg ListSpotPhotosParams) ([]Photo, error)
 	ListSpots(ctx context.Context, householdID string) ([]Spot, error)

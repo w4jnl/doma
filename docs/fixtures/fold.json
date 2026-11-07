@@ -2114,6 +2114,265 @@
           }
         ]
       }
+    },
+    {
+      "name": "a proposal from a photo stays open until a flag is written after it, which closes it; one before it does not",
+      "events": [
+        {
+          "id": "h1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "G",
+            "name": "Gouda"
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "f0",
+          "person_id": "pa",
+          "hlc": "980:0:a",
+          "kind": "flag.set",
+          "payload": {
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "have"
+          }
+        },
+        {
+          "id": "v1",
+          "person_id": "doma",
+          "hlc": "1000:0:doma",
+          "kind": "flag.proposed",
+          "payload": {
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "low",
+            "photo_id": "PH1"
+          }
+        },
+        {
+          "id": "i2",
+          "person_id": "pa",
+          "hlc": "1010:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I2",
+            "name": "brood"
+          }
+        },
+        {
+          "id": "v2",
+          "person_id": "doma",
+          "hlc": "1020:0:doma",
+          "kind": "flag.proposed",
+          "payload": {
+            "home_id": "G",
+            "item_id": "I2",
+            "state": "out",
+            "photo_id": "PH1"
+          }
+        },
+        {
+          "id": "f1",
+          "person_id": "pb",
+          "hlc": "1100:0:b",
+          "kind": "flag.set",
+          "payload": {
+            "home_id": "G",
+            "item_id": "I2",
+            "state": "out"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          },
+          {
+            "id": "I2",
+            "name": "brood",
+            "norm_name": "brood",
+            "created_hlc": "1010:0:a",
+            "updated_hlc": "1010:0:a"
+          }
+        ],
+        "homes": [
+          {
+            "id": "G",
+            "name": "Gouda",
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "flags": [
+          {
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "have",
+            "set_hlc": "980:0:a",
+            "set_by": "pa"
+          },
+          {
+            "home_id": "G",
+            "item_id": "I2",
+            "state": "out",
+            "set_hlc": "1100:0:b",
+            "set_by": "pb"
+          }
+        ],
+        "proposals": [
+          {
+            "id": "v1",
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "low",
+            "photo_id": "PH1",
+            "proposed_hlc": "1000:0:doma"
+          },
+          {
+            "id": "v2",
+            "home_id": "G",
+            "item_id": "I2",
+            "state": "out",
+            "photo_id": "PH1",
+            "proposed_hlc": "1020:0:doma",
+            "closed_hlc": "1100:0:b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "a declined proposal closes at the decline, and a newer proposal for the same item closes the older one",
+      "events": [
+        {
+          "id": "h1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "home.created",
+          "payload": {
+            "home_id": "G",
+            "name": "Gouda"
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "950:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "v1",
+          "person_id": "doma",
+          "hlc": "1000:0:doma",
+          "kind": "flag.proposed",
+          "payload": {
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "low",
+            "photo_id": "PH1"
+          }
+        },
+        {
+          "id": "d1",
+          "person_id": "pa",
+          "hlc": "1050:0:a",
+          "kind": "proposal.declined",
+          "payload": {
+            "proposal_id": "v1",
+            "home_id": "G",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "v2",
+          "person_id": "doma",
+          "hlc": "1200:0:doma",
+          "kind": "flag.proposed",
+          "payload": {
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "out",
+            "photo_id": "PH2"
+          }
+        },
+        {
+          "id": "v3",
+          "person_id": "doma",
+          "hlc": "1300:0:doma",
+          "kind": "flag.proposed",
+          "payload": {
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "low",
+            "photo_id": "PH3"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "created_hlc": "950:0:a",
+            "updated_hlc": "950:0:a"
+          }
+        ],
+        "homes": [
+          {
+            "id": "G",
+            "name": "Gouda",
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "proposals": [
+          {
+            "id": "v1",
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "low",
+            "photo_id": "PH1",
+            "proposed_hlc": "1000:0:doma",
+            "closed_hlc": "1050:0:a"
+          },
+          {
+            "id": "v2",
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "out",
+            "photo_id": "PH2",
+            "proposed_hlc": "1200:0:doma",
+            "closed_hlc": "1300:0:doma"
+          },
+          {
+            "id": "v3",
+            "home_id": "G",
+            "item_id": "I1",
+            "state": "low",
+            "photo_id": "PH3",
+            "proposed_hlc": "1300:0:doma"
+          }
+        ]
+      }
     }
   ]
 }

@@ -191,6 +191,23 @@ struct Trip: Hashable, Sendable, Codable {
 
 /// Every materialised table, the form a snapshot carries and the fixture states expectations
 /// in. Canonical drops every zero field, so two stores compare on what matters.
+/// What a vision model suggested after a photo: a flag change at a home, open until a flag is
+/// written after it, it is declined, or a newer proposal for the item arrives.
+struct Proposal: Hashable, Sendable, Codable {
+    var id: String
+    var homeID: String
+    var itemID: String
+    var state: String
+    var photoID: String = ""
+    var proposedHLC: HLC
+    var closedHLC: HLC?
+    var isOpen: Bool { closedHLC == nil }
+    enum CodingKeys: String, CodingKey {
+        case id, state
+        case homeID = "home_id", itemID = "item_id", photoID = "photo_id", proposedHLC = "proposed_hlc", closedHLC = "closed_hlc"
+    }
+}
+
 struct Tables: Hashable, Sendable, Codable {
     var items: [Item] = []
     var aliases: [ItemAlias] = []
@@ -202,12 +219,13 @@ struct Tables: Hashable, Sendable, Codable {
     var spots: [Spot] = []
     var photos: [Photo] = []
     var trips: [Trip] = []
+    var proposals: [Proposal] = []
     enum CodingKeys: String, CodingKey {
-        case items, lists, entries, flags, staples, homes, spots, photos, trips
+        case items, lists, entries, flags, staples, homes, spots, photos, trips, proposals
         case aliases = "item_aliases"
     }
 
-    static let names = ["items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips"]
+    static let names = ["items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals"]
 
     mutating func sort() {
         items.sort { $0.id < $1.id }
@@ -220,6 +238,7 @@ struct Tables: Hashable, Sendable, Codable {
         spots.sort { $0.id < $1.id }
         photos.sort { $0.id < $1.id }
         trips.sort { $0.id < $1.id }
+        proposals.sort { $0.id < $1.id }
     }
 
     /// Sorted keys, pruned of zero fields, integral numbers as integers.
@@ -255,5 +274,23 @@ struct Tables: Hashable, Sendable, Codable {
             return v
         default: return v
         }
+    }
+}
+
+extension Tables {
+    /// A snapshot from a server older than a table reads with that table empty.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        items = try c.decodeIfPresent([Item].self, forKey: .items) ?? []
+        aliases = try c.decodeIfPresent([ItemAlias].self, forKey: .aliases) ?? []
+        lists = try c.decodeIfPresent([ShoppingList].self, forKey: .lists) ?? []
+        entries = try c.decodeIfPresent([Entry].self, forKey: .entries) ?? []
+        flags = try c.decodeIfPresent([Flag].self, forKey: .flags) ?? []
+        staples = try c.decodeIfPresent([Staple].self, forKey: .staples) ?? []
+        homes = try c.decodeIfPresent([Home].self, forKey: .homes) ?? []
+        spots = try c.decodeIfPresent([Spot].self, forKey: .spots) ?? []
+        photos = try c.decodeIfPresent([Photo].self, forKey: .photos) ?? []
+        trips = try c.decodeIfPresent([Trip].self, forKey: .trips) ?? []
+        proposals = try c.decodeIfPresent([Proposal].self, forKey: .proposals) ?? []
     }
 }

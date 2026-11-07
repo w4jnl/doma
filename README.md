@@ -4,8 +4,8 @@
 
 doma is the family's household app: shared and personal shopping lists, what is at each home,
 and what to bring from one home to the other. One Go binary with SQLite serves the iPhone and
-Mac apps and a guest page, and nothing leaves your network except a silent push through Apple,
-and that only when you turn it on.
+Mac apps and a guest page, and nothing leaves your network except a silent push through Apple
+and, if you turn it on, a picture to the vision model you choose; both off by default.
 
 A phone types "melk", taps the match, strikes it in the shop, clears the list; every other phone
 in the household shows the same list a few seconds later, and keeps working in a basement
@@ -97,6 +97,10 @@ What doma does about it:
   was away too long, retention of the log without losing a single purchase.
 - **Push**: one silent notification per phone per thirty seconds through Apple, behind
   `push.enabled`, and provably no outbound connection when it is off.
+- **A second pair of eyes**, if you want one: behind `vision.enabled`, a vision model you point
+  the server at, in your own network or not, or Claude with an API key, looks at each new picture of a spot and suggests
+  which staples look low or out. The family accepts or keeps each suggestion on the home screen;
+  nothing changes by itself.
 
 ## Scope and status
 

@@ -164,6 +164,17 @@ type Photo struct {
 	Height      int64
 }
 
+type Proposal struct {
+	ID          string
+	HouseholdID string
+	HomeID      string
+	ItemID      string
+	State       string
+	PhotoID     string
+	ProposedHlc string
+	ClosedHlc   *string
+}
+
 type PushLog struct {
 	HouseholdID  string
 	CredentialID string

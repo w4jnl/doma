@@ -35,6 +35,7 @@ type Config struct {
 	Metrics   Metrics   `toml:"metrics"`
 	Secrets   Secrets   `toml:"secrets"`
 	Admin     Admin     `toml:"admin"`
+	Vision    Vision    `toml:"vision"`
 }
 
 type Server struct {
@@ -72,6 +73,24 @@ type Push struct {
 	// Topic is the app's bundle id. Which of Apple's gateways a push goes to
 	// is the device's to say when it registers its token, not the server's.
 	Topic string `toml:"topic"`
+}
+
+// Vision names the model that looks at new photos and proposes flag
+// changes: an OpenAI-compatible chat completions endpoint, self-hosted or
+// not, or Anthropic's API, the operator's choice. Off, nothing in the process
+// dials it.
+type Vision struct {
+	Enabled bool `toml:"enabled"`
+	// Provider is the wire format: "openai" (chat completions, the default)
+	// or "anthropic" (the Messages API).
+	Provider string `toml:"provider"`
+	// URL is the API's base, such as http://ollama:11434/v1; for anthropic it
+	// may stay empty and means https://api.anthropic.com.
+	URL    string `toml:"url"`
+	Model  string `toml:"model"`
+	APIKey string `toml:"api_key" redact:"true"`
+	// TimeoutSeconds bounds one look at a photo.
+	TimeoutSeconds int `toml:"timeout_seconds"`
 }
 
 type Invites struct {
@@ -134,6 +153,7 @@ func Default() *Config {
 		Invites:   Invites{DefaultDays: 7, GuestDefaultDays: 7},
 		Retention: Retention{EventsDays: 365, PhotosPerSpot: 5, SnapshotHour: 3},
 		Defaults:  Defaults{StalenessDays: 60},
+		Vision:    Vision{Provider: "openai", TimeoutSeconds: 60},
 		Log:       Log{Level: "info", Format: "json"},
 		Admin:     Admin{Auth: "password"},
 	}
@@ -260,6 +280,26 @@ func (c *Config) Validate() error {
 		if c.Push.Topic == "" {
 			fail("push.topic must be the app's bundle id when push is enabled")
 		}
+	}
+	if c.Vision.Provider != "openai" && c.Vision.Provider != "anthropic" {
+		fail("vision.provider must be openai or anthropic")
+	}
+	if c.Vision.Enabled {
+		anthropic := c.Vision.Provider == "anthropic"
+		if c.Vision.URL != "" || !anthropic {
+			if u, err := url.Parse(c.Vision.URL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+				fail("vision.enabled is on but vision.url is not an http or https address")
+			}
+		}
+		if c.Vision.Model == "" {
+			fail("vision.enabled is on but vision.model is empty")
+		}
+		if anthropic && c.Vision.APIKey == "" {
+			fail("vision.provider is anthropic but vision.api_key is empty")
+		}
+	}
+	if c.Vision.TimeoutSeconds <= 0 {
+		fail("vision.timeout_seconds must be positive")
 	}
 	if c.Invites.DefaultDays <= 0 || c.Invites.GuestDefaultDays <= 0 {
 		fail("invites.default_days and invites.guest_default_days must be positive")

@@ -52,7 +52,7 @@ enum Kind {
     static let entryAdded = "entry.added", entryEdited = "entry.edited", entryChecked = "entry.checked"
     static let entryUnchecked = "entry.unchecked", entryCleared = "entry.cleared", entryMoved = "entry.moved"
     static let entryRemoved = "entry.removed"
-    static let flagSet = "flag.set"
+    static let flagSet = "flag.set", flagProposed = "flag.proposed", proposalDeclined = "proposal.declined"
     static let stapleAdded = "staple.added", stapleRemoved = "staple.removed"
     static let homeCreated = "home.created", homeRenamed = "home.renamed", homeArchived = "home.archived"
     static let spotCreated = "spot.created", spotRenamed = "spot.renamed", spotArchived = "spot.archived"
@@ -62,7 +62,7 @@ enum Kind {
 
     static let all = [itemNamed, itemRenamed, itemMerged, listCreated, listRenamed, listArchived,
                       entryAdded, entryEdited, entryChecked, entryUnchecked, entryCleared, entryMoved, entryRemoved,
-                      flagSet, stapleAdded, stapleRemoved, homeCreated, homeRenamed, homeArchived,
+                      flagSet, flagProposed, proposalDeclined, stapleAdded, stapleRemoved, homeCreated, homeRenamed, homeArchived,
                       spotCreated, spotRenamed, spotArchived, photoAdded, tripPlanned, tripCancelled, tripArrived, memberRemoved, deviceRevoked]
 }
 
@@ -115,6 +115,18 @@ struct FlagPayload: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case state, note
         case homeID = "home_id", itemID = "item_id"
+    }
+}
+
+struct ProposalPayload: Codable, Sendable {
+    var proposalID: String?
+    var homeID: String
+    var itemID: String
+    var state: String?
+    var photoID: String?
+    enum CodingKeys: String, CodingKey {
+        case state
+        case proposalID = "proposal_id", homeID = "home_id", itemID = "item_id", photoID = "photo_id"
     }
 }
 

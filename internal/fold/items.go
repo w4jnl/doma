@@ -263,6 +263,9 @@ func rederiveItem(s Store, itemID string) error {
 	if err != nil {
 		return err
 	}
+	if err := s.DeleteProposalsForItems(ids); err != nil {
+		return err
+	}
 	if err := s.DeleteFlagsForItems(ids); err != nil {
 		return err
 	}
@@ -278,6 +281,12 @@ func rederiveItem(s Store, itemID string) error {
 		switch ev.Kind {
 		case "flag.set":
 			var p flagPayload
+			if err := decode(ev, &p); err != nil {
+				return err
+			}
+			homes[p.HomeID] = true
+		case "flag.proposed", "proposal.declined":
+			var p proposalPayload
 			if err := decode(ev, &p); err != nil {
 				return err
 			}

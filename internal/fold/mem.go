@@ -23,6 +23,7 @@ type MemStore struct {
 	spots   map[string]Spot
 	photos  map[string]Photo
 	trips   map[string]Trip
+	props   map[string]Proposal
 }
 
 // NewMemStore returns an empty store.
@@ -30,7 +31,7 @@ func NewMemStore() *MemStore {
 	return &MemStore{
 		items: map[string]Item{}, aliases: map[string]Alias{}, lists: map[string]List{}, entries: map[string]Entry{},
 		flags: map[[2]string]Flag{}, staples: map[[2]string]Staple{}, homes: map[string]Home{}, spots: map[string]Spot{},
-		photos: map[string]Photo{}, trips: map[string]Trip{},
+		photos: map[string]Photo{}, trips: map[string]Trip{}, props: map[string]Proposal{},
 	}
 }
 
@@ -106,7 +107,7 @@ func (m *MemStore) ItemEventsFor(itemIDs []string) ([]Event, error) {
 			continue
 		}
 		switch ev.Kind {
-		case "flag.set", "staple.added", "staple.removed":
+		case "flag.set", "flag.proposed", "proposal.declined", "staple.added", "staple.removed":
 			if slices.Contains(itemIDs, p.ItemID) {
 				out = append(out, ev)
 			}
@@ -278,6 +279,27 @@ func (m *MemStore) DeleteFlag(homeID, itemID string) error {
 	return nil
 }
 
+func (m *MemStore) ReplaceProposals(homeID string, itemIDs []string, rows []Proposal) error {
+	for k, p := range m.props {
+		if p.HomeID == homeID && slices.Contains(itemIDs, p.ItemID) {
+			delete(m.props, k)
+		}
+	}
+	for _, p := range rows {
+		m.props[p.ID] = p
+	}
+	return nil
+}
+
+func (m *MemStore) DeleteProposalsForItems(itemIDs []string) error {
+	for k, p := range m.props {
+		if slices.Contains(itemIDs, p.ItemID) {
+			delete(m.props, k)
+		}
+	}
+	return nil
+}
+
 func (m *MemStore) DeleteFlagsForItems(itemIDs []string) error {
 	for k, f := range m.flags {
 		if slices.Contains(itemIDs, f.ItemID) {
@@ -377,6 +399,9 @@ func (m *MemStore) Tables() Tables {
 	}
 	for _, v := range m.trips {
 		t.Trips = append(t.Trips, v)
+	}
+	for _, v := range m.props {
+		t.Proposals = append(t.Proposals, v)
 	}
 	t.Sort()
 	return t

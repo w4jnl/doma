@@ -24,7 +24,7 @@ This document specifies a family household app — shared and personal shopping 
 - Overview and report screens over the purchase history: the data is kept in v1, the screens come in phase 3.
 - Tasks and chores (a later list kind, one `kind` column on `lists`; built in phase 3).
 - A full web client for members, multiple servers in one app install, passkeys: designed for, built in phase 3.
-- Photo recognition by a vision model: a later server job on the photos table.
+- Photo recognition by a vision model: a server job on the photos table, built in phase 3 behind `vision.enabled`.
 - Android native app; Android members use the web client when it exists, guests use the guest view now.
 
 **House conventions**
@@ -184,6 +184,7 @@ Eighteen tables. Four are instance-level (persons, credentials, households, admi
 | `entries` | `id`, `household_id`, `list_id`, `item_id`, `note` ("the small jar"), `qty` (decimal, nullable), `unit` (nullable), `for_home_id` (nullable), `added_hlc`, `added_by`, `checked_hlc` (nullable), `checked_by`, `cleared_hlc` (nullable) | one open entry per (`list_id`, `item_id`) and any number of cleared ones; re-adding an item that is checked but not cleared unchecks it; cleared entries are never deleted or pruned: they are the purchase history |
 | `flags` | `household_id`, `home_id`, `item_id`, `state` (`have` / `low` / `out`), `set_hlc`, `set_by`, `note` | primary key (`home_id`, `item_id`); staleness is computed at read time from `set_hlc`, never stored |
 | `staples` | `household_id`, `home_id`, `item_id`, `sort` | the items a home should always have; the trip view and the home view are built from this set |
+| `proposals` | `id`, `household_id`, `home_id`, `item_id`, `state`, `photo_id`, `proposed_hlc`, `closed_hlc` | what the vision model suggested after a photo; open while `closed_hlc` is null; derived by the fold from `flag.proposed` and `proposal.declined` |
 | `photos` | `id`, `household_id`, `spot_id`, `taken_hlc`, `taken_by`, `path`, `thumb_path`, `bytes`, `width`, `height` | files under `photos.dir/<household_id>/`; the newest per spot is current; older ones kept until `retention.photos_per_spot` |
 | `trips` | `id`, `household_id`, `from_home_id`, `to_home_id`, `date`, `created_by`, `list_id`, `updated_hlc`, `arrived_at`, `cancelled_at` | a planned trip the family shares: from, to, a date and the list it shops on; its bring and buy lists are a view until the person taps *Arrived*, which commits the bring list as flag changes and sets `arrived_at`; a cancelled trip keeps `cancelled_at`; stored so the history shows what moved |
 | `push_log` | `household_id`, `credential_id`, `sent_at`, `seq` | coalescing: at most one push per device per 30 s |
@@ -229,6 +230,8 @@ The server adds `seq`, `person_id`, `credential_id` and `received_at` on append.
 | `entry.cleared` | `list_id`, `before_hlc` | sets `cleared_hlc` on entries checked before `before_hlc`; a cleared entry is a purchase record, never changed or deleted; an `added` newer than `cleared` creates a new entry |
 | `entry.removed` | `list_id`, `item_id` | takes the open entry off the list with no record: the row goes and nothing is counted; a remove older than the add that opened the entry has nothing to take, and an `added` newer than `removed` creates a new entry |
 | `flag.set` | `home_id`, `item_id`, `state`, `note` | LWW on `hlc`; `state` ∈ have / low / out; `out` also adds the item to the household's default list with `for_home_id = home_id` if no open entry exists (done in the fold so every client agrees) |
+| `flag.proposed` | `home_id`, `item_id`, `state`, `photo_id` | the server's, after a photo: a proposal for the member to answer; derived per (home, item) with the key's other events, so any order agrees |
+| `proposal.declined` | `proposal_id`, `home_id`, `item_id` | closes the proposal at the decline; a `flag.set` at or after a proposal closes it too, as does a newer proposal for the same item |
 | `staple.added` / `staple.removed` | `home_id`, `item_id` | add-wins, remove-wins only if newer than the latest add |
 | `home.created` / `home.renamed` / `home.archived`, `spot.*` | `home_id`, `spot_id`, `name` | as for lists |
 | `photo.added` | `photo_id`, `spot_id`, `bytes`, `width`, `height` | append; the blob is uploaded separately by `photo_id`; the fold marks the photo current if its `hlc` is newest for the spot |
@@ -332,7 +335,7 @@ Any tap sets any flag directly; the drawn arrows are the paths the app takes on 
 - A home has spots (pantry, fridge, bathroom). A spot has one current photo and a history of `retention.photos_per_spot` (default 5). The home screen shows the current photo as a thumbnail per spot; tap to view full size with the taken-by and age.
 - *Departure sweep*: from the home screen, *Take photos* walks through the spots in order with the camera open and one tap per spot. Two minutes before locking up; nothing else to fill in.
 - Photos are uploaded as JPEG, long edge 1600 px, quality 0.8, by the app after the `photo.added` event is accepted; the server stores the original and a 320 px thumbnail; upload retries ride the outbox. A photo is shown as pending until the upload lands.
-- Vision-model proposals (a server job that reads a new photo against the spot's staples and proposes flag changes for a member to confirm) are designed as a later `flag.proposed` event kind and a confirm screen; not in v1.
+- Vision-model proposals: when `vision.enabled` is on, a server job takes each photo as it lands, with the names of the home's staples, to the model at `vision.url` (`vision.provider = "openai"`: an OpenAI-compatible chat completions endpoint, self-hosted or not; `"anthropic"`: Claude through the Messages API at `api.anthropic.com` with `vision.api_key`; the operator's choice) and appends one `flag.proposed` per item the model judged with confidence 0.6 or more and differently from the flag as it stands. The home screen shows them under *From the pictures*, each with *Accept*, which sets the flag, and *Keep*, which declines; a flag written by anyone after the proposal closes it as well, and a newer proposal replaces an older one. The model sees the picture and the item names, nothing else; with `vision.enabled = false` nothing in the process can reach it.
 
 **Trips**
 
@@ -356,7 +359,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | History | under the Lists overview, a row at its foot with this month's count: the month stepped back and forth, the month's purchases per item with the times and the totals of `qty` by `unit`, per home, who shopped; reads the entries table | none |
 | List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it, and the mic at its end; swipe left for Not needed and Edit, long-press to drag | `item.named`, `entry.*` |
 | Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails; `+` makes a home, Rename and Archive on the row (a trip needs a second home and nothing else makes one) | `home.*` |
-| Home | staples with flag buttons in rows as a list's, typed into a bar at the bottom as entries are on a list, Rename and Remove on a swipe, a long-press is drag to reorder (the `sort` on `staple.added`); other flagged items; the spots' pictures below with `+` for a new one, Rename and Remove on a long-press; the trips through the home; *Take photos* | `flag.set`, `staple.*`, `spot.*`, `photo.added` |
+| Home | *From the pictures* first, when a photo left proposals, each with Accept and Keep; staples with flag buttons in rows as a list's, typed into a bar at the bottom as entries are on a list, Rename and Remove on a swipe, a long-press is drag to reorder (the `sort` on `staple.added`); other flagged items; the spots' pictures below with `+` for a new one, Rename and Remove on a long-press; the trips through the home; *Take photos* | `flag.set`, `flag.proposed` (the server's), `proposal.declined`, `staple.*`, `spot.*`, `photo.added` |
 | Trip | the upcoming trips by date, then the past ones; `+` plans one (from, to, date, list); a trip opens into Bring, Buy, Check on arrival and *Arrived*; Edit and Cancel on the row | `trip.planned`, `trip.cancelled`, `entry.added`, `trip.arrived` |
 | Family | household name, members with role and last seen, pending invites, guest links, Invite (prominent), Guest link, Settings, Leave; Remove and Revoke behind a swipe, armed in the row; household switcher at the top when the person is in more than one | invites and guests through the REST API, not events |
 | Settings | this device's name, notifications (on, or a way to allow them; a switch per shared list and one for clears), the lock with Face ID or Touch ID, staleness (owners), the person's devices with Revoke and *Add a device* (a QR the new device scans to join as the same person), About with the lockup, server name and version | REST |
@@ -425,7 +428,7 @@ Server-rendered htmx pages on the same service layer, for a member at a laptop o
 | Route | Content |
 | --- | --- |
 | `/app` | signed in: the household last in front, else the first; not signed in: the sign-in page, a code to scan with the app and *Use a passkey* |
-| `/app/v/{code}` | what the code links to, for a camera that read it instead of doma: open the app's Scan and scan again, or paste the link there |
+| `/app/v/{code}` | what the code links to, for a camera that read it instead of doma: *Open in doma* (`doma://vouch/<host>#<code>`, which opens Scan on it), or scan again in the app, or paste the link there |
 | `/app/h/{household}/lists` | the household's lists and the person's own, with their counts; a new list, shared or *Just me*, shopping or tasks; a switcher in the top bar when the person is in more than one household |
 | `/app/h/{household}/l/{list}` | the list: add, strike, *Not needed*, Clear, in the family's words; the rows poll every 10 s like the guest view |
 | `/app/h/{household}/homes`, `…/home/{home}` | one row per home with its out, low and unknown counts, and a new home; the home's staples with Have, Low and Out on the row, a staple typed into a bar, Remove, the other flagged items, the spots with their newest picture, the trips through it; pictures are taken with the phone |
@@ -433,7 +436,7 @@ Server-rendered htmx pages on the same service layer, for a member at a laptop o
 | `/app/h/{household}/family` | the household's members with role and last seen, Remove for owners; Invite with its QR and link shown once; guest links made and revoked; the person's devices and passkeys with Revoke |
 | `/app/passkey/…` | the two WebAuthn ceremonies as JSON, driven by `static/passkey.js`, our own file under the page's CSP |
 
-**Signing in.** The first time, the browser shows a code; the member opens Scan on their phone (Family, *Join another household*, or Paste a link) and the app, signed with its device key, tells the server who sits at the browser (`POST /api/v1/vouch`). The code lives five minutes, once. The browser's session then belongs to the phone's credential, and the lists page offers *Add a passkey*: a discoverable WebAuthn credential, stored in `credentials` as kind `passkey` with the record as its public key and the hash of its id for the lookup, labelled after the browser, revocable from Settings like a phone. From then on *Use a passkey* signs the browser in with a touch, and the session is the passkey's. Sessions are in memory, a month sliding; a restart signs browsers out. The relying party is the host of `server.base_url`, so the family opens the address the server was told.
+**Signing in.** The first time, the browser shows a code; the member opens Scan on their phone (Family, *Scan a code*, which reads an invite as well, or Paste a link) and the app, signed with its device key, tells the server who sits at the browser (`POST /api/v1/vouch`). The code lives five minutes, once. The browser's session then belongs to the phone's credential, and the lists page offers *Add a passkey*: a discoverable WebAuthn credential, stored in `credentials` as kind `passkey` with the record as its public key and the hash of its id for the lookup, labelled after the browser, revocable from Settings like a phone. From then on *Use a passkey* signs the browser in with a touch, and the session is the passkey's. Sessions are in memory, a month sliding; a restart signs browsers out. The relying party is the host of `server.base_url`, so the family opens the address the server was told.
 
 ## HTTP API
 
@@ -487,7 +490,7 @@ The attack surface is small and named: invite and guest links, the sync signatur
 - **Admin.** argon2id (`t=2, m=64MB, p=1`), session cookie `HttpOnly, Secure, SameSite=Lax`, CSRF double-submit on every form, 5 failed logins per minute per IP, optional TOTP in v1 since it is one screen. Either that or the proxy's sign-in, never both: with `admin.auth = "proxy"` the reverse proxy in front (Authelia) signs the admin in and names them in `Remote-User`, which the server believes only from a peer in `admin.proxy_cidrs` that also sends `admin.proxy_secret` in `X-Auth-Proxy-Secret`, on every request; the password form is then not served. A proxy sign-in may stand in front of the admin pages only, never the family's links or the apps' paths.
 - **Passkeys and the web client.** WebAuthn through go-webauthn, the server's one authentication library; discoverable credentials, user verification preferred, no attestation asked; the challenge lives five minutes in memory behind a cookie; the sign count is kept and a clone warning refuses. The browser session is a `HttpOnly, Secure, SameSite=Lax` cookie with CSRF double-submit on every form and htmx request, like the admin's. The vouch code is 256 bits, five minutes, single use, and only a signed device request can redeem it.
 - **Headers on every page.** `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`.
-- **Outbound.** The server makes no outbound connection except APNs (`api.push.apple.com`) and nothing at all when `push.enabled = false`. No update check, no telemetry, no CDN.
+- **Outbound.** The server makes no outbound connection except APNs (`api.push.apple.com`) when `push.enabled` is on and the vision model at `vision.url` when `vision.enabled` is on; with both off, nothing at all. Each client is built only when its switch is on, both have one dialer a test wires to fail, and the egress gate in CI names the two files. The model is sent the picture and the staples' names, never a name of a person or a home's address. No update check, no telemetry, no CDN.
 - **Secrets at rest.** The APNs `.p8` key and the admin TOTP secret are encrypted with XChaCha20-Poly1305 under `secrets.key_file` (32 bytes, created on first run). Back it up with the database: without it the APNs key must be re-uploaded, nothing else is lost.
 - **Cross-tenant suite.** Integration tests create two households and two persons per household plus one guest, and assert 404 across every boundary for sync, REST, photos and export.
 - **Supply chain.** `go.sum` verified, `govulncheck` in CI, no cgo, `-trimpath -ldflags "-s -w -buildid="`, SBOM from the release workflow; the apps pin GRDB by version and carry no other dependency.
@@ -532,6 +535,14 @@ format = "json"
 token = ""
 [secrets]
 key_file = "/var/lib/doma/secret.key"
+[vision]
+enabled = false            # a vision model looks at new photos and proposes flag changes
+provider = "openai"        # openai: a chat completions endpoint; anthropic: Claude's Messages API
+url = ""                   # openai: the base, e.g. http://ollama:11434/v1; anthropic: empty means https://api.anthropic.com
+model = ""                 # e.g. qwen2.5vl, or claude-opus-5-5
+api_key = ""               # env:DOMA_VISION_API_KEY when the endpoint wants one, required for anthropic; redacted on the server page
+timeout_seconds = 60
+
 [admin]
 auth = "password"                       # or "proxy": the reverse proxy in front signs the admin in (Remote-User)
 proxy_cidrs = []                        # the proxy's addresses; its headers count from nowhere else
@@ -601,7 +612,7 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 
 - [x] Passkeys and the member web client: `/app`, signed in by the phone's vouch and then a passkey; Lists, List, Homes, Home, Trip and Family
 - [x] Multiple server contexts in the app (pulled forward from phase 3: a test and a production doma on one phone)
-- [ ] `flag.proposed` from a vision model over new photos, with a confirm screen
+- [x] `flag.proposed` from a vision model over new photos, with a confirm screen: `internal/vision` behind `vision.enabled`, the `proposals` table, *From the pictures* on the home screen
 - [x] History and overviews: purchases per item, per month and per home, totals of `qty` by `unit`; read from the entries table, no new events
 - [x] Tasks as a third list kind: `lists.kind`, set by `list.created`; done instead of got, names kept apart while typing, no homes, no purchases
 - [ ] Watch app for lists
@@ -622,3 +633,4 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 | Admin TOTP | in v1 | phase 2 |
 | Licence and repo visibility | public, MIT, as vink (opened 2026-11-03) | private until the public install |
 | Passkeys | go-webauthn/webauthn, the one authentication library, pinned (decided 2026-11-07) | a hand-written verifier for ES256 and none attestation; fewer modules, more to get wrong |
+| Vision model | an endpoint the operator names, behind `vision.enabled`, off by default: an OpenAI-compatible one, self-hosted (Ollama, LM Studio, vLLM) or hosted, or Claude through Anthropic's Messages API with `vision.provider = "anthropic"` (decided 2026-11-07) | a model on the phone; no server job, weaker models, every phone its own |

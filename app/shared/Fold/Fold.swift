@@ -30,6 +30,8 @@ enum Fold {
             try Entries.applyEntryCleared(s, e)
         case Kind.flagSet:
             try Flags.applyFlagSet(s, e)
+        case Kind.flagProposed, Kind.proposalDeclined:
+            try Flags.applyProposal(s, e)
         case Kind.stapleAdded, Kind.stapleRemoved:
             try Flags.applyStaple(s, e)
         case Kind.homeCreated, Kind.homeRenamed, Kind.homeArchived:

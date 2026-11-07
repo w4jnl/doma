@@ -240,4 +240,32 @@ final class HomeLogicTests: XCTestCase {
         let open = try s.store.read(s.scope!) { db, sc in try Queries.entries(db, sc, listID: "L1") }.filter { $0.itemID == melk && !$0.isChecked }
         XCTAssertEqual(open.map(\.forHomeID), [hut])
     }
+
+    /// What a picture suggests waits in the home's proposals until it is accepted, which sets the
+    /// flag, or kept, which declines it; a flag written after it closes it too.
+    func testProposalsFromPicturesAreAcceptedOrKept() throws {
+        let s = try session()
+        let scope = try XCTUnwrap(s.scope)
+        try s.record(Kind.itemNamed, ItemPayload(itemID: "I1", name: "melk"))
+        try s.record(Kind.stapleAdded, StaplePayload(homeID: "G", itemID: "I1"))
+        try s.record(Kind.flagSet, FlagPayload(homeID: "G", itemID: "I1", state: "have"))
+        try s.record(Kind.flagProposed, ProposalPayload(homeID: "G", itemID: "I1", state: "low", photoID: "PH1"))
+        func open() throws -> [ProposalRow] {
+            try s.store.read(scope) { db, sc in try Queries.proposals(db, sc, homeID: "G", staleness: Staleness(days: nil)) }
+        }
+        var ps = try open()
+        XCTAssertEqual(ps.map(\.state), [.low])
+        XCTAssertEqual(ps.first?.current, .have)
+        XCTAssertEqual(ps.first?.name, "melk")
+        try HomeActions.accept(ps[0], home: "G", in: s)
+        XCTAssertEqual(try rows(s, "G").first?.state, .low, "accepting sets the flag")
+        XCTAssertEqual(try open(), [], "and the proposal is answered")
+        try s.record(Kind.flagProposed, ProposalPayload(homeID: "G", itemID: "I1", state: "out", photoID: "PH2"))
+        ps = try open()
+        XCTAssertEqual(ps.map(\.state), [.out])
+        try HomeActions.decline(ps[0], home: "G", in: s)
+        XCTAssertEqual(try open(), [], "keeping declines it")
+        XCTAssertEqual(try rows(s, "G").first?.state, .low, "and the flag stands")
+        XCTAssertEqual(try s.store.read(scope) { db, _ in try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM proposals") }, 2, "both proposals stay as rows, closed")
+    }
 }

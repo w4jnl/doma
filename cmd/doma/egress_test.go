@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/w4jnl/doma/internal/push"
+	"github.com/w4jnl/doma/internal/vision"
 )
 
 // TestNoOutboundWhenPushOff runs a whole server with push.enabled = false,
@@ -28,6 +29,12 @@ func TestNoOutboundWhenPushOff(t *testing.T) {
 		return nil, errors.New("egress refused in test: " + network + " " + addr)
 	}
 	t.Cleanup(func() { push.DialContext = oldDial })
+	oldVision := vision.DialContext
+	vision.DialContext = func(_ context.Context, network, addr string) (net.Conn, error) {
+		dials.Add(1)
+		return nil, errors.New("egress refused in test: " + network + " " + addr)
+	}
+	t.Cleanup(func() { vision.DialContext = oldVision })
 	oldTransport := http.DefaultTransport
 	http.DefaultTransport = &http.Transport{DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
 		dials.Add(1)

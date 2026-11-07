@@ -30,7 +30,7 @@ type Case struct {
 }
 
 // Tables are the materialised tables a snapshot holds, in fixture order.
-var Tables = []string{"items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips"}
+var Tables = []string{"items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals"}
 
 // Path is the fixture's path, found from this file.
 func Path() string {
@@ -233,7 +233,11 @@ func Generate(rnd *rand.Rand, n int) []fold.Event {
 		case 15:
 			add(dev, "entry.moved", map[string]any{"list_id": pick(listIDs), "item_id": pick(itemIDs), "sort": rnd.IntN(10)})
 		case 16:
-			add(dev, "flag.set", map[string]any{"home_id": pick(homeIDs), "item_id": pick(itemIDs), "state": pick([]string{"have", "low", "out", "out"})})
+			if rnd.IntN(3) == 0 {
+				add(dev, "flag.proposed", map[string]any{"home_id": pick(homeIDs), "item_id": pick(itemIDs), "state": pick([]string{"have", "low", "out"}), "photo_id": "PH1"})
+			} else {
+				add(dev, "flag.set", map[string]any{"home_id": pick(homeIDs), "item_id": pick(itemIDs), "state": pick([]string{"have", "low", "out", "out"})})
+			}
 		case 17:
 			add(dev, pick([]string{"staple.added", "staple.removed"}), map[string]any{"home_id": pick(homeIDs), "item_id": pick(itemIDs)})
 		case 18:
