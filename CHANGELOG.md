@@ -4,7 +4,7 @@ User-facing changes per release, newest first. `scripts/release.sh` refuses to t
 that has no section here and uses the section as the GitHub release notes, so every release
 updates this file first. Dates are the tag dates.
 
-## Unreleased
+## 0.6.0 (2026-11-07)
 
 - **From the pictures.** Behind `vision.enabled`, a vision model the server is pointed at looks
   at each new photo of a spot and suggests which staples look low or out. The home screen shows
