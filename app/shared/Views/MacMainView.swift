@@ -31,6 +31,7 @@ struct MacMainView: View {
         case trip
         case family
         case history
+        case cards
     }
 
     var body: some View {
@@ -54,6 +55,8 @@ struct MacMainView: View {
                 Section {
                     Label("History", systemImage: "clock.arrow.circlepath")
                         .tag(Selection.history)
+                    Label("Cards", systemImage: "creditcard")
+                        .tag(Selection.cards)
                 }
                 Section {
                     ForEach(homes?.value ?? []) { h in
@@ -79,6 +82,7 @@ struct MacMainView: View {
                 sidebarFoot
             }
             .onChange(of: nav.newList) { startAdding() }
+            .onChange(of: nav.showCards) { selection = .cards }
         } detail: {
             switch selection {
             case .list(let id):
@@ -95,6 +99,8 @@ struct MacMainView: View {
                 NavigationStack { FamilyView() }
             case .history:
                 NavigationStack { HistoryView() }
+            case .cards:
+                NavigationStack { CardsView() }
             default:
                 VStack(spacing: Tokens.space3) {
                     Mark(size: 40)
@@ -121,6 +127,8 @@ struct MacMainView: View {
                     selection = .homes
                 } else if remembered == "history" {
                     selection = .history
+                } else if remembered == "cards" {
+                    selection = .cards
                 } else if let r = remembered, r.hasPrefix("home:"), homes?.value.contains(where: { $0.id == String(r.dropFirst(5)) }) == true {
                     selection = .home(String(r.dropFirst(5)))
                 } else if let id = remembered, lists?.value.contains(where: { $0.id == id }) == true {
@@ -138,6 +146,7 @@ struct MacMainView: View {
             case .homes: UserDefaults.standard.set("homes", forKey: "mac.selection." + h)
             case .trip: UserDefaults.standard.set("trip", forKey: "mac.selection." + h)
             case .family: UserDefaults.standard.set("family", forKey: "mac.selection." + h)
+            case .cards: UserDefaults.standard.set("cards", forKey: "mac.selection." + h)
             case .history: UserDefaults.standard.set("history", forKey: "mac.selection." + h)
             default: break
             }

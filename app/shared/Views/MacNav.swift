@@ -11,6 +11,8 @@ final class MacNav {
     var toggleSelected = 0
     var editSelected = 0
     var clear = 0
+    /// Bumped by a list's card glyph: the sidebar selects Cards.
+    var showCards = 0
     /// Whether a list is in front with a selected row, for enabling the menu items.
     var hasSelectedEntry = false
     var hasStruck = false

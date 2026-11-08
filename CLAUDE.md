@@ -82,8 +82,13 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   folds (`internal/fold/cards.go`, `Lists.applyCard` in the Swift port) with a fixture case,
   personal cards filtered like personal lists in sync, snapshot and export (`cards.csv`); the
   logo job in `internal/logos` (the logo.dev client and a worker behind `logos.enabled`, the
-  service glue in `internal/service/logos.go`, the download route in `internal/http/cards`); the
-  screens are still to come.
+  service glue in `internal/service/logos.go`, the download route in `internal/http/cards`); in
+  the apps `Design/Barcode.swift` (the encoders and the Vision map), `Store/CardQueries.swift`
+  and `Store/CardActions.swift`, the screens in `Views/CardsView.swift` (Cards, Card, Add a
+  card), the card glyph on `ListView`, the Cards row on the Lists overview and the Mac sidebar
+  section, `Model/Shops.swift` over the bundled `Resources/shops.json` that `scripts/shops/gen.py`
+  writes from the Name Suggestion Index (BSD-3-Clause, `NOTICE`), and `QRScanner` widened to
+  every barcode for Add a card.
   Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;

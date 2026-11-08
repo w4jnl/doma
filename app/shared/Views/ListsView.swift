@@ -12,6 +12,7 @@ struct ListsView: View {
     @State private var lists: Live<[ListSummary]>?
     @State private var marks: Live<[OpenMark]>?
     @State private var months: Live<[PurchaseMonth]>?
+    @State private var cardCount: Live<Int>?
     @State private var adding = false
     @State private var newName = ""
     @State private var personal = false
@@ -77,6 +78,27 @@ struct ListsView: View {
                 .listRowBackground(Self.rowGround)
                 .listRowSeparatorTint(Tokens.line)
                 .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+                NavigationLink(value: CardsRoute()) {
+                    HStack(spacing: Tokens.space3) {
+                        Image(systemName: "creditcard")
+                            .foregroundStyle(Tokens.inkMuted)
+                            .frame(width: Tokens.space5)
+                            .accessibilityHidden(true)
+                        Text("Cards")
+                            .foregroundStyle(Tokens.ink)
+                        Spacer(minLength: Tokens.space2)
+                        if let n = cardCount?.value, n > 0 {
+                            Text("\(n)")
+                                .font(Tokens.mono(.subheadline))
+                                .foregroundStyle(Tokens.inkMuted)
+                        }
+                    }
+                    .frame(minHeight: ListView.rowHeight)
+                }
+                .accessibilityIdentifier("cards")
+                .listRowBackground(Self.rowGround)
+                .listRowSeparatorTint(Tokens.line)
+                .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
             }
         }
         #if os(iOS)
@@ -132,6 +154,7 @@ struct ListsView: View {
         lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
         marks = Live(session.store, initial: []) { db in try Queries.openMarks(db, scope) }
         months = Live(session.store, initial: []) { db in try Queries.purchaseMonths(db, scope) }
+        cardCount = Live(session.store, initial: 0) { db in try Queries.cardCount(db, scope) }
     }
 
     /// How many purchases this month, for the History row; nil until known.

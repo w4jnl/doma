@@ -87,6 +87,7 @@ struct ListsHome: View {
                     path = NavigationPath()
                 })
             }
+            .navigationDestination(for: CardsRoute.self) { _ in CardsView() }
         }
         .onAppear(perform: observe)
         .onChange(of: session.scope) { observe() }

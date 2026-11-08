@@ -117,6 +117,9 @@ final class SnapshotTests: XCTestCase {
             ev("t6", Kind.stapleAdded, StaplePayload(homeID: "H", itemID: "I2")),
             ev("t7", Kind.stapleAdded, StaplePayload(homeID: "H", itemID: "I3")),
             ev("t8", Kind.stapleAdded, StaplePayload(homeID: "H", itemID: "I4")),
+            // two cards: the household's supermarket card and a personal library card
+            ev("k1", Kind.cardAdded, CardPayload(cardID: "K1", name: "Albert Heijn", colour: "list-1", format: "ean13", value: "2620000000008", domain: "ah.nl")),
+            ev("k2", Kind.cardAdded, CardPayload(cardID: "K2", ownerPersonID: "pa", name: "Bibliotheek", colour: "list-3", format: "code128", value: "LIB-42")),
         ], scope: session.scope!, clock: nil)
         // flags carry their own stamps: fresh, past half the staleness (14 days here), and stale
         var seq = Int64(wall / 1000)
@@ -179,6 +182,18 @@ final class SnapshotTests: XCTestCase {
 
     func testHistory() async throws {
         try await check("history") { NavigationStack { HistoryView() } }
+    }
+
+    func testCards() async throws {
+        try await check("cards") { NavigationStack { CardsView() } }
+    }
+
+    func testCard() async throws {
+        try await check("card") { NavigationStack { CardView(cardID: "K1") } }
+    }
+
+    func testAddCard() async throws {
+        try await check("add-card") { NavigationStack { AddCardView(editing: nil) } }
     }
 
     func testTasks() async throws {
