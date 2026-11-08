@@ -20,7 +20,7 @@ This document specifies a family household app — shared and personal shopping 
 
 **Non-goals (v1)**
 
-- Stock counts, barcodes, expiry dates, recipes, meal plans. Quantities are kept on purchases (see Shopping lists), never tracked as stock levels.
+- Stock counts, product barcodes, expiry dates, recipes, meal plans (the family's loyalty cards are a phase 4 feature, see Cards). Quantities are kept on purchases (see Shopping lists), never tracked as stock levels.
 - Overview and report screens over the purchase history: the data is kept in v1, the screens come in phase 3.
 - Tasks and chores (a later list kind, one `kind` column on `lists`; built in phase 3).
 - A full web client for members, multiple servers in one app install, passkeys: designed for, built in phase 3.
@@ -88,6 +88,7 @@ Roles are per membership. The same person is owner at home and member at their p
 | spot | a storage place in a home: pantry, fridge door, bathroom cabinet |
 | item | a thing you buy or keep; the catalog is the set of items ever typed |
 | list | a shopping list, shared or personal |
+| card | a shop's loyalty card, the household's or one person's; its barcode is what the till scans |
 | flag | have, low, out, unknown — the state of an item at a home |
 | trip | from one home to another: a bring list and a buy list |
 | member, owner, guest | the three roles |
@@ -157,7 +158,7 @@ app/shared/Design/        Tokens.swift mirroring tokens.json, glyphs, the custom
 
 ## Data model and tenancy
 
-Eighteen tables. Four are instance-level (persons, credentials, households, admin), the rest hang off a household and carry `household_id` on every row. The materialised tables below `events` are a cache: the fold can rebuild them from the log, and a test proves it.
+Nineteen tables. Four are instance-level (persons, credentials, households, admin), the rest hang off a household and carry `household_id` on every row. The materialised tables below `events` are a cache: the fold can rebuild them from the log, and a test proves it.
 
 **Identity (instance level)**
 
@@ -187,13 +188,14 @@ Eighteen tables. Four are instance-level (persons, credentials, households, admi
 | `proposals` | `id`, `household_id`, `home_id`, `item_id`, `state`, `photo_id`, `proposed_hlc`, `closed_hlc` | what the vision model suggested after a photo; open while `closed_hlc` is null; derived by the fold from `flag.proposed` and `proposal.declined` |
 | `photos` | `id`, `household_id`, `spot_id`, `taken_hlc`, `taken_by`, `path`, `thumb_path`, `bytes`, `width`, `height` | files under `photos.dir/<household_id>/`; the newest per spot is current; older ones kept until `retention.photos_per_spot` |
 | `trips` | `id`, `household_id`, `from_home_id`, `to_home_id`, `date`, `created_by`, `list_id`, `updated_hlc`, `arrived_at`, `cancelled_at` | a planned trip the family shares: from, to, a date and the list it shops on; its bring and buy lists are a view until the person taps *Arrived*, which commits the bring list as flag changes and sets `arrived_at`; a cancelled trip keeps `cancelled_at`; stored so the history shows what moved |
+| `cards` | `id`, `household_id`, `name`, `colour`, `owner_person_id` (null = household), `format`, `value`, `domain` (nullable), `logo_id` (nullable), `updated_hlc`, `archived_at` | a loyalty card: `format` is the barcode symbology (`ean13`, `ean8`, `upca`, `upce`, `code128`, `code39`, `code93`, `itf14`, `codabar`, `qr`, `aztec`, `pdf417`, `datamatrix`), `value` what the barcode says; `domain` is the shop's website when known, for the logo; `logo_id` names the logo file the server fetched, under `photos.dir/<household_id>/cards/`; personal cards have an owner and are filtered by scope exactly as personal lists are |
 | `push_log` | `household_id`, `credential_id`, `sent_at`, `seq` | coalescing: at most one push per device per 30 s |
 
 **Tenancy rules the agent must enforce in code and tests**
 
 - Every sqlc query on a household table has `WHERE household_id = ?` as its first predicate; CI greps `internal/db/queries` and fails on a `SELECT`, `UPDATE` or `DELETE` on those tables without it.
-- Personal lists add a second predicate: `AND (owner_person_id IS NULL OR owner_person_id = ?)`. A guest scope adds `AND list_id = ?` on entries and `AND home_id = ?` on flags and staples.
-- The sync endpoint filters events the same way before returning them: a member never receives another member's personal-list events; a guest receives only events for its home and list. Filtering is by event `kind` and payload fields the fold indexes, so personal-list events carry `list_id` and `owner_person_id` in the payload.
+- Personal lists and personal cards add a second predicate: `AND (owner_person_id IS NULL OR owner_person_id = ?)`. A guest scope adds `AND list_id = ?` on entries and `AND home_id = ?` on flags and staples.
+- The sync endpoint filters events the same way before returning them: a member never receives another member's personal-list events; a guest receives only events for its home and list. Filtering is by event `kind` and payload fields the fold indexes, so personal-list events carry `list_id` and `owner_person_id` in the payload, and every card event carries `card_id` and `owner_person_id`.
 - Uniqueness is scoped: `items.norm_name` per household, `lists.name` per (household, owner), `homes.name` per household.
 - Deleting a household is admin-only and asked twice on its page, members or not; it cascades through `ON DELETE CASCADE`, removes the photo directory and every person left with no household (their devices with them). A member's phone is told nothing: its next sync of that household is refused with 404 and *Leave this household* removes it there, the other households on that doma keep syncing one by one meanwhile.
 - Photos are the only data outside SQLite; the quota is checked before the upload is accepted and the usage is recomputed nightly from disk.
@@ -239,6 +241,10 @@ The server adds `seq`, `person_id`, `credential_id` and `received_at` on append.
 | `trip.planned` | `trip_id`, `from_home_id`, `to_home_id`, `date`, `list_id` | the plan the family shares; add-wins for create, LWW on `hlc` for from, to, date, list and planner |
 | `trip.cancelled` | `trip_id` | sets `cancelled_at` at the earliest cancel; a cancel that lands before its plan makes the row the plan then fills |
 | `trip.arrived` | `trip_id`, `from_home_id`, `to_home_id`, `moved` (list of `item_id`) | for each moved item: `flag.set out` at from-home and `have` at to-home with the trip's `hlc`; one event so a trip is atomic; sets `arrived_at`; a trip nobody planned takes the arrival's homes and wall |
+| `card.added` | `card_id`, `name`, `colour`, `owner_person_id`, `format`, `value`, `domain` | add-wins; fixes the owner, as `list.created` does |
+| `card.edited` | `card_id`, `owner_person_id`, `name`, `colour`, `format`, `value`, `domain` | LWW on `hlc` for each field |
+| `card.archived` | `card_id`, `owner_person_id` | sets `archived_at`; wins over an edit |
+| `card.logo` | `card_id`, `owner_person_id`, `logo_id` | the server's, after it fetched the shop's logo: sets `logo_id`, LWW on `hlc`; the file is downloaded separately by `card_id` and `logo_id` |
 | `member.removed`, `device.revoked` | `person_id`, `credential_id` | server-originated; clients drop the membership or stop syncing that credential |
 
 Rules that hold for every kind: events are idempotent by `id`; the fold is deterministic given the same ordered events; a client folds its own events optimistically at creation and again when they come back with `seq`, with identical result; an unknown `kind` is stored and skipped by the fold, so an old app survives a new server.
@@ -311,6 +317,34 @@ There is no shop mode: the list screen is always ready for the shop. Rows are 52
 
 The guest's web page shows the one list with the same add, strike and clear, rendered server-side with htmx, polling every 10 s, and nothing else about the household.
 
+## Cards
+
+The family's loyalty cards, so the Bonuskaart is one tap from the list at the till and the household shares one number for one shop. A card is a name, a colour, a barcode and, when the server can fetch it, the shop's logo. Nothing else: no offers, no catalogue, no points, nothing the shop sends. A card is the household's by default or one person's, like a list.
+
+**Cards and Card**
+
+- *Cards* is a row at the foot of the Lists overview, next to History, with the count. It shows one tile per card, the logo or the initials in the card's colour with the name under it, the card last shown first (remembered on the device, like the last-used list); the household's cards and the person's own, never another person's. Every shopping list carries a card glyph in its toolbar that opens Cards, so the till is two taps from the list.
+- A tap on a tile shows the *Card*: the barcode large on white in both appearances, the number in digits under it in the data face, the shop's name as the title. While it is in front the screen is at full brightness and stays awake; both are restored when it leaves. The code is drawn by the app, never fetched: Core Image for Code 128, QR, Aztec and PDF417, doma's own encoder in `app/shared/Design/Barcode.swift` for EAN-13, EAN-8, UPC-A, UPC-E, Code 39, Code 93, ITF-14 and Codabar, each tested by drawing a value and reading it back with Vision as the QR test does. A till that will not read a screen gets the digits.
+- A swipe on a tile (the row's menu on the Mac) offers *Edit*, *Share with the family* on a personal card, and *Remove*, armed in place. Share makes a household card with the same fields and archives the personal one, as a list is shared, so the owner is fixed at creation and the sync filter stays what it is. An archived card leaves the screen and keeps its events.
+
+**Add a card**
+
+- `+` on Cards opens *Add a card*: the camera at the top, reading every symbology the table above names (the invite scanner keeps to QR), a *Paste* button beside it for a picture on the clipboard, and the number as a field once read or typed, with its format picked for it, changeable. Under it the name, with suggestions from the bundled shop table as it is typed (a tap takes the name and the shop's website), and *Household* or *Just me*. The card takes the first of the six list colours no card wears. One screen, two fields: the one exception to the one-field rule besides Scan.
+- *Paste* is the way out of Klarna or any other wallet: a screenshot of each card there, copied in Photos, pasted here, read by Vision; a picture with no barcode says so and the number can be typed.
+- The bundled shop table, `app/shared/Resources/shops.json`, is generated by `scripts/shops/gen.py` from OpenStreetMap's Name Suggestion Index (BSD-3-Clause, named in `NOTICE`), filtered to the EU and EFTA countries and the UK: for each chain the name, the website and the countries it trades in. The device's region sorts its own shops first. It is names and websites only; no logo is bundled.
+
+**Logos**
+
+- When `logos.enabled` is on, a server job takes each `card.added` or `card.edited` with a `domain`, asks logo.dev for the shop's logo through its Brand API with `logos.api_key`, decodes and re-encodes what comes back as a PNG of at most 256 px, stores it under `photos.dir/<household_id>/cards/<card_id>-<logo_id>.png` and appends one `card.logo`. A card without a website is looked up by name first, the top result taken; a wrong logo is corrected by typing the website in *Edit*. A failed fetch is logged and left alone until the next edit; the tile keeps its initials. The server sends the shop's website or name, never the card's number or a person's name. Logo files count in the household's photo bytes.
+- With the switch off, every card is its initials in its colour, and nothing is fetched. The Community plan at logo.dev is free, needs no card and asks no attribution of a personal project; the README names it anyway.
+- The apps download a logo by `GET /cards/v1/{household}/{card_id}/logo/{logo_id}`, signed like a photo, once per `logo_id`, and keep it in the store.
+
+**What cards are not**
+
+- Not on the guest view, not in the web client in this phase, never on an admin page. The Watch app, when it comes, shows them as its second screen.
+- Not in Apple Wallet: Wallet draws none of the EAN and UPC codes the supermarkets use, which is why every card app draws its own.
+- A card's number is in the log, the export (`cards.csv`, filtered per person like `lists/*.md`) and the snapshot, as every event is, and behind the app's lock with everything else.
+
 ## Homes, stock flags and trips
 
 Stock is a presence flag per item per home, never a count. Whoever notices sets it; whoever leaves takes a photo; the trip view turns the two into a bring list and a buy list.
@@ -359,6 +393,9 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join; a browser's sign-in code, scanned or pasted, signs that browser in | registers the device, accepts the invite |
 | Lists | opens into the last-used list; the Lists button or a second tab tap leads to the overview: household lists, then personal, colour dot, name, the checklist symbol on a tasks list, how many to get or to do; `+` to create, shopping or tasks | `list.created` |
 | History | under the Lists overview, a row at its foot with this month's count: the month stepped back and forth, the month's purchases per item with the times and the totals of `qty` by `unit`, per home, who shopped; reads the entries table; swipe on an item row for Rename, Merge into and Retire | `item.renamed`, `item.merged`, `item.archived` |
+| Cards | under the Lists overview, a row at its foot next to History; a tile per card, logo or initials in its colour, last shown first; `+` adds one; swipe for Edit, Share with the family, Remove; reached from the card glyph in every shopping list's toolbar | `card.edited`, `card.archived`, `card.added` (share) |
+| Card | the barcode large on white, the digits under it, full brightness and the screen awake while in front | |
+| Add a card | camera for every symbology, Paste for a picture on the clipboard, the number and its format, the name with suggestions from the bundled shop table, Household or Just me | `card.added` |
 | List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it, and the mic at its end; swipe left for Not needed and Edit, long-press to drag | `item.named`, `entry.*` |
 | Homes | one card per home: name, count of out/low/unknown staples, spot thumbnails; `+` makes a home, Rename and Archive on the row (a trip needs a second home and nothing else makes one) | `home.*` |
 | Home | *From the pictures* first, when a photo left proposals, each with Accept and Keep; staples with flag buttons in rows as a list's, typed into a bar at the bottom as entries are on a list, Rename and Remove on a swipe, a long-press is drag to reorder (the `sort` on `staple.added`); other flagged items; the spots' pictures below with `+` for a new one, Rename and Remove on a long-press; the trips through the home; *Take photos* | `flag.set`, `flag.proposed` (the server's), `proposal.declined`, `staple.*`, `spot.*`, `photo.added` |
@@ -395,7 +432,7 @@ The Mac target reuses every screen in a `NavigationSplitView`: sidebar with List
 
 **Simplicity budget**
 
-Four tabs, at most one list and one detail per screen, no screen with more than one text field apart from Scan. Anything that does not fit is a long-press item or a Settings row, not a new screen.
+Four tabs, at most one list and one detail per screen, no screen with more than one text field apart from Scan and Add a card. Anything that does not fit is a long-press item or a Settings row, not a new screen.
 
 ## Web: guest view, admin pages, later web client
 
@@ -461,6 +498,7 @@ Three surfaces on one router: the sync endpoint for the apps, a REST API for eve
 | `GET /sync/v1/snapshot/{household}/{seq}` | gzip JSON snapshot download |
 | `POST /photos/v1/{household}/{photo_id}` | JPEG upload for an accepted `photo.added`; 413 over quota |
 | `GET /photos/v1/{household}/{photo_id}[/thumb]` | signed, cacheable 1 h |
+| `GET /cards/v1/{household}/{card_id}/logo/{logo_id}` | the shop's logo the server fetched, PNG, signed and cacheable like a photo; 404 for another person's card |
 | `POST /i/{token}` | accept an invite: body `{public_key, platform, label, display_name}`; returns `{server, person_id, credential_id, display_name, household, role}`; for a device invite the person's name wins over the typed one; 413 when the household's `quota_devices` has no seat for the devices coming in (a rejoin takes no seat); `GET /i/{token}` renders the App Store page with the deep link |
 | `GET /api/v1/me` | person, credentials, memberships with roles, each with the household's name, time zone and staleness (the apps refresh their copy of the household from it) |
 | `POST /api/v1/vouch` | the phone names the person at a browser that shows a web sign-in code; body `{token}`; 404 for a code unknown, expired or used |
@@ -470,7 +508,7 @@ Three surfaces on one router: the sync endpoint for the apps, a REST API for eve
 | `DELETE /api/v1/credentials/{id}` | a person revokes their own device; owners revoke any device in their household |
 | `PUT /api/v1/h/{household}` | name, timezone, staleness (owners) |
 | `POST /api/v1/devices/{credential}/apns` | register or refresh the APNs token |
-| `GET /api/v1/h/{household}/export` | zip: `household.json`, `events.ndjson`, `purchases.csv`, `lists/*.md`, `homes/*.md`, `photos/` (members) |
+| `GET /api/v1/h/{household}/export` | zip: `household.json`, `events.ndjson`, `purchases.csv`, `lists/*.md`, `homes/*.md`, `cards.csv`, `photos/` (members) |
 | `GET /healthz` · `GET /readyz` · `GET /metrics` | process up; DB writable and snapshot job alive; Prometheus with a bearer when `metrics.token` is set |
 | `GET /api/v1/openapi.yaml` | hand-maintained, tested against the router |
 
@@ -486,13 +524,13 @@ The attack surface is small and named: invite and guest links, the sync signatur
 
 - **Device keys.** Ed25519 (or P-256) public key stored in `credentials`; every app request signs `method\npath\ntimestamp\nsha256(body)`; the server rejects timestamps more than 5 min off and replays within the window by a per-credential nonce cache. The private key never leaves the Keychain; a lost phone is revoked from Family or `/admin`, and the next sync from it gets 401 and the app wipes its local store for that server.
 - **Invites and guest links.** 32 random bytes, base64url, stored as SHA-256; shown once in a QR or link; single use for invites, time-limited for both; constant-time comparison; 10 failed token lookups per minute per IP, then 429. The App Store deep link carries the token in the fragment, not the query, so it does not land in logs.
-- **Personal lists.** Filtered in the sync layer by the fold's index of `owner_person_id` on every list event, tested by the cross-person suite: two members in one household never see each other's personal entries through sync, REST or export.
+- **Personal lists and cards.** Filtered in the sync layer by the fold's index of `owner_person_id` on every list event and by the `owner_person_id` every card event carries, tested by the cross-person suite: two members in one household never see each other's personal entries or cards through sync, REST, logo download or export.
 - **Guests.** A guest scope is `(household, home, list)`; the sync filter and every query add those predicates; a guest cannot call `/sync/v1` at all, only the web routes.
 - **Photos.** Decoded and re-encoded server-side (JPEG only) to strip metadata and defuse malformed files; served with `Content-Type: image/jpeg`, `X-Content-Type-Options: nosniff`, from a signed URL valid 1 h. Quota is enforced before the body is read (`Content-Length`) and again after.
 - **Admin.** argon2id (`t=2, m=64MB, p=1`), session cookie `HttpOnly, Secure, SameSite=Lax`, CSRF double-submit on every form, 5 failed logins per minute per IP, optional TOTP in v1 since it is one screen. Either that or the proxy's sign-in, never both: with `admin.auth = "proxy"` the reverse proxy in front (Authelia) signs the admin in and names them in `Remote-User`, which the server believes only from a peer in `admin.proxy_cidrs` that also sends `admin.proxy_secret` in `X-Auth-Proxy-Secret`, on every request; the password form is then not served. A proxy sign-in may stand in front of the admin pages only, never the family's links or the apps' paths.
 - **Passkeys and the web client.** WebAuthn through go-webauthn, the server's one authentication library; discoverable credentials, user verification preferred, no attestation asked; the challenge lives five minutes in memory behind a cookie; the sign count is kept and a clone warning refuses. The browser session is a `HttpOnly, Secure, SameSite=Lax` cookie with CSRF double-submit on every form and htmx request, like the admin's. The vouch code is 256 bits, five minutes, single use, and only a signed device request can redeem it.
 - **Headers on every page.** `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`.
-- **Outbound.** The server makes no outbound connection except APNs (`api.push.apple.com`) when `push.enabled` is on and the vision model at `vision.url` when `vision.enabled` is on; with both off, nothing at all. Each client is built only when its switch is on, both have one dialer a test wires to fail, and the egress gate in CI names the two files. The model is sent the picture and the staples' names, never a name of a person or a home's address. No update check, no telemetry, no CDN.
+- **Outbound.** The server makes no outbound connection except APNs (`api.push.apple.com`) when `push.enabled` is on and the vision model at `vision.url` when `vision.enabled` is on, and logo.dev when `logos.enabled` is on; with all three off, nothing at all. Each client is built only when its switch is on, each has one dialer a test wires to fail, and the egress gate in CI names the three files. The model is sent the picture and the staples' names, never a name of a person or a home's address; logo.dev is sent a shop's website or name, never a card's number. No update check, no telemetry, no CDN.
 - **Secrets at rest.** The APNs `.p8` key and the admin TOTP secret are encrypted with XChaCha20-Poly1305 under `secrets.key_file` (32 bytes, created on first run). Back it up with the database: without it the APNs key must be re-uploaded, nothing else is lost.
 - **Cross-tenant suite.** Integration tests create two households and two persons per household plus one guest, and assert 404 across every boundary for sync, REST, photos and export.
 - **Supply chain.** `go.sum` verified, `govulncheck` in CI, no cgo, `-trimpath -ldflags "-s -w -buildid="`, SBOM from the release workflow; the apps pin GRDB by version and carry no other dependency.
@@ -544,6 +582,10 @@ url = ""                   # openai: the base, e.g. http://ollama:11434/v1; anth
 model = ""                 # e.g. qwen2.5vl, or claude-opus-5-5
 api_key = ""               # env:DOMA_VISION_API_KEY when the endpoint wants one, required for anthropic; redacted on the server page
 timeout_seconds = 60
+[logos]
+enabled = false            # the server fetches a shop's logo for each card from logo.dev
+api_key = ""               # env:DOMA_LOGOS_API_KEY, the Brand API's secret key; redacted on the server page
+timeout_seconds = 20
 
 [admin]
 auth = "password"                       # or "proxy": the reverse proxy in front signs the admin in (Remote-User)
@@ -618,6 +660,12 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 - [x] History and overviews: purchases per item, per month and per home, totals of `qty` by `unit`; read from the entries table, no new events
 - [x] Tasks as a third list kind: `lists.kind`, set by `list.created`; done instead of got, names kept apart while typing, no homes, no purchases
 - [ ] Watch app for lists
+
+**Phase 4 — cards** (gate: the family pays with a card from doma for two weeks and the old wallet app is deleted)
+
+- [ ] Server: the `cards` table, the four card events in the fold and the fixture, the sync filter and the cross-person suite on cards, `cards.csv` in the export, the snapshot
+- [ ] Apps: the barcode encoder with its round-trip test, the scanner widened for Add a card, Paste from a picture, the Cards, Card and Add a card screens with the card glyph on lists, the bundled shop table and its generator, snapshots in light and dark
+- [ ] Logos: `internal/logos` behind `logos.enabled`, the `card.logo` event, the logo route, the egress gate on the third file
 - [ ] App Store, last: the listing under the qualified name, the demo household for review, submission (gate: a second family installs from the store)
 
 **Open decisions** (defaults the agent takes unless overruled)
@@ -635,4 +683,6 @@ Phase 0 is the biggest and the only one with a fixed shape; phases 1 and 2 are s
 | Admin TOTP | in v1 | phase 2 |
 | Licence and repo visibility | public, MIT, as vink (opened 2026-11-03) | private until the public install |
 | Passkeys | go-webauthn/webauthn, the one authentication library, pinned (decided 2026-11-07) | a hand-written verifier for ES256 and none attestation; fewer modules, more to get wrong |
+| Logo source | logo.dev through its Brand API, behind `logos.enabled`, off by default, fetched and stored by the server once per card change (decided 2026-11-08): free Community plan, storing what the API returns is allowed, no attribution asked of a personal project | Brandfetch is free and larger but permits embedding only, no fetching or caching, which only the phone could do and the phone calls nothing but doma; the shop's own site icon, blocked by a third of the EU retailers probed; a bundled logo set, a trademark and licence question per file |
+| Moving a card into doma | a screenshot of the card in the old wallet, copied in Photos and pasted on Add a card, read by Vision; no new modal | a photo picker, a third modal beside the camera and the share sheet |
 | Vision model | an endpoint the operator names, behind `vision.enabled`, off by default: an OpenAI-compatible one, self-hosted (Ollama, LM Studio, vLLM) or hosted, or Claude through Anthropic's Messages API with `vision.provider = "anthropic"` (decided 2026-11-07) | a model on the phone; no server job, weaker models, every phone its own |
