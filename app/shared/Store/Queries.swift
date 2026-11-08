@@ -129,7 +129,7 @@ enum Queries {
             FROM entries e
             LEFT JOIN items i ON i.server_id = e.server_id AND i.household_id = e.household_id AND i.id = e.item_id
             LEFT JOIN items o ON o.server_id = i.server_id AND o.household_id = i.household_id AND o.id = i.merged_into
-            WHERE e.server_id = ? AND e.household_id = ? AND e.list_id = ? AND e.cleared_hlc IS NOT NULL
+            WHERE e.server_id = ? AND e.household_id = ? AND e.list_id = ? AND e.cleared_hlc IS NOT NULL AND \(notRetired)
               AND NOT EXISTS (SELECT 1 FROM entries x WHERE x.server_id = e.server_id AND x.household_id = e.household_id AND x.list_id = e.list_id AND x.item_id = e.item_id AND x.cleared_hlc IS NULL)
             GROUP BY e.item_id
             ORDER BY cleared_at DESC

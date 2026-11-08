@@ -11,9 +11,9 @@ updates this file first. Dates are the tag dates.
   every past month. Merge into folds a misspelled or duplicate item into the one to keep, picked
   by typing its name, armed in place; its purchases count under the kept item from then on and the
   old spelling still finds it while typing. Merge was a Mac-only action on a list row until now.
-- **Retire an item.** The third action on a History row, armed in place. A retired item stops
-  coming up while typing and among the usual items, keeps its place in every past month, and
-  comes back by itself when someone types its name again in full. A new event, `item.archived`,
+- **Retire an item.** The third action on a History row, armed in place. A retired item leaves
+  typing, the usual items, Recent and History; its purchases stay in the export and come back
+  with it when someone types its name again in full. A new event, `item.archived`,
   with its fold rule in both folds and the fixture.
 - **A blind strike is harder.** A strike and a restore are felt as a firm tap, the row keeps its
   place for two and a half seconds with *Put back* or *Got it* at its edge, and on the phone a tap
