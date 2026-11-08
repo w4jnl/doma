@@ -3,6 +3,9 @@
 // Per item with how many times, the totals
 // of quantity by unit and when last; per home; who shopped. It reads the cleared entries and
 // makes no event, so it is the same on every phone and on the Mac.
+// It is also where the family tidies its items: a swipe on an item row (the row's menu on the
+// Mac) offers Rename and Merge into, which fix the past months too, since every month reads the
+// item's current name and a merged item reads through to the one it was merged into.
 import SwiftUI
 
 /// The route the Lists overview pushes.
@@ -15,6 +18,15 @@ struct HistoryView: View {
     /// The month stepped to; until then the screen shows the latest month with a purchase,
     /// this one when there is none, so the first days of a month do not open on nothing.
     @State private var picked: String?
+    /// The item being renamed in its row, and the name as typed.
+    @State private var renaming: String?
+    @State private var renameText = ""
+    /// The item being merged into another: its row becomes a field, and the catalog's matches
+    /// for what is typed follow under it, each armed in place.
+    @State private var merging: String?
+    @State private var mergeText = ""
+    @State private var candidates: [Match] = []
+    @FocusState private var fieldFocused: Bool
 
     private var month: String {
         picked ?? months?.value.first?.month ?? Self.month(of: RelativeText.now())
@@ -40,7 +52,16 @@ struct HistoryView: View {
             } else {
                 Section {
                     ForEach(o.items) { item in
-                        itemRow(item)
+                        if renaming == item.itemID {
+                            renameRow(item)
+                        } else if merging == item.itemID {
+                            mergeRow(item)
+                            ForEach(candidates) { m in
+                                candidateRow(m, for: item)
+                            }
+                        } else {
+                            itemRow(item)
+                        }
                     }
                 } header: {
                     SectionHeader("Items")
@@ -82,7 +103,12 @@ struct HistoryView: View {
         }
         .onAppear(perform: observe)
         .onChange(of: session.scope) { observe() }
-        .onChange(of: month) { observeMonth() }
+        .onChange(of: month) {
+            renaming = nil
+            merging = nil
+            observeMonth()
+        }
+        .onChange(of: mergeText) { findCandidates() }
     }
 
     private func observe() {
@@ -167,6 +193,23 @@ struct HistoryView: View {
     // MARK: Rows
 
     private func itemRow(_ item: PurchasedItem) -> some View {
+        itemContent(item)
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button("Merge into…") { startMerge(item) }
+                    .tint(Tokens.inkMuted)
+                Button("Rename") { startRename(item) }
+                    .tint(Tokens.accent)
+            }
+            #if os(macOS)
+            .contextMenu {
+                Button("Rename") { startRename(item) }
+                Button("Merge into…") { startMerge(item) }
+            }
+            .onTapGesture(count: 2) { startRename(item) }
+            #endif
+    }
+
+    private func itemContent(_ item: PurchasedItem) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Tokens.space3) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
@@ -188,6 +231,102 @@ struct HistoryView: View {
         .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("history-" + item.name)
+    }
+
+    // MARK: Tidying
+
+    private func startRename(_ item: PurchasedItem) {
+        merging = nil
+        renameText = item.name
+        renaming = item.itemID
+        fieldFocused = true
+    }
+
+    private func startMerge(_ item: PurchasedItem) {
+        renaming = nil
+        mergeText = ""
+        candidates = []
+        merging = item.itemID
+        fieldFocused = true
+    }
+
+    private func done() {
+        renaming = nil
+        merging = nil
+        fieldFocused = false
+    }
+
+    /// The catalog's matches for the typed name, as under the add bar, without the item itself.
+    private func findCandidates() {
+        guard let scope = session.scope, let drop = merging else { return }
+        let text = mergeText
+        candidates = ((try? session.store.read(scope) { db, s in try Queries.matches(db, s, prefix: text) }) ?? []).filter { $0.itemID != drop }
+    }
+
+    /// Rename, in the row: the item's name, which is its name on every list, at every home and
+    /// in every month here.
+    private func renameRow(_ item: PurchasedItem) -> some View {
+        HStack(spacing: Tokens.space3) {
+            TextField("Name", text: $renameText)
+                .textFieldStyle(.plain)
+                .focused($fieldFocused)
+                .submitLabel(.done)
+                .onSubmit {
+                    try? HomeActions.renameItem(item.itemID, to: renameText, in: session)
+                    done()
+                }
+                .accessibilityIdentifier("rename-item")
+            #if os(iOS)
+            Button("Cancel") { done() }
+                .buttonStyle(.plain)
+                .foregroundStyle(Tokens.inkMuted)
+            #endif
+        }
+        .frame(minHeight: ListView.rowHeight)
+        #if os(macOS)
+        .onExitCommand { done() }
+        #endif
+        .listRowBackground(Tokens.surface)
+        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+    }
+
+    /// Merge into, in the row: type the name of the item to keep; the matches follow under it.
+    private func mergeRow(_ item: PurchasedItem) -> some View {
+        HStack(spacing: Tokens.space3) {
+            TextField("Merge \(item.name) into…", text: $mergeText)
+                .textFieldStyle(.plain)
+                .focused($fieldFocused)
+                .submitLabel(.done)
+                .onSubmit { if candidates.isEmpty { done() } }
+                .accessibilityIdentifier("merge-item")
+            #if os(iOS)
+            Button("Cancel") { done() }
+                .buttonStyle(.plain)
+                .foregroundStyle(Tokens.inkMuted)
+            #endif
+        }
+        .frame(minHeight: ListView.rowHeight)
+        #if os(macOS)
+        .onExitCommand { done() }
+        #endif
+        .listRowBackground(Tokens.surface)
+        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+    }
+
+    /// One item the dropped one could be merged into, armed in place: merge is one way.
+    private func candidateRow(_ m: Match, for item: PurchasedItem) -> some View {
+        HStack(spacing: Tokens.space3) {
+            ArmedButton(title: LocalizedStringKey(m.name), armedTitle: "Really merge into \(m.name)?", tint: Tokens.ink) {
+                try? HomeActions.mergeItem(item.itemID, into: m.itemID, in: session)
+                done()
+            }
+            .accessibilityIdentifier("merge-into-" + m.name)
+            Spacer(minLength: Tokens.space2)
+        }
+        .frame(minHeight: ListView.rowHeight)
+        .listRowBackground(Tokens.surface)
+        .listRowSeparatorTint(Tokens.line)
+        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space5 + Tokens.space3, bottom: 0, trailing: Tokens.space4))
     }
 
     private func countRow(_ name: String, _ times: Int) -> some View {

@@ -1793,6 +1793,38 @@
         }
       }
     },
+    "Merge %@ into…": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ samenvoegen met…"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zlúčiť %@ do…"
+          }
+        }
+      }
+    },
+    "Merge into…": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samenvoegen met…"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zlúčiť do…"
+          }
+        }
+      }
+    },
     "Merge with…": {
       "localizations": {
         "nl": {
@@ -2317,6 +2349,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Naozaj odísť?"
+          }
+        }
+      }
+    },
+    "Really merge into %@?": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Echt samenvoegen met %@?"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naozaj zlúčiť do %@?"
           }
         }
       }
