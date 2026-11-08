@@ -2373,6 +2373,196 @@
           }
         ]
       }
+    },
+    {
+      "name": "a retired item stops coming up but keeps its history; named again, by a new id in full or by its own id, it is back, and a merge into it brings it back too",
+      "events": [
+        {
+          "id": "l1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "list.created",
+          "payload": {
+            "list_id": "L1",
+            "name": "Boodschappen",
+            "default": true
+          }
+        },
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "mlk"
+          }
+        },
+        {
+          "id": "i2",
+          "person_id": "pa",
+          "hlc": "1001:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I2",
+            "name": "kaas"
+          }
+        },
+        {
+          "id": "i3",
+          "person_id": "pa",
+          "hlc": "1002:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I3",
+            "name": "wijn"
+          }
+        },
+        {
+          "id": "e1",
+          "person_id": "pa",
+          "hlc": "1100:0:a",
+          "kind": "entry.added",
+          "payload": {
+            "list_id": "L1",
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "a1",
+          "person_id": "pb",
+          "hlc": "1200:0:b",
+          "kind": "item.archived",
+          "payload": {
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "a2",
+          "person_id": "pb",
+          "hlc": "1201:0:b",
+          "kind": "item.archived",
+          "payload": {
+            "item_id": "I2"
+          }
+        },
+        {
+          "id": "a3",
+          "person_id": "pb",
+          "hlc": "1202:0:b",
+          "kind": "item.archived",
+          "payload": {
+            "item_id": "I3"
+          }
+        },
+        {
+          "id": "i4",
+          "person_id": "pa",
+          "hlc": "1300:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I4",
+            "name": "Kaas"
+          }
+        },
+        {
+          "id": "m1",
+          "person_id": "pa",
+          "hlc": "1400:0:a",
+          "kind": "item.merged",
+          "payload": {
+            "keep_id": "I3",
+            "drop_id": "I4"
+          }
+        },
+        {
+          "id": "i5",
+          "person_id": "pa",
+          "hlc": "1500:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "mlk"
+          }
+        },
+        {
+          "id": "a4",
+          "person_id": "pb",
+          "hlc": "1600:0:b",
+          "kind": "item.archived",
+          "payload": {
+            "item_id": "I1"
+          }
+        },
+        {
+          "id": "i6",
+          "person_id": "pa",
+          "hlc": "1700:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "mlk"
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "mlk",
+            "norm_name": "mlk",
+            "use_count": 1,
+            "last_used_at": 1100,
+            "created_hlc": "1000:0:a",
+            "updated_hlc": "1700:0:a"
+          },
+          {
+            "id": "I2",
+            "name": "kaas",
+            "merged_into": "I3",
+            "created_hlc": "1001:0:a",
+            "updated_hlc": "1001:0:a"
+          },
+          {
+            "id": "I3",
+            "name": "wijn",
+            "norm_name": "wijn",
+            "created_hlc": "1002:0:a",
+            "updated_hlc": "1002:0:a"
+          },
+          {
+            "id": "I4",
+            "name": "Kaas",
+            "merged_into": "I3",
+            "created_hlc": "1300:0:a",
+            "updated_hlc": "1300:0:a"
+          }
+        ],
+        "item_aliases": [
+          {
+            "item_id": "I3",
+            "norm_name": "kaas"
+          }
+        ],
+        "lists": [
+          {
+            "id": "L1",
+            "name": "Boodschappen",
+            "is_default": true,
+            "updated_hlc": "900:0:a"
+          }
+        ],
+        "entries": [
+          {
+            "id": "e1",
+            "list_id": "L1",
+            "item_id": "I1",
+            "sort": 1100,
+            "added_hlc": "1100:0:a",
+            "added_by": "pa"
+          }
+        ]
+      }
     }
   ]
 }

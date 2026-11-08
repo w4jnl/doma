@@ -5,7 +5,9 @@
 // makes no event, so it is the same on every phone and on the Mac.
 // It is also where the family tidies its items: a swipe on an item row (the row's menu on the
 // Mac) offers Rename and Merge into, which fix the past months too, since every month reads the
-// item's current name and a merged item reads through to the one it was merged into.
+// item's current name and a merged item reads through to the one it was merged into, and
+// Retire, armed in place, which stops an item coming up while typing and leaves its months as
+// they are.
 import SwiftUI
 
 /// The route the Lists overview pushes.
@@ -27,6 +29,9 @@ struct HistoryView: View {
     @State private var mergeText = ""
     @State private var candidates: [Match] = []
     @FocusState private var fieldFocused: Bool
+    /// The item whose Retire is armed in its row, and the task that disarms it.
+    @State private var arming: String?
+    @State private var disarm: Task<Void, Never>?
 
     private var month: String {
         picked ?? months?.value.first?.month ?? Self.month(of: RelativeText.now())
@@ -195,6 +200,8 @@ struct HistoryView: View {
     private func itemRow(_ item: PurchasedItem) -> some View {
         itemContent(item)
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button("Retire", role: .destructive) { arm(item.itemID) }
+                    .tint(Tokens.out)
                 Button("Merge into…") { startMerge(item) }
                     .tint(Tokens.inkMuted)
                 Button("Rename") { startRename(item) }
@@ -204,6 +211,7 @@ struct HistoryView: View {
             .contextMenu {
                 Button("Rename") { startRename(item) }
                 Button("Merge into…") { startMerge(item) }
+                Button("Retire", role: .destructive) { arm(item.itemID) }
             }
             .onTapGesture(count: 2) { startRename(item) }
             #endif
@@ -219,10 +227,27 @@ struct HistoryView: View {
                     .foregroundStyle(Tokens.inkMuted)
             }
             Spacer(minLength: Tokens.space2)
-            Text(item.totals.map(\.text).joined(separator: ", "))
-                .font(Tokens.mono(.subheadline))
-                .foregroundStyle(Tokens.inkMuted)
-                .frame(minWidth: Tokens.space7, alignment: .trailing)
+            if arming == item.itemID {
+                Button {
+                    arming = nil
+                    disarm?.cancel()
+                    try? HomeActions.retireItem(item.itemID, in: session)
+                } label: {
+                    Text("Really retire?")
+                        .font(.footnote)
+                        .foregroundStyle(Tokens.onOut)
+                        .padding(.horizontal, Tokens.space2)
+                        .padding(.vertical, Tokens.space1)
+                        .background(Tokens.out, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
+                }
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("retire-" + item.name)
+            } else {
+                Text(item.totals.map(\.text).joined(separator: ", "))
+                    .font(Tokens.mono(.subheadline))
+                    .foregroundStyle(Tokens.inkMuted)
+                    .frame(minWidth: Tokens.space7, alignment: .trailing)
+            }
         }
         .padding(.vertical, Tokens.space1)
         .frame(minHeight: ListView.rowHeight)
@@ -235,7 +260,17 @@ struct HistoryView: View {
 
     // MARK: Tidying
 
+    private func arm(_ id: String) {
+        arming = id
+        disarm?.cancel()
+        disarm = Task {
+            try? await Task.sleep(for: .seconds(4))
+            if !Task.isCancelled, arming == id { arming = nil }
+        }
+    }
+
     private func startRename(_ item: PurchasedItem) {
+        arming = nil
         merging = nil
         renameText = item.name
         renaming = item.itemID
@@ -243,6 +278,7 @@ struct HistoryView: View {
     }
 
     private func startMerge(_ item: PurchasedItem) {
+        arming = nil
         renaming = nil
         mergeText = ""
         candidates = []

@@ -16,6 +16,7 @@ final class EventSchemaTests: XCTestCase {
         (Kind.itemNamed, ItemPayload(itemID: "01JBX0000000000000000000AA", name: "melk")),
         (Kind.itemRenamed, ItemPayload(itemID: "I1", name: "halfvolle melk")),
         (Kind.itemMerged, ItemPayload(keepID: "I1", dropID: "I2")),
+        (Kind.itemArchived, ItemPayload(itemID: "I1")),
         (Kind.listCreated, ListPayload(listID: "L1", name: "Weekend", colour: "teal", ownerPersonID: "P1", isDefault: false)),
         (Kind.listRenamed, ListPayload(listID: "L1", name: "Hut", colour: "")),
         (Kind.listArchived, ListPayload(listID: "L1")),

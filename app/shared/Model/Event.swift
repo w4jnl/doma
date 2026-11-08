@@ -48,6 +48,7 @@ struct Event: Hashable, Sendable, Codable {
 /// Every event kind the fold knows, in the order of the design document's table.
 enum Kind {
     static let itemNamed = "item.named", itemRenamed = "item.renamed", itemMerged = "item.merged"
+    static let itemArchived = "item.archived"
     static let listCreated = "list.created", listRenamed = "list.renamed", listArchived = "list.archived"
     static let entryAdded = "entry.added", entryEdited = "entry.edited", entryChecked = "entry.checked"
     static let entryUnchecked = "entry.unchecked", entryCleared = "entry.cleared", entryMoved = "entry.moved"
@@ -60,7 +61,7 @@ enum Kind {
     static let tripPlanned = "trip.planned", tripCancelled = "trip.cancelled", tripArrived = "trip.arrived"
     static let memberRemoved = "member.removed", deviceRevoked = "device.revoked"
 
-    static let all = [itemNamed, itemRenamed, itemMerged, listCreated, listRenamed, listArchived,
+    static let all = [itemNamed, itemRenamed, itemMerged, itemArchived, listCreated, listRenamed, listArchived,
                       entryAdded, entryEdited, entryChecked, entryUnchecked, entryCleared, entryMoved, entryRemoved,
                       flagSet, flagProposed, proposalDeclined, stapleAdded, stapleRemoved, homeCreated, homeRenamed, homeArchived,
                       spotCreated, spotRenamed, spotArchived, photoAdded, tripPlanned, tripCancelled, tripArrived, memberRemoved, deviceRevoked]

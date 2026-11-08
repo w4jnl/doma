@@ -20,7 +20,7 @@ enum Fold {
     /// reads for replays. An unknown kind is skipped, so an old app survives a new server.
     static func apply(_ e: Event, to s: some FoldStore) throws {
         switch e.kind {
-        case Kind.itemNamed, Kind.itemRenamed, Kind.itemMerged:
+        case Kind.itemNamed, Kind.itemRenamed, Kind.itemMerged, Kind.itemArchived:
             try Catalog.replay(s)
         case Kind.listCreated, Kind.listRenamed, Kind.listArchived:
             try Lists.applyList(s, e)

@@ -215,7 +215,7 @@ func (q *Queries) InsertEvent(ctx context.Context, arg InsertEventParams) error 
 
 const itemEvents = `-- name: ItemEvents :many
 SELECT household_id, seq, id, person_id, credential_id, hlc, kind, payload, received_at FROM events
-WHERE household_id = ? AND kind IN ('item.named', 'item.renamed', 'item.merged')
+WHERE household_id = ? AND kind IN ('item.named', 'item.renamed', 'item.merged', 'item.archived')
 ORDER BY hlc
 `
 
