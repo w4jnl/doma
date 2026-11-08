@@ -15,6 +15,10 @@ updates this file first. Dates are the tag dates.
   coming up while typing and among the usual items, keeps its place in every past month, and
   comes back by itself when someone types its name again in full. A new event, `item.archived`,
   with its fold rule in both folds and the fixture.
+- **A blind strike is harder.** A strike and a restore are felt as a firm tap, the row keeps its
+  place for two and a half seconds with *Put back* or *Got it* at its edge, and on the phone a tap
+  in the first half second after the list or doma comes to the front is ignored. Settings, under
+  Lists, turns that off or makes it one or two seconds.
 
 ## 0.6.1 (2026-11-07)
 

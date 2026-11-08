@@ -25,6 +25,7 @@ struct SettingsView: View {
     @State private var lists: Live<[ListSummary]>?
     @AppStorage("lock.biometrics") private var lockWithBiometrics = false
     @AppStorage("lock.after") private var lockAfter = LockAfter.immediately.rawValue
+    @AppStorage(StrikeGuard.key) private var guardSeconds = StrikeGuard.defaultSeconds
     #endif
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
@@ -99,6 +100,23 @@ struct SettingsView: View {
                 SectionHeader("Notifications")
             } footer: {
                 Text("A word when someone else adds to a list or clears it, at most every two minutes. Never for what you did yourself.")
+                    .font(.footnote)
+                    .foregroundStyle(Tokens.inkMuted)
+            }
+            .listRowBackground(FamilyView.rowGround)
+            .listRowSeparatorTint(Tokens.line)
+            Section {
+                Picker("Ignore taps after opening", selection: $guardSeconds) {
+                    ForEach(StrikeGuard.choices, id: \.self) { choice in
+                        Text(StrikeGuard.title(choice)).tag(choice)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(Tokens.inkMuted)
+            } header: {
+                SectionHeader("Lists")
+            } footer: {
+                Text("A tap on a list in the first moment after doma comes to the front is ignored, so a pocket or a pickup strikes nothing.")
                     .font(.footnote)
                     .foregroundStyle(Tokens.inkMuted)
             }

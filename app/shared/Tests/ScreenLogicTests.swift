@@ -237,4 +237,19 @@ final class ScreenLogicTests: XCTestCase {
         XCTAssertEqual(try s.store.contexts().count, 1)
         XCTAssertEqual(s.households.count, 1)
     }
+
+    /// A tap in the first moment after the list came to the front is no strike; off, every
+    /// tap counts.
+    func testStrikeGuard() {
+        let front = Date(timeIntervalSince1970: 1000)
+        let g = StrikeGuard(since: front, seconds: 0.5)
+        XCTAssertFalse(g.allows(front))
+        XCTAssertFalse(g.allows(front.addingTimeInterval(0.4)))
+        XCTAssertTrue(g.allows(front.addingTimeInterval(0.5)))
+        XCTAssertTrue(g.allows(front.addingTimeInterval(60)))
+        XCTAssertTrue(StrikeGuard(since: front, seconds: 0).allows(front), "off: every tap counts")
+        XCTAssertFalse(StrikeGuard(since: front, seconds: 2).allows(front.addingTimeInterval(1.9)))
+        XCTAssertEqual(StrikeGuard.choices.first, 0)
+        XCTAssertTrue(StrikeGuard.choices.contains(StrikeGuard.defaultSeconds))
+    }
 }

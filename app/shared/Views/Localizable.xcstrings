@@ -369,6 +369,22 @@
         }
       }
     },
+    "1 second": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 seconde"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 sekunda"
+          }
+        }
+      }
+    },
     "15 minutes": {
       "localizations": {
         "nl": {
@@ -381,6 +397,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "15 minútach"
+          }
+        }
+      }
+    },
+    "2 seconds": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 seconden"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 sekundy"
           }
         }
       }
@@ -477,6 +509,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zoznam, ktorý vidíš len ty. Ťukni na + a vyber Len ja."
+          }
+        }
+      }
+    },
+    "A tap on a list in the first moment after doma comes to the front is ignored, so a pocket or a pickup strikes nothing.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een tik op een lijst vlak nadat doma naar voren komt wordt genegeerd, zodat een broekzak of het oppakken niets afstreept."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ťuknutie na zoznam hneď po tom, čo sa doma dostane dopredu, sa ignoruje, takže vrecko ani zdvihnutie nič neodškrtne."
           }
         }
       }
@@ -1329,6 +1377,22 @@
         }
       }
     },
+    "Half a second": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een halve seconde"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pol sekundy"
+          }
+        }
+      }
+    },
     "History": {
       "localizations": {
         "nl": {
@@ -1405,6 +1469,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Domácnosť"
+          }
+        }
+      }
+    },
+    "Ignore taps after opening": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tikken na openen negeren"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ignorovať ťuknutia po otvorení"
           }
         }
       }
@@ -2157,6 +2237,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Upozornenia"
+          }
+        }
+      }
+    },
+    "Off": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vypnuté"
           }
         }
       }
@@ -2973,6 +3069,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ťukni znova pre potvrdenie"
+          }
+        }
+      }
+    },
+    "Tap again to put back": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tik nogmaals om terug te zetten"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ťuknite znova na vrátenie"
+          }
+        }
+      }
+    },
+    "Tap again to strike": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tik nogmaals om af te strepen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ťuknite znova na odškrtnutie"
           }
         }
       }
