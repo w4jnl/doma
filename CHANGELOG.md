@@ -4,7 +4,7 @@ User-facing changes per release, newest first. `scripts/release.sh` refuses to t
 that has no section here and uses the section as the GitHub release notes, so every release
 updates this file first. Dates are the tag dates.
 
-## Unreleased
+## 0.7.0 (2026-11-08)
 
 - **Cards.** The family's loyalty cards in doma, so the till is two taps from the list: Cards
   is the second tab, and behind the card glyph on every shopping list. A card is a name, a colour, a barcode and, when the server fetched it, the
