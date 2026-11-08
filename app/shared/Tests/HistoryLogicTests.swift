@@ -117,11 +117,14 @@ final class HistoryLogicTests: XCTestCase {
         try HomeActions.retireItem(wijn, in: s)
         XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.matches(db, sc, prefix: "w") }, [], "a retired item does not come up")
         XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.usual(db, sc, listID: "L1") }, [])
-        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: month) }.items.map(\.name), ["wijn"], "the month keeps it")
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.recent(db, sc, listID: "L1") }, [], "nor in Recent")
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: month) }.total, 0, "the month shows it no more")
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.purchaseMonths(db, sc) }, [], "no month is left")
 
         // typed again in full: the same item, back
         guard case .added(let again) = try ListActions.add("wijn", to: "L1", in: s) else { return XCTFail("not added") }
         XCTAssertEqual(again, wijn)
         XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.matches(db, sc, prefix: "w") }.map(\.itemID), [wijn])
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: month) }.items.map(\.name), ["wijn"], "its purchases are back with it")
     }
 }

@@ -118,9 +118,9 @@ struct ListView: View {
                 }
             }
             #endif
-            // a strike and a restore are felt, so a blind tap is noticed
-            .sensoryFeedback(.impact(weight: .medium), trigger: strikes)
-            .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.8), trigger: restores)
+            // a strike and a restore are felt as hard as the engine goes, so a blind tap is noticed
+            .sensoryFeedback(.impact(weight: .heavy, intensity: 1), trigger: strikes)
+            .sensoryFeedback(.impact(flexibility: .rigid, intensity: 1), trigger: restores)
             .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: adds)
             .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.5), trigger: repeats)
             .sensoryFeedback(.success, trigger: clears)
