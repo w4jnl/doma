@@ -62,7 +62,13 @@ struct CardsView: View {
                 .accessibilityIdentifier("add-card")
             }
         }
-        .onAppear(perform: observe)
+        .onAppear {
+            observe()
+            // a card's logo lands a moment after the card: sync as a list does while this is in front
+            session.syncer.setPolling(seconds: 5)
+            session.syncer.kick()
+        }
+        .onDisappear { session.syncer.setPolling(seconds: nil) }
         .onChange(of: session.scope) { observe() }
     }
 
