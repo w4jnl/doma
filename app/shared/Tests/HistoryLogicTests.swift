@@ -63,4 +63,42 @@ final class HistoryLogicTests: XCTestCase {
         XCTAssertEqual(o.people.map(\.times), [4])
         XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: "1999-01") }, MonthOverview(), "an empty month is empty")
     }
+
+    /// Rename and Merge into from History: a misspelled item is folded into the right one and
+    /// its purchases count there; a rename shows in every month.
+    func testRenameAndMergeFixThePastMonths() throws {
+        let s = try session()
+        let scope = try XCTUnwrap(s.scope)
+        // two shops: the right spelling one week, the wrong one the next (the two spellings
+        // open on the same list at once would fold into one purchase, as one item's would)
+        _ = try ListActions.add("melk", to: "L1", in: s)
+        try shop(s)
+        _ = try ListActions.add("mlk 2", to: "L1", in: s)
+        try shop(s)
+        let month = try XCTUnwrap(s.store.read(scope) { db, sc in try Queries.purchaseMonths(db, sc) }.first).month
+        var o = try s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: month) }
+        XCTAssertEqual(o.items.map(\.name), ["melk", "mlk"])
+        let melk = o.items[0].itemID
+        let mlk = o.items[1].itemID
+        // the matches for what is typed are the candidates, the item itself left out by the screen
+        let matches = try s.store.read(scope) { db, sc in try Queries.matches(db, sc, prefix: "m") }
+        XCTAssertEqual(Set(matches.map(\.itemID)), [melk, mlk])
+
+        try HomeActions.mergeItem(mlk, into: melk, in: s)
+        o = try s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: month) }
+        XCTAssertEqual(o.items.map(\.name), ["melk"], "the dropped item reads through to the kept one")
+        XCTAssertEqual(o.items[0].times, 2)
+        XCTAssertEqual(o.items[0].totals.map(\.text), ["3x"])
+        XCTAssertEqual(o.total, 2)
+        // merging an item into itself is nothing
+        try HomeActions.mergeItem(melk, into: melk, in: s)
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: month) }.items.count, 1)
+
+        try HomeActions.renameItem(melk, to: "Melk", in: s)
+        o = try s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: month) }
+        XCTAssertEqual(o.items.map(\.name), ["Melk"], "the month shows the current name")
+        // the old spelling is an alias: typing it finds the kept item
+        let again = try s.store.read(scope) { db, sc in try Queries.matches(db, sc, prefix: "mlk") }
+        XCTAssertEqual(again.map(\.itemID), [melk])
+    }
 }

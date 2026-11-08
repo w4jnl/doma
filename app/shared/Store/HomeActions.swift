@@ -101,6 +101,13 @@ enum HomeActions {
         try session.record(Kind.itemRenamed, ItemPayload(itemID: itemID, name: n))
     }
 
+    /// Folds one item into another, from History: the kept item takes the dropped one's entries,
+    /// flags and staples, and the dropped name becomes an alias of it. One way.
+    static func mergeItem(_ dropID: String, into keepID: String, in session: Session) throws {
+        guard keepID != dropID else { return }
+        try session.record(Kind.itemMerged, ItemPayload(keepID: keepID, dropID: dropID))
+    }
+
     @discardableResult
     static func createHome(named name: String, in session: Session) throws -> String? {
         let name = name.trimmingCharacters(in: .whitespaces)

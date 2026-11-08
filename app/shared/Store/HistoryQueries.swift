@@ -85,8 +85,13 @@ extension Queries {
             let total = PurchaseTotal(unit: r["unit"], qty: r["qty"])
             let lastAt: Int64 = r["last_at"]
             if var it = items[id] {
+                // a merged item's rows come per original id: the same unit adds up
                 it.times += times
-                it.totals.append(total)
+                if let j = it.totals.firstIndex(where: { $0.unit == total.unit }) {
+                    it.totals[j].qty += total.qty
+                } else {
+                    it.totals.append(total)
+                }
                 it.lastAt = max(it.lastAt, lastAt)
                 items[id] = it
             } else {

@@ -4,6 +4,14 @@ User-facing changes per release, newest first. `scripts/release.sh` refuses to t
 that has no section here and uses the section as the GitHub release notes, so every release
 updates this file first. Dates are the tag dates.
 
+## Unreleased
+
+- **Tidy the items from History.** A swipe on an item row in History (the row's menu on the
+  Mac) offers Rename and Merge into. Rename changes the name on every list, at every home and in
+  every past month. Merge into folds a misspelled or duplicate item into the one to keep, picked
+  by typing its name, armed in place; its purchases count under the kept item from then on and the
+  old spelling still finds it while typing. Merge was a Mac-only action on a list row until now.
+
 ## 0.6.1 (2026-11-07)
 
 - **Fixed: the admin pages behind the proxy on a server that never had a password admin.** With
