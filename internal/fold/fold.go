@@ -145,6 +145,24 @@ type Photo struct {
 	Height  int64      `json:"height"`
 }
 
+// Card is a loyalty card: the household's (OwnerPersonID nil) or one
+// person's, with its barcode and, once the server fetched it, its logo.
+// LogoHLC is the stamp of the card.logo that brought the logo: logos are
+// last-writer-wins among themselves, apart from the card's edits.
+type Card struct {
+	ID            string      `json:"id"`
+	Name          string      `json:"name"`
+	Colour        string      `json:"colour"`
+	OwnerPersonID *string     `json:"owner_person_id"`
+	Format        string      `json:"format"`
+	Value         string      `json:"value"`
+	Domain        *string     `json:"domain"`
+	LogoID        *string     `json:"logo_id"`
+	UpdatedHLC    *domain.HLC `json:"updated_hlc"`
+	ArchivedAt    *int64      `json:"archived_at"`
+	LogoHLC       *domain.HLC `json:"logo_hlc"`
+}
+
 // Trip is a planned trip (trip.planned, last-writer-wins on UpdatedHLC for
 // from, to, date, list and planner), arrived (ArrivedAt), cancelled
 // (CancelledAt), or arrived without a plan (the arrival's wall as its date).
@@ -221,6 +239,9 @@ type Store interface {
 	PutPhoto(Photo) error
 	Trip(id string) (*Trip, error)
 	PutTrip(Trip) error
+
+	Card(id string) (*Card, error)
+	PutCard(Card) error
 }
 
 // Kinds is every event kind the fold knows, in the order of the design
@@ -235,6 +256,7 @@ var Kinds = []string{
 	"spot.created", "spot.renamed", "spot.archived",
 	"photo.added",
 	"trip.planned", "trip.cancelled", "trip.arrived",
+	"card.added", "card.edited", "card.archived", "card.logo",
 	"member.removed", "device.revoked",
 }
 
@@ -272,6 +294,8 @@ func Apply(s Store, e Event) error {
 		return applyTripCancelled(s, e)
 	case "trip.arrived":
 		return applyTripArrived(s, e)
+	case "card.added", "card.edited", "card.archived", "card.logo":
+		return applyCard(s, e)
 	case "member.removed", "device.revoked":
 		// server-originated: memberships and credentials are REST-managed
 		// and already changed; the apps act on these in their sync layer

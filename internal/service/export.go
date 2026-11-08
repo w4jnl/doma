@@ -20,8 +20,8 @@ import (
 )
 
 // Export writes the household as a zip: household.json, events.ndjson,
-// purchases.csv, lists/*.md, homes/*.md and photos/, without other
-// people's personal lists. Members only.
+// purchases.csv, lists/*.md, homes/*.md, cards.csv and photos/, without
+// other people's personal lists and cards. Members only.
 func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) error {
 	if err := requireMember(sc); err != nil {
 		return err
@@ -191,6 +191,32 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 			if err := cw.Write([]string{e.ClearedHLC.Time().Format(time.RFC3339), e.AddedHLC.Time().Format(time.RFC3339), listName[e.ListID], itemName(e.ItemID), qty, unit, e.Note, homeName(e.ForHomeID), who(e.AddedBy), checked}); err != nil {
 				return err
 			}
+		}
+		cw.Flush()
+		return cw.Error()
+	}); err != nil {
+		return err
+	}
+
+	// cards.csv: the household's loyalty cards and the caller's own
+	if err := add("cards.csv", func(f io.Writer) error {
+		cw := csv.NewWriter(f)
+		_ = cw.Write([]string{"id", "name", "format", "value", "website", "owner", "colour", "archived"})
+		for _, c := range tables.Cards {
+			if c.OwnerPersonID != nil && *c.OwnerPersonID != sc.PersonID {
+				continue
+			}
+			owner, website, archived := "", "", ""
+			if c.OwnerPersonID != nil {
+				owner = who(*c.OwnerPersonID)
+			}
+			if c.Domain != nil {
+				website = *c.Domain
+			}
+			if c.ArchivedAt != nil {
+				archived = time.UnixMilli(*c.ArchivedAt).UTC().Format("2006-01-02")
+			}
+			_ = cw.Write([]string{c.ID, c.Name, c.Format, c.Value, website, owner, c.Colour, archived})
 		}
 		cw.Flush()
 		return cw.Error()

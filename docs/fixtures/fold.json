@@ -2563,6 +2563,136 @@
           }
         ]
       }
+    },
+    {
+      "name": "cards: the add fixes the owner, edits are last-writer-wins among themselves, the server's logos among themselves, an archive sticks and a later edit still lands",
+      "events": [
+        {
+          "id": "c1",
+          "person_id": "pa",
+          "hlc": "2000:0:a",
+          "kind": "card.added",
+          "payload": {
+            "card_id": "C1",
+            "name": "Albert Heijn",
+            "colour": "teal",
+            "format": "ean13",
+            "value": "2620000000006",
+            "domain": "ah.nl"
+          }
+        },
+        {
+          "id": "c2",
+          "person_id": "pb",
+          "hlc": "2001:0:b",
+          "kind": "card.added",
+          "payload": {
+            "card_id": "C2",
+            "owner_person_id": "pb",
+            "name": "Bieb",
+            "colour": "rose",
+            "format": "code128",
+            "value": "LIB-42"
+          }
+        },
+        {
+          "id": "c3",
+          "person_id": "pa",
+          "hlc": "2003:0:a",
+          "kind": "card.edited",
+          "payload": {
+            "card_id": "C1",
+            "name": "AH",
+            "colour": "teal",
+            "format": "ean13",
+            "value": "2620000000006",
+            "domain": "ah.nl"
+          }
+        },
+        {
+          "id": "c4",
+          "person_id": "pb",
+          "hlc": "2002:0:b",
+          "kind": "card.edited",
+          "payload": {
+            "card_id": "C1",
+            "name": "Appie",
+            "colour": "amber",
+            "format": "ean13",
+            "value": "2620000000006",
+            "domain": "ah.nl"
+          }
+        },
+        {
+          "id": "c5",
+          "person_id": "doma",
+          "hlc": "2004:0:doma",
+          "kind": "card.logo",
+          "payload": {
+            "card_id": "C1",
+            "logo_id": "a1"
+          }
+        },
+        {
+          "id": "c6",
+          "person_id": "doma",
+          "hlc": "2006:0:doma",
+          "kind": "card.logo",
+          "payload": {
+            "card_id": "C1",
+            "logo_id": "b2"
+          }
+        },
+        {
+          "id": "c7",
+          "person_id": "pb",
+          "hlc": "2005:0:b",
+          "kind": "card.archived",
+          "payload": {
+            "card_id": "C2",
+            "owner_person_id": "pb"
+          }
+        },
+        {
+          "id": "c8",
+          "person_id": "pb",
+          "hlc": "2007:0:b",
+          "kind": "card.edited",
+          "payload": {
+            "card_id": "C2",
+            "owner_person_id": "pb",
+            "name": "Bibliotheek",
+            "colour": "rose",
+            "format": "code128",
+            "value": "LIB-42"
+          }
+        }
+      ],
+      "expect": {
+        "cards": [
+          {
+            "id": "C1",
+            "name": "AH",
+            "colour": "teal",
+            "format": "ean13",
+            "value": "2620000000006",
+            "domain": "ah.nl",
+            "logo_id": "b2",
+            "logo_hlc": "2006:0:doma",
+            "updated_hlc": "2003:0:a"
+          },
+          {
+            "id": "C2",
+            "name": "Bibliotheek",
+            "colour": "rose",
+            "owner_person_id": "pb",
+            "format": "code128",
+            "value": "LIB-42",
+            "updated_hlc": "2007:0:b",
+            "archived_at": 2005
+          }
+        ]
+      }
     }
   ]
 }

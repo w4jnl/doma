@@ -51,6 +51,7 @@ type Querier interface {
 	EventsSince(ctx context.Context, arg EventsSinceParams) ([]Event, error)
 	ExpireGuest(ctx context.Context, arg ExpireGuestParams) (int64, error)
 	GetAdmin(ctx context.Context) (Admin, error)
+	GetCard(ctx context.Context, arg GetCardParams) (Card, error)
 	GetCredential(ctx context.Context, id string) (Credential, error)
 	GetCredentialByHash(ctx context.Context, hash []byte) (Credential, error)
 	GetCredentialByPublicKey(ctx context.Context, publicKey *string) (Credential, error)
@@ -90,6 +91,7 @@ type Querier interface {
 	LastEventAt(ctx context.Context, householdID string) (int64, error)
 	LastSeq(ctx context.Context, householdID string) (int64, error)
 	ListAliases(ctx context.Context, householdID string) ([]ItemAlias, error)
+	ListCards(ctx context.Context, householdID string) ([]Card, error)
 	ListEntries(ctx context.Context, householdID string) ([]Entry, error)
 	ListFlags(ctx context.Context, householdID string) ([]Flag, error)
 	ListHomes(ctx context.Context, householdID string) ([]Home, error)
@@ -130,6 +132,7 @@ type Querier interface {
 	UpdateHouseholdQuotas(ctx context.Context, arg UpdateHouseholdQuotasParams) error
 	UpdateMembershipRole(ctx context.Context, arg UpdateMembershipRoleParams) (int64, error)
 	UpdatePersonName(ctx context.Context, arg UpdatePersonNameParams) error
+	UpsertCard(ctx context.Context, arg UpsertCardParams) error
 	UpsertFlag(ctx context.Context, arg UpsertFlagParams) error
 	UpsertHome(ctx context.Context, arg UpsertHomeParams) error
 	UpsertItem(ctx context.Context, arg UpsertItemParams) error

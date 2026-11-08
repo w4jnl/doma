@@ -270,6 +270,74 @@ func TestCrossPersonPersonalLists(t *testing.T) {
 	}
 }
 
+// TestCrossPersonPersonalCards: a card one person keeps for themselves is
+// theirs alone through sync, export and the snapshot, while the household's
+// card reaches everyone.
+func TestCrossPersonPersonalCards(t *testing.T) {
+	s := newSuite(t)
+	ctx := context.Background()
+	clock, _ := domain.NewClock("m", nil)
+	mine, ours := domain.NewID(), domain.NewID()
+	var resp service.SyncResponse
+	err := s.a.member.Sync(ctx, service.SyncRequest{Households: []service.SyncHousehold{{ID: s.a.id, Events: []json.RawMessage{
+		event(clock, "card.added", map[string]any{"card_id": mine, "owner_person_id": s.a.member.PersonID, "name": "Bieb", "format": "code128", "value": "LIB-42"}),
+		event(clock, "card.added", map[string]any{"card_id": ours, "name": "AH", "format": "ean13", "value": "2620000000006"}),
+	}}}}, &resp)
+	if err != nil || len(resp.Households[0].Accepted) != 2 {
+		t.Fatalf("member's cards: %v %+v", err, resp)
+	}
+	if err := s.a.owner.Sync(ctx, service.SyncRequest{Households: []service.SyncHousehold{{ID: s.a.id}}}, &resp); err != nil {
+		t.Fatal(err)
+	}
+	var seenOurs bool
+	for _, e := range resp.Households[0].Events {
+		if strings.Contains(string(e.Payload), mine) {
+			t.Errorf("owner received a personal card: %s %s", e.Kind, e.Payload)
+		}
+		if strings.Contains(string(e.Payload), ours) {
+			seenOurs = true
+		}
+	}
+	if !seenOurs {
+		t.Error("owner did not get the household's card")
+	}
+	oc, _ := domain.NewClock("o", nil)
+	if err := s.a.owner.Sync(ctx, service.SyncRequest{Households: []service.SyncHousehold{{ID: s.a.id, Events: []json.RawMessage{
+		event(oc, "card.archived", map[string]any{"card_id": mine}),
+	}}}}, &resp); err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Households[0].Rejected) != 1 || resp.Households[0].Rejected[0].Reason != "not your card" {
+		t.Errorf("owner archiving the member's card: %+v", resp.Households[0])
+	}
+	zipRaw, _, err := s.a.owner.Download(ctx, "/api/v1/h/"+s.a.id+"/export")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if csvOwner := zipEntry(t, zipRaw, "cards.csv"); strings.Contains(csvOwner, mine) || strings.Contains(csvOwner, "LIB-42") || !strings.Contains(csvOwner, ours) {
+		t.Errorf("the owner's cards.csv:\n%s", csvOwner)
+	}
+	if err := s.svc.RunSnapshots(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var seq int64
+	_ = s.svc.DB().Reader.QueryRowContext(ctx, "SELECT MAX(seq) FROM snapshots WHERE household_id = ?", s.a.id).Scan(&seq)
+	snapRaw, _, err := s.a.owner.Download(ctx, "/sync/v1/snapshot/"+s.a.id+"/"+itoa(seq))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snap := gunzipMaybe(snapRaw); bytes.Contains(snap, []byte(mine)) || !bytes.Contains(snap, []byte(ours)) {
+		t.Error("the owner's snapshot holds the personal card or lacks the household's")
+	}
+	memberZip, _, err := s.a.member.Download(ctx, "/api/v1/h/"+s.a.id+"/export")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if csvMember := zipEntry(t, memberZip, "cards.csv"); !strings.Contains(csvMember, "LIB-42") || !strings.Contains(csvMember, ours) {
+		t.Errorf("the member's cards.csv:\n%s", csvMember)
+	}
+}
+
 // jpegBytes is a w by h JPEG.
 func jpegBytes(t *testing.T, w, h int) []byte {
 	t.Helper()

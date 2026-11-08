@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/w4jnl/doma/internal/bus"
@@ -128,7 +129,8 @@ func (s *Service) count(result string) {
 }
 
 // listOwners maps list id to owner person id for the household's personal
-// lists; shared lists are absent.
+// lists and card id to owner for its personal cards; what the household
+// shares is absent. List and card ids never collide: both are ULIDs.
 func listOwners(ctx context.Context, q *db.Queries, householdID string) (map[string]string, error) {
 	lists, err := q.ListLists(ctx, householdID)
 	if err != nil {
@@ -140,28 +142,51 @@ func listOwners(ctx context.Context, q *db.Queries, householdID string) (map[str
 			owners[l.ID] = *l.OwnerPersonID
 		}
 	}
+	cards, err := q.ListCards(ctx, householdID)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range cards {
+		if c.OwnerPersonID != nil {
+			owners[c.ID] = *c.OwnerPersonID
+		}
+	}
 	return owners, nil
 }
 
 // visible reports whether an event may be seen by person: everything but
-// another person's personal-list events.
+// another person's personal-list events and personal cards. A card event
+// claims its owner in the payload and the cards table is asked too, so an
+// event that leaves the claim out hides nothing.
 func visible(kind string, payload []byte, owners map[string]string, personID string) bool {
 	var p struct {
 		ListID        string  `json:"list_id"`
+		CardID        string  `json:"card_id"`
 		OwnerPersonID *string `json:"owner_person_id"`
 	}
 	if err := json.Unmarshal(payload, &p); err != nil {
 		return true
 	}
-	if kind == "list.created" && p.OwnerPersonID != nil && *p.OwnerPersonID != personID {
+	if (kind == "list.created" || p.CardID != "") && p.OwnerPersonID != nil && *p.OwnerPersonID != personID {
 		return false
 	}
-	if p.ListID != "" {
-		if owner, ok := owners[p.ListID]; ok && owner != personID {
+	for _, id := range []string{p.ListID, p.CardID} {
+		if id == "" {
+			continue
+		}
+		if owner, ok := owners[id]; ok && owner != personID {
 			return false
 		}
 	}
 	return true
+}
+
+// notYours is the rejection for an event on another person's list or card.
+func notYours(kind string) string {
+	if strings.HasPrefix(kind, "card.") {
+		return "not your card"
+	}
+	return "not your list"
 }
 
 func (s *Service) syncHousehold(ctx context.Context, v *events.Validator, personID, credentialID string, hh SyncHousehold) (*SyncHouseholdResult, error) {
@@ -193,7 +218,7 @@ func (s *Service) syncHousehold(ctx context.Context, v *events.Validator, person
 				continue
 			}
 			if !visible(in.Kind, in.Payload, owners, personID) {
-				res.Rejected = append(res.Rejected, Rejected{ID: in.ID, Reason: "not your list"})
+				res.Rejected = append(res.Rejected, Rejected{ID: in.ID, Reason: notYours(in.Kind)})
 				continue
 			}
 			if in.Kind == "member.removed" || in.Kind == "device.revoked" {
@@ -215,14 +240,15 @@ func (s *Service) syncHousehold(ctx context.Context, v *events.Validator, person
 				if s.metrics != nil {
 					s.metrics.Events.WithLabelValues(hh.ID, in.Kind).Inc()
 				}
-				if in.Kind == "list.created" {
-					// a personal list created in this batch filters the rest of it
+				if in.Kind == "list.created" || in.Kind == "card.added" {
+					// a personal list or card created in this batch filters the rest of it
 					var p struct {
 						ListID        string  `json:"list_id"`
+						CardID        string  `json:"card_id"`
 						OwnerPersonID *string `json:"owner_person_id"`
 					}
 					if json.Unmarshal(in.Payload, &p) == nil && p.OwnerPersonID != nil {
-						owners[p.ListID] = *p.OwnerPersonID
+						owners[p.ListID+p.CardID] = *p.OwnerPersonID
 					}
 				}
 			}

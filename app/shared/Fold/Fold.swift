@@ -46,6 +46,8 @@ enum Fold {
             try Flags.applyTripCancelled(s, e)
         case Kind.tripArrived:
             try Flags.applyTripArrived(s, e)
+        case Kind.cardAdded, Kind.cardEdited, Kind.cardArchived, Kind.cardLogo:
+            try Lists.applyCard(s, e)
         default:
             // member.removed and device.revoked are the sync layer's; anything else is a
             // kind this app does not know

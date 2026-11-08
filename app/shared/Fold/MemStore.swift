@@ -16,6 +16,7 @@ final class MemStore: FoldStore {
     private var spotRows: [String: Spot] = [:]
     private var photoRows: [String: Photo] = [:]
     private var tripRows: [String: Trip] = [:]
+    private var cardRows: [String: Card] = [:]
 
     struct Key: Hashable { var home: String; var item: String }
 
@@ -34,6 +35,7 @@ final class MemStore: FoldStore {
         for r in base.spots { spotRows[r.id] = r }
         for r in base.photos { photoRows[r.id] = r }
         for r in base.trips { tripRows[r.id] = r }
+        for r in base.cards { cardRows[r.id] = r }
     }
 
     /// Adds e to the log and folds it, skipping an id seen before.
@@ -193,6 +195,8 @@ final class MemStore: FoldStore {
 
     func home(_ id: String) throws -> Home? { homeRows[id] }
     func putHome(_ home: Home) throws { homeRows[home.id] = home }
+    func card(_ id: String) throws -> Card? { cardRows[id] }
+    func putCard(_ card: Card) throws { cardRows[card.id] = card }
     func spot(_ id: String) throws -> Spot? { spotRows[id] }
     func putSpot(_ spot: Spot) throws { spotRows[spot.id] = spot }
     func putPhoto(_ photo: Photo) throws {
@@ -209,7 +213,7 @@ final class MemStore: FoldStore {
         var t = Tables(items: Array(itemRows.values), aliases: Array(aliasRows.values), lists: Array(listRows.values),
                        entries: Array(entryRows.values), flags: Array(flagRows.values), staples: Array(stapleRows.values),
                        homes: Array(homeRows.values), spots: Array(spotRows.values), photos: Array(photoRows.values), trips: Array(tripRows.values),
-                       proposals: Array(proposalRows.values))
+                       proposals: Array(proposalRows.values), cards: Array(cardRows.values))
         t.sort()
         return t
     }

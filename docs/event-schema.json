@@ -10,7 +10,8 @@
     "name": {"type": "string", "minLength": 1, "maxLength": 200},
     "note": {"type": "string", "maxLength": 500},
     "qty": {"anyOf": [{"type": "number", "minimum": 0}, {"type": "null"}]},
-    "unit": {"anyOf": [{"type": "string", "maxLength": 16}, {"type": "null"}]}
+    "unit": {"anyOf": [{"type": "string", "maxLength": 16}, {"type": "null"}]},
+    "format": {"enum": ["ean13", "ean8", "upca", "upce", "code128", "code39", "code93", "itf14", "codabar", "qr", "aztec", "pdf417", "datamatrix"]}
   },
   "envelope": {
     "type": "object",
@@ -53,6 +54,10 @@
     "trip.planned": {"type": "object", "required": ["trip_id", "from_home_id", "to_home_id", "date"], "properties": {"trip_id": {"$ref": "#/$defs/id"}, "from_home_id": {"$ref": "#/$defs/id"}, "to_home_id": {"$ref": "#/$defs/id"}, "date": {"type": "integer", "minimum": 0}, "list_id": {"$ref": "#/$defs/id"}}},
     "trip.cancelled": {"type": "object", "required": ["trip_id"], "properties": {"trip_id": {"$ref": "#/$defs/id"}}},
     "trip.arrived": {"type": "object", "required": ["trip_id", "from_home_id", "to_home_id", "moved"], "properties": {"trip_id": {"$ref": "#/$defs/id"}, "from_home_id": {"$ref": "#/$defs/id"}, "to_home_id": {"$ref": "#/$defs/id"}, "moved": {"type": "array", "items": {"$ref": "#/$defs/id"}, "maxItems": 500}}},
+    "card.added": {"type": "object", "required": ["card_id", "name", "format", "value"], "properties": {"card_id": {"$ref": "#/$defs/id"}, "owner_person_id": {"$ref": "#/$defs/idOrNull"}, "name": {"$ref": "#/$defs/name"}, "colour": {"type": "string", "maxLength": 32}, "format": {"$ref": "#/$defs/format"}, "value": {"type": "string", "minLength": 1, "maxLength": 200}, "domain": {"anyOf": [{"type": "string", "maxLength": 200}, {"type": "null"}]}}},
+    "card.edited": {"type": "object", "required": ["card_id", "name", "format", "value"], "properties": {"card_id": {"$ref": "#/$defs/id"}, "owner_person_id": {"$ref": "#/$defs/idOrNull"}, "name": {"$ref": "#/$defs/name"}, "colour": {"type": "string", "maxLength": 32}, "format": {"$ref": "#/$defs/format"}, "value": {"type": "string", "minLength": 1, "maxLength": 200}, "domain": {"anyOf": [{"type": "string", "maxLength": 200}, {"type": "null"}]}}},
+    "card.archived": {"type": "object", "required": ["card_id"], "properties": {"card_id": {"$ref": "#/$defs/id"}, "owner_person_id": {"$ref": "#/$defs/idOrNull"}}},
+    "card.logo": {"type": "object", "required": ["card_id", "logo_id"], "properties": {"card_id": {"$ref": "#/$defs/id"}, "owner_person_id": {"$ref": "#/$defs/idOrNull"}, "logo_id": {"type": "string", "minLength": 1, "maxLength": 64}}},
     "member.removed": {"type": "object", "required": ["person_id"], "properties": {"person_id": {"$ref": "#/$defs/id"}}},
     "device.revoked": {"type": "object", "required": ["credential_id"], "properties": {"credential_id": {"$ref": "#/$defs/id"}}}
   }

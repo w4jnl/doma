@@ -235,11 +235,30 @@ enum Schema {
             }
             try db.create(indexOn: "proposals", columns: ["server_id", "household_id", "home_id", "item_id"])
         }
+        // v6: the family's loyalty cards
+        m.registerMigration("v6") { db in
+            try db.create(table: "cards") { t in
+                t.column("server_id", .text).notNull()
+                t.column("household_id", .text).notNull()
+                t.column("id", .text).notNull()
+                t.column("name", .text).notNull()
+                t.column("colour", .text).notNull().defaults(to: "")
+                t.column("owner_person_id", .text)
+                t.column("format", .text).notNull()
+                t.column("value", .text).notNull()
+                t.column("domain", .text)
+                t.column("logo_id", .text)
+                t.column("logo_hlc", .text)
+                t.column("updated_hlc", .text)
+                t.column("archived_at", .integer)
+                t.primaryKey(["server_id", "household_id", "id"])
+            }
+        }
         return m
     }
 
     /// The household tables, in the order a wipe deletes them.
-    static let householdTables = ["event_items", "events", "outbox", "cursors", "items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals"]
+    static let householdTables = ["event_items", "events", "outbox", "cursors", "items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals", "cards"]
 }
 
 /// One household on one server, as every query is scoped.
@@ -336,6 +355,17 @@ extension Home {
         [s.serverID, s.householdID, id, name, sort, archivedAt, updatedHLC?.description]
     }
     static let insert = "INSERT OR REPLACE INTO homes (server_id, household_id, id, name, sort, archived_at, updated_hlc) VALUES (?,?,?,?,?,?,?)"
+}
+
+extension Card {
+    init(row r: Row) {
+        self.init(id: r["id"], name: r["name"], colour: r["colour"], ownerPersonID: r["owner_person_id"], format: r["format"], value: r["value"],
+                  domain: r["domain"], logoID: r["logo_id"], updatedHLC: HLC(column: r["updated_hlc"]), archivedAt: r["archived_at"], logoHLC: HLC(column: r["logo_hlc"]))
+    }
+    func arguments(_ s: Scope) -> StatementArguments {
+        [s.serverID, s.householdID, id, name, colour, ownerPersonID, format, value, domain, logoID, logoHLC?.description, updatedHLC?.description, archivedAt]
+    }
+    static let insert = "INSERT OR REPLACE INTO cards (server_id, household_id, id, name, colour, owner_person_id, format, value, domain, logo_id, logo_hlc, updated_hlc, archived_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
 }
 
 extension Spot {

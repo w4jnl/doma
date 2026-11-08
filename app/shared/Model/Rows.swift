@@ -208,6 +208,29 @@ struct Proposal: Hashable, Sendable, Codable {
     }
 }
 
+/// A loyalty card: the household's (no owner) or one person's, with its barcode and, once the
+/// server fetched it, its logo; logoHLC orders the server's card.logo events among themselves.
+struct Card: Hashable, Sendable, Codable {
+    var id: String
+    var name: String = ""
+    var colour: String = ""
+    var ownerPersonID: String?
+    var format: String = ""
+    var value: String = ""
+    var domain: String?
+    var logoID: String?
+    var updatedHLC: HLC?
+    var archivedAt: Int64?
+    var logoHLC: HLC?
+    enum CodingKeys: String, CodingKey {
+        case id, name, colour, format, value, domain
+        case ownerPersonID = "owner_person_id", logoID = "logo_id", updatedHLC = "updated_hlc", archivedAt = "archived_at", logoHLC = "logo_hlc"
+    }
+
+    /// The barcode symbologies the apps draw and read, as the event schema spells them.
+    static let formats = ["ean13", "ean8", "upca", "upce", "code128", "code39", "code93", "itf14", "codabar", "qr", "aztec", "pdf417", "datamatrix"]
+}
+
 struct Tables: Hashable, Sendable, Codable {
     var items: [Item] = []
     var aliases: [ItemAlias] = []
@@ -220,12 +243,13 @@ struct Tables: Hashable, Sendable, Codable {
     var photos: [Photo] = []
     var trips: [Trip] = []
     var proposals: [Proposal] = []
+    var cards: [Card] = []
     enum CodingKeys: String, CodingKey {
-        case items, lists, entries, flags, staples, homes, spots, photos, trips, proposals
+        case items, lists, entries, flags, staples, homes, spots, photos, trips, proposals, cards
         case aliases = "item_aliases"
     }
 
-    static let names = ["items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals"]
+    static let names = ["items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals", "cards"]
 
     mutating func sort() {
         items.sort { $0.id < $1.id }
@@ -239,6 +263,7 @@ struct Tables: Hashable, Sendable, Codable {
         photos.sort { $0.id < $1.id }
         trips.sort { $0.id < $1.id }
         proposals.sort { $0.id < $1.id }
+        cards.sort { $0.id < $1.id }
     }
 
     /// Sorted keys, pruned of zero fields, integral numbers as integers.

@@ -231,6 +231,14 @@ struct SQLFoldStore: FoldStore {
         try db.execute(sql: Home.insert, arguments: home.arguments(scope))
     }
 
+    func card(_ id: String) throws -> Card? {
+        try Row.fetchOne(db, sql: "SELECT * FROM cards WHERE server_id = ? AND household_id = ? AND id = ?", arguments: sh + [id]).map(Card.init(row:))
+    }
+
+    func putCard(_ card: Card) throws {
+        try db.execute(sql: Card.insert, arguments: card.arguments(scope))
+    }
+
     func spot(_ id: String) throws -> Spot? {
         try Row.fetchOne(db, sql: "SELECT * FROM spots WHERE server_id = ? AND household_id = ? AND id = ?", arguments: sh + [id]).map(Spot.init(row:))
     }
@@ -267,13 +275,14 @@ struct SQLFoldStore: FoldStore {
         t.photos = try Row.fetchAll(db, sql: "SELECT * FROM photos WHERE server_id = ? AND household_id = ?", arguments: sh).map(Photo.init(row:))
         t.trips = try Row.fetchAll(db, sql: "SELECT * FROM trips WHERE server_id = ? AND household_id = ?", arguments: sh).map(Trip.init(row:))
         t.proposals = try Row.fetchAll(db, sql: "SELECT * FROM proposals WHERE server_id = ? AND household_id = ?", arguments: sh).map(Proposal.init(row:))
+        t.cards = try Row.fetchAll(db, sql: "SELECT * FROM cards WHERE server_id = ? AND household_id = ?", arguments: sh).map(Card.init(row:))
         t.sort()
         return t
     }
 
     /// Writes a snapshot's tables in place of the household's.
     func replaceTables(_ t: Tables) throws {
-        for table in ["items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals"] {
+        for table in ["items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals", "cards"] {
             try db.execute(sql: "DELETE FROM \(table) WHERE server_id = ? AND household_id = ?", arguments: sh)
         }
         for r in t.items { try putItem(r) }
@@ -287,6 +296,7 @@ struct SQLFoldStore: FoldStore {
         for r in t.spots { try putSpot(r) }
         for r in t.photos { try putPhoto(r) }
         for r in t.trips { try putTrip(r) }
+        for r in t.cards { try putCard(r) }
     }
 
     /// Appends an event to the log, folds it, and returns false when the id was there already.

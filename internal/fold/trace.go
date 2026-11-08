@@ -73,6 +73,11 @@ func (t *traced) PutTrip(tr Trip) error {
 	return t.Store.PutTrip(tr)
 }
 
+func (t *traced) PutCard(c Card) error {
+	t.logf("fold card %s name=%q format=%s logo=%v archived=%v", c.ID, c.Name, c.Format, deref(c.LogoID), c.ArchivedAt != nil)
+	return t.Store.PutCard(c)
+}
+
 func deref(s *string) string {
 	if s == nil {
 		return "-"

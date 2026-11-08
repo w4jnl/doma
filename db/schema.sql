@@ -215,6 +215,21 @@ CREATE TABLE proposals (
   closed_hlc    TEXT
 );
 CREATE INDEX proposals_key ON proposals(household_id, home_id, item_id);
+CREATE TABLE cards (
+  id               TEXT PRIMARY KEY,
+  household_id     TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  name             TEXT NOT NULL,
+  colour           TEXT NOT NULL DEFAULT '',
+  owner_person_id  TEXT,
+  format           TEXT NOT NULL,
+  value            TEXT NOT NULL,
+  domain           TEXT,
+  logo_id          TEXT,
+  logo_hlc         TEXT,
+  updated_hlc      TEXT,
+  archived_at      INTEGER
+);
+CREATE INDEX cards_household ON cards(household_id);
 -- Dbmate schema migrations
 INSERT INTO "schema_migrations" (version) VALUES
   ('20261101000000'),
@@ -223,4 +238,5 @@ INSERT INTO "schema_migrations" (version) VALUES
   ('20261104010000'),
   ('20261105000000'),
   ('20261107000000'),
-  ('20261107010000');
+  ('20261107010000'),
+  ('20261108000000');

@@ -174,6 +174,34 @@ func TestSyncRejectsAndFilters(t *testing.T) {
 	if len(res.Rejected) != 1 || res.Rejected[0].Reason != "not your list" {
 		t.Errorf("writing to another's list: %+v", res)
 	}
+	// a's personal card never reaches b, not even an edit that leaves the owner out; a
+	// household card does
+	mine, ours := domain.NewID(), domain.NewID()
+	res = sync1(t, svc, h, a,
+		a.event("card.added", map[string]any{"card_id": mine, "owner_person_id": a.person, "name": "Bieb", "format": "code128", "value": "LIB-42"}),
+		a.event("card.edited", map[string]any{"card_id": mine, "name": "Bibliotheek", "format": "code128", "value": "LIB-42"}),
+		a.event("card.added", map[string]any{"card_id": ours, "name": "AH", "format": "ean13", "value": "2620000000006"}),
+	)
+	if len(res.Accepted) != 3 {
+		t.Fatalf("a's cards: %+v", res)
+	}
+	pull = sync1(t, svc, h, b)
+	var got []string
+	for _, e := range pull.Events {
+		if strings.HasPrefix(e.Kind, "card.") {
+			got = append(got, e.Kind+":"+payloadField(e.Payload, "card_id"))
+		}
+		if strings.Contains(string(e.Payload), mine) {
+			t.Errorf("b received a personal card event: %s %s", e.Kind, e.Payload)
+		}
+	}
+	if strings.Join(got, ",") != "card.added:"+ours {
+		t.Errorf("b's cards: %v", got)
+	}
+	res = sync1(t, svc, h, b, b.event("card.archived", map[string]any{"card_id": mine}))
+	if len(res.Rejected) != 1 || res.Rejected[0].Reason != "not your card" {
+		t.Errorf("archiving another's card: %+v", res)
+	}
 	// a household the person is not in is a 404 for the whole request
 	other, _ := svc.CreateHousehold(context.Background(), "Others", "Europe/Amsterdam", "X")
 	_, err := svc.Sync(context.Background(), b.person, b.cred, service.SyncRequest{Households: []service.SyncHousehold{{ID: h.ID}, {ID: other.ID}}})
