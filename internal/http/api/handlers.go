@@ -34,6 +34,8 @@ type credentialDTO struct {
 type membershipDTO struct {
 	HouseholdID   string `json:"household_id"`
 	HouseholdName string `json:"household_name"`
+	Timezone      string `json:"timezone"`
+	StalenessDays int    `json:"staleness_days"`
 	Role          string `json:"role"`
 }
 
@@ -108,7 +110,7 @@ func (a *API) me(w http.ResponseWriter, r *http.Request, c *Caller) error {
 		out.Credentials = append(out.Credentials, credentialDTO{ID: cr.ID, Kind: cr.Kind, Label: cr.Label, Platform: cr.Platform, CreatedAt: cr.CreatedAt, LastUsedAt: cr.LastUsedAt, HasPush: cr.APNSToken != nil, MutedLists: cr.MutedLists, NotifyClears: cr.NotifyClears})
 	}
 	for _, m := range me.Memberships {
-		out.Memberships = append(out.Memberships, membershipDTO{HouseholdID: m.HouseholdID, HouseholdName: m.HouseholdName, Role: string(m.Role)})
+		out.Memberships = append(out.Memberships, membershipDTO{HouseholdID: m.HouseholdID, HouseholdName: m.HouseholdName, Timezone: m.Timezone, StalenessDays: m.StalenessDays, Role: string(m.Role)})
 	}
 	writeJSON(w, http.StatusOK, out)
 	return nil

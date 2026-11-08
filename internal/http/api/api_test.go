@@ -106,6 +106,11 @@ func TestInviteAcceptAndMe(t *testing.T) {
 	if len(ms) != 1 || ms[0].(map[string]any)["role"] != "owner" || ms[0].(map[string]any)["household_name"] != "Family" {
 		t.Errorf("me: %v", out)
 	}
+	// the household's time zone and staleness travel with the membership, so a
+	// device learns a change made elsewhere
+	if m := ms[0].(map[string]any); m["timezone"] != "Europe/Amsterdam" || m["staleness_days"] != float64(60) {
+		t.Errorf("me membership: %v", m)
+	}
 	// unsigned, bad timestamp and replayed requests are 401 problems
 	anon := &device{t: t, mux: w.mux, now: owner.now}
 	rec, out = anon.do(http.MethodGet, "/api/v1/me", nil)

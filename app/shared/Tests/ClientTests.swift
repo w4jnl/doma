@@ -102,6 +102,24 @@ final class ClientTests: XCTestCase {
         }
     }
 
+    func testMeCarriesTheHouseholdWithAndWithoutStaleness() throws {
+        // a current doma says the household's time zone and staleness; an older one only its name
+        let full = Data("""
+        {"person":{"id":"P1","display_name":"Jaro"},"credentials":[],
+         "memberships":[{"household_id":"H1","household_name":"Family","timezone":"Europe/Amsterdam","staleness_days":60,"role":"owner"}]}
+        """.utf8)
+        let me = try JSONDecoder().decode(MeDocument.self, from: full)
+        XCTAssertEqual(me.memberships.first?.timezone, "Europe/Amsterdam")
+        XCTAssertEqual(me.memberships.first?.stalenessDays, 60)
+        let old = Data("""
+        {"person":{"id":"P1","display_name":"Jaro"},"credentials":[],
+         "memberships":[{"household_id":"H1","household_name":"Family","role":"owner"}]}
+        """.utf8)
+        let older = try JSONDecoder().decode(MeDocument.self, from: old)
+        XCTAssertNil(older.memberships.first?.timezone)
+        XCTAssertNil(older.memberships.first?.stalenessDays)
+    }
+
     func testInviteLinks() {
         XCTAssertEqual(InviteLink("https://doma.example/i/abcdefghijklmnopqrstuvwxyz0123456789-_AB"), InviteLink(server: URL(string: "https://doma.example")!, token: "abcdefghijklmnopqrstuvwxyz0123456789-_AB"))
         XCTAssertEqual(InviteLink("http://localhost:8086/i/abcdefghijklmnopqrstuv")?.server, URL(string: "http://localhost:8086"))

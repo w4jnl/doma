@@ -354,7 +354,8 @@ final class Session {
         for (id, name) in new where !name.isEmpty { names[server, default: [:]][id] = name }
     }
 
-    /// Refreshes the households and roles from every server, and the families' names with them.
+    /// Refreshes the households from every server: name, role, time zone and staleness, so a
+    /// change an owner made on another device reaches this one; and the families' names with them.
     func refreshMemberships() async {
         struct Members: Decodable { var members: [Member]? }
         for c in contexts {
@@ -370,7 +371,7 @@ final class Session {
             }
             for m in me.memberships {
                 let old = households.first { $0.serverID == c.serverID && $0.id == m.householdID }
-                try? store.upsertHousehold(HouseholdRow(serverID: c.serverID, id: m.householdID, name: m.householdName, timezone: old?.timezone ?? "", stalenessDays: old?.stalenessDays, role: m.role))
+                try? store.upsertHousehold(HouseholdRow(serverID: c.serverID, id: m.householdID, name: m.householdName, timezone: m.timezone ?? old?.timezone ?? "", stalenessDays: m.stalenessDays ?? old?.stalenessDays, role: m.role))
             }
         }
         reload()

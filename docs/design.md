@@ -462,7 +462,7 @@ Three surfaces on one router: the sync endpoint for the apps, a REST API for eve
 | `POST /photos/v1/{household}/{photo_id}` | JPEG upload for an accepted `photo.added`; 413 over quota |
 | `GET /photos/v1/{household}/{photo_id}[/thumb]` | signed, cacheable 1 h |
 | `POST /i/{token}` | accept an invite: body `{public_key, platform, label, display_name}`; returns `{server, person_id, credential_id, display_name, household, role}`; for a device invite the person's name wins over the typed one; 413 when the household's `quota_devices` has no seat for the devices coming in (a rejoin takes no seat); `GET /i/{token}` renders the App Store page with the deep link |
-| `GET /api/v1/me` | person, credentials, memberships with roles |
+| `GET /api/v1/me` | person, credentials, memberships with roles, each with the household's name, time zone and staleness (the apps refresh their copy of the household from it) |
 | `POST /api/v1/vouch` | the phone names the person at a browser that shows a web sign-in code; body `{token}`; 404 for a code unknown, expired or used |
 | `GET` and `POST /api/v1/h/{household}/invites` · `DELETE /api/v1/h/{household}/invites/{id}` | owners; `POST` with `{device: true}` is any member's, for a device of their own, valid a day, not listed among the household's |
 | `GET` and `POST /api/v1/h/{household}/guests` · `DELETE …/guests/{id}` | owners; body `{home_id, list_id, label, days}` |

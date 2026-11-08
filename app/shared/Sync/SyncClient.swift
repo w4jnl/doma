@@ -113,9 +113,12 @@ struct MeDocument: Decodable, Sendable {
         var householdID: String
         var householdName: String
         var role: String
+        // the household's time zone and staleness, absent from a doma older than them
+        var timezone: String?
+        var stalenessDays: Int64?
         enum CodingKeys: String, CodingKey {
-            case role
-            case householdID = "household_id", householdName = "household_name"
+            case role, timezone
+            case householdID = "household_id", householdName = "household_name", stalenessDays = "staleness_days"
         }
     }
     var person: Person
