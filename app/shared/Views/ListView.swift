@@ -63,6 +63,10 @@ struct ListView: View {
     @FocusState private var editFocused: Bool
     #if os(macOS)
     @State private var selected: String?
+    #else
+    /// When the list, or doma, last came to the front: a tap right after is no strike.
+    @State private var front = Date.distantPast
+    @AppStorage(StrikeGuard.key) private var guardSeconds = StrikeGuard.defaultSeconds
     #endif
 
     /// A row just struck or restored keeps its place for a breath: the group it stays in and
@@ -72,7 +76,7 @@ struct ListView: View {
         var sort: Double
     }
 
-    static let holdSeconds: Double = 1.5
+    static let holdSeconds: Double = 2.5
 
     /// Entry rows are `row-h-list` under a thumb and `row-h-compact` under a pointer.
     static var rowHeight: CGFloat {
@@ -114,8 +118,9 @@ struct ListView: View {
                 }
             }
             #endif
-            .sensoryFeedback(.impact(weight: .light), trigger: strikes)
-            .sensoryFeedback(.selection, trigger: restores)
+            // a strike and a restore are felt, so a blind tap is noticed
+            .sensoryFeedback(.impact(weight: .medium), trigger: strikes)
+            .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.8), trigger: restores)
             .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.7), trigger: adds)
             .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.5), trigger: repeats)
             .sensoryFeedback(.success, trigger: clears)
@@ -161,6 +166,7 @@ struct ListView: View {
                 beginVisit()
                 session.syncer.setPolling(seconds: 5)
                 #if os(iOS)
+                front = .now
                 UIApplication.shared.isIdleTimerDisabled = true
                 #else
                 nav.listInFront = true
@@ -173,6 +179,9 @@ struct ListView: View {
             .onChange(of: scenePhase) { _, now in
                 if now == .active, visible { beginVisit() }
                 if now == .background { stopDictation() }
+                #if os(iOS)
+                if now == .active { front = .now }
+                #endif
             }
             .onDisappear {
                 visible = false
@@ -788,6 +797,11 @@ struct ListView: View {
     // MARK: Strike, hold, clear
 
     private func toggle(_ row: EntryRow) {
+        #if os(iOS)
+        // a tap in the first moment after the list or doma came to the front is a pocket or a
+        // pickup, not a strike; the UI tests tap at once
+        guard UITestHooks.testing || StrikeGuard(since: front, seconds: guardSeconds).allows(.now) else { return }
+        #endif
         let wasOpen = shown[row.id].map { !$0 } ?? !row.isChecked
         // a second tap within the hold keeps the place the first tap kept
         let hold = held[row.id] ?? Hold(open: !row.isChecked, sort: row.isChecked ? Self.struckSort(row) : row.sort)
@@ -832,7 +846,7 @@ struct ListView: View {
             Button {
                 toggle(row)
             } label: {
-                EntryRowView(row: row, checked: checked, gotBy: gotBy, isNew: fresh)
+                EntryRowView(row: row, checked: checked, gotBy: gotBy, isNew: fresh, held: held[row.id] != nil)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("entry-" + row.name)
@@ -849,7 +863,7 @@ struct ListView: View {
             }
             #else
             // a click selects, the symbol strikes, a double click or return edits
-            EntryRowView(row: row, checked: checked, gotBy: gotBy, isNew: fresh, hovered: hovered == row.id) { toggle(row) }
+            EntryRowView(row: row, checked: checked, gotBy: gotBy, isNew: fresh, held: held[row.id] != nil, hovered: hovered == row.id) { toggle(row) }
                 .accessibilityIdentifier("entry-" + row.name)
                 .onTapGesture(count: 2) { startEdit(row) }
                 .onHover { hovered = $0 ? row.id : (hovered == row.id ? nil : hovered) }
@@ -1019,6 +1033,9 @@ struct EntryRowView: View {
     var gotBy: String?
     /// Someone else added it since the list was last in front: a dot on the symbol this visit.
     var isNew: Bool = false
+    /// Just struck or restored and keeping its place for a breath: the word for the second
+    /// tap sits at the row's edge, so what happened reads and the way back has a name.
+    var held: Bool = false
     /// Under a pointer the row is hovered and the symbol is the strike control.
     var hovered: Bool = false
     var strike: (() -> Void)?
@@ -1074,6 +1091,16 @@ struct EntryRowView: View {
                     .transition(.opacity)
             }
             Spacer(minLength: Tokens.space2)
+            if held {
+                Text(checked ? "Put back" : "Got it")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Tokens.accent)
+                    .padding(.horizontal, Tokens.space2)
+                    .frame(height: Tokens.space5)
+                    .background(Tokens.accentSoft, in: Capsule())
+                    .transition(.opacity)
+                    .accessibilityHidden(true)
+            }
             if let home = row.homeName {
                 Text(home)
                     .font(.caption)
@@ -1095,6 +1122,7 @@ struct EntryRowView: View {
         .contentShape(Rectangle())
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: checked)
         .animation(.easeOut(duration: Tokens.motionQuick), value: hovered)
+        .animation(.easeOut(duration: Tokens.motionQuick), value: held)
         .onChange(of: checked) { _, now in
             guard now, !reduceMotion else { return }
             withAnimation(.spring(duration: Tokens.motionQuick)) { pop = true }
@@ -1105,6 +1133,7 @@ struct EntryRowView: View {
         }
         .accessibilityElement(children: strike == nil ? .ignore : .contain)
         .accessibilityLabel(Text(checked ? "checked, \(row.name) \(row.detail)\(gotBy.map { ", got by \($0)" } ?? "")" : "\(isNew ? "new, " : "")\(row.name) \(row.detail)"))
+        .accessibilityHint(held ? Text(checked ? "Tap again to put back" : "Tap again to strike") : Text(""))
     }
 
     private var symbol: some View {
@@ -1166,3 +1195,28 @@ private struct MacMenu: ViewModifier {
     }
 }
 #endif
+
+/// The phone's guard against a blind strike: a tap on a row in the first moment after the
+/// list, or doma, came to the front is a pocket or a pickup and is ignored. How long is the
+/// Settings choice, off or up to two seconds, half a second unless changed.
+struct StrikeGuard: Equatable {
+    static let key = "strike.guard"
+    static let defaultSeconds = 0.5
+    static let choices: [Double] = [0, 0.5, 1, 2]
+
+    var since: Date
+    var seconds: Double
+
+    func allows(_ now: Date) -> Bool {
+        seconds <= 0 || now.timeIntervalSince(since) >= seconds
+    }
+
+    static func title(_ seconds: Double) -> LocalizedStringKey {
+        switch seconds {
+        case 0: "Off"
+        case 0.5: "Half a second"
+        case 1: "1 second"
+        default: "2 seconds"
+        }
+    }
+}
