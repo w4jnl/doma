@@ -83,7 +83,7 @@ paths:
         "200": {description: YAML}
   /api/v1/me:
     get:
-      summary: The person, their devices and their households with roles
+      summary: The person, their devices and their households with roles, each household with its name, time zone and staleness
       responses:
         "200": {description: me}
   /api/v1/vouch:

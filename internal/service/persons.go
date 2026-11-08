@@ -27,10 +27,13 @@ func membership(r db.Membership) domain.Membership {
 	return domain.Membership{PersonID: r.PersonID, HouseholdID: r.HouseholdID, Role: domain.Role(r.Role), HomeID: r.HomeID, ListID: r.ListID, ExpiresAt: r.ExpiresAt, CreatedAt: r.CreatedAt}
 }
 
-// MembershipInfo is a membership with the household's name, for /me.
+// MembershipInfo is a membership with the household's name, time zone and
+// staleness, for /me: the apps keep their copy of the household from it.
 type MembershipInfo struct {
 	domain.Membership
 	HouseholdName string
+	Timezone      string
+	StalenessDays int
 }
 
 // Me is what a device learns about its person.
@@ -69,7 +72,8 @@ func (s *Service) Me(ctx context.Context, personID string) (*Me, error) {
 		if err != nil {
 			return nil, err
 		}
-		me.Memberships = append(me.Memberships, MembershipInfo{Membership: membership(m), HouseholdName: h.Name})
+		hh := household(h)
+		me.Memberships = append(me.Memberships, MembershipInfo{Membership: membership(m), HouseholdName: h.Name, Timezone: h.Timezone, StalenessDays: s.StalenessDays(&hh)})
 	}
 	return me, nil
 }

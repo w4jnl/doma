@@ -6,6 +6,12 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Fixed: the phone kept an old staleness.** A device learned the household's time zone and
+  "Ask again after" once, when it joined, and never again, so a change made on another device, or
+  a value from early testing, stayed on the phone and its flags faded on a different clock than
+  everyone else's. The household's time zone and staleness now travel with each membership in
+  `GET /api/v1/me`, and the apps take them at every launch and after every join. A doma older
+  than this answers without them and the apps keep what they have.
 - **Tidy the items from History.** A swipe on an item row in History (the row's menu on the
   Mac) offers Rename and Merge into. Rename changes the name on every list, at every home and in
   every past month. Merge into folds a misspelled or duplicate item into the one to keep, picked

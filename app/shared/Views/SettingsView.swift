@@ -285,6 +285,10 @@ struct SettingsView: View {
         .navigationDestination(item: $deviceInvite) { inv in
             InviteSheet(invite: inv)
         }
+        .onChange(of: session.current?.stalenessDays) { _, v in
+            // the refresh from doma may land while this screen is open
+            staleness = Double(v ?? Int64(Staleness.defaultDays))
+        }
         .onAppear {
             staleness = Double(session.current?.stalenessDays ?? Int64(Staleness.defaultDays))
             #if os(iOS)
