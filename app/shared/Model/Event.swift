@@ -59,12 +59,14 @@ enum Kind {
     static let spotCreated = "spot.created", spotRenamed = "spot.renamed", spotArchived = "spot.archived"
     static let photoAdded = "photo.added"
     static let tripPlanned = "trip.planned", tripCancelled = "trip.cancelled", tripArrived = "trip.arrived"
+    static let cardAdded = "card.added", cardEdited = "card.edited", cardArchived = "card.archived", cardLogo = "card.logo"
     static let memberRemoved = "member.removed", deviceRevoked = "device.revoked"
 
     static let all = [itemNamed, itemRenamed, itemMerged, itemArchived, listCreated, listRenamed, listArchived,
                       entryAdded, entryEdited, entryChecked, entryUnchecked, entryCleared, entryMoved, entryRemoved,
                       flagSet, flagProposed, proposalDeclined, stapleAdded, stapleRemoved, homeCreated, homeRenamed, homeArchived,
-                      spotCreated, spotRenamed, spotArchived, photoAdded, tripPlanned, tripCancelled, tripArrived, memberRemoved, deviceRevoked]
+                      spotCreated, spotRenamed, spotArchived, photoAdded, tripPlanned, tripCancelled, tripArrived,
+                      cardAdded, cardEdited, cardArchived, cardLogo, memberRemoved, deviceRevoked]
 }
 
 // MARK: Payloads
@@ -138,6 +140,22 @@ struct StaplePayload: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case sort
         case homeID = "home_id", itemID = "item_id"
+    }
+}
+
+/// The four card events: owner_person_id rides on every one for the sync filter.
+struct CardPayload: Codable, Sendable {
+    var cardID: String
+    var ownerPersonID: String?
+    var name: String?
+    var colour: String?
+    var format: String?
+    var value: String?
+    var domain: String?
+    var logoID: String?
+    enum CodingKeys: String, CodingKey {
+        case name, colour, format, value, domain
+        case cardID = "card_id", ownerPersonID = "owner_person_id", logoID = "logo_id"
     }
 }
 

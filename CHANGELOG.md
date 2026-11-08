@@ -6,6 +6,11 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Cards, the groundwork.** The family's loyalty cards get their table and their events on the
+  server and in the apps' store: a card is a name, a colour, a barcode and, later, the shop's
+  logo, the household's or one person's. A personal card stays with its person through sync,
+  snapshot and export exactly as a personal list does, and the export gains `cards.csv`. No
+  screen yet; the Cards screens and the logos follow.
 - **Fixed: the phone kept an old staleness.** A device learned the household's time zone and
   "Ask again after" once, when it joined, and never again, so a change made on another device, or
   a value from early testing, stayed on the phone and its flags faded on a different clock than

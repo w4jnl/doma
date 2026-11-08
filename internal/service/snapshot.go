@@ -242,6 +242,13 @@ func (s *Service) OpenSnapshot(ctx context.Context, sc domain.Scope, seq int64) 
 		}
 	}
 	snap.Tables.Entries = entries
+	cards := snap.Tables.Cards[:0]
+	for _, c := range snap.Tables.Cards {
+		if c.OwnerPersonID == nil || *c.OwnerPersonID == sc.PersonID {
+			cards = append(cards, c)
+		}
+	}
+	snap.Tables.Cards = cards
 	pr, pw := io.Pipe()
 	go func() {
 		w := gzip.NewWriter(pw)

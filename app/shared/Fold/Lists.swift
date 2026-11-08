@@ -1,5 +1,6 @@
-// Lists, homes and spots: create is add-wins and carries what never changes, name and colour
-// are last-writer-wins on the stamp, an archive sticks (internal/fold/lists.go).
+// Lists, homes, spots and cards: create is add-wins and carries what never changes, name and
+// colour are last-writer-wins on the stamp, an archive sticks (internal/fold/lists.go and
+// cards.go).
 import Foundation
 
 enum Lists {
@@ -35,6 +36,45 @@ enum Lists {
                 try Entries.replay(s, listID: l.id, itemID: item)
             }
         }
+    }
+
+    /// card.added fixes the owner; name, colour, format, value and domain are last-writer-wins
+    /// between the add and the edits; an archive sticks; card.logo, the server's, is
+    /// last-writer-wins among logos on its own stamp.
+    static func applyCard(_ s: some FoldStore, _ e: Event) throws {
+        let p = try e.decode(CardPayload.self)
+        try Fold.need(e, "card_id", p.cardID)
+        var c = try s.card(p.cardID) ?? Card(id: p.cardID)
+        switch e.kind {
+        case Kind.cardAdded, Kind.cardEdited:
+            try Fold.need(e, "name", p.name)
+            try Fold.need(e, "value", p.value)
+            guard let format = p.format, Card.formats.contains(format) else {
+                throw FoldError.badPayload(kind: e.kind, id: e.id, reason: "format is empty")
+            }
+            if e.kind == Kind.cardAdded, c.ownerPersonID == nil { c.ownerPersonID = p.ownerPersonID }
+            if c.updatedHLC == nil || c.updatedHLC! < e.hlc {
+                c.name = p.name!
+                c.colour = p.colour ?? ""
+                c.format = format
+                c.value = p.value!
+                c.domain = p.domain
+                c.updatedHLC = e.hlc
+            }
+        case Kind.cardArchived:
+            if c.archivedAt == nil || e.hlc.wall < c.archivedAt! {
+                c.archivedAt = e.hlc.wall
+            }
+        case Kind.cardLogo:
+            try Fold.need(e, "logo_id", p.logoID)
+            if c.logoHLC == nil || c.logoHLC! < e.hlc {
+                c.logoID = p.logoID
+                c.logoHLC = e.hlc
+            }
+        default:
+            break
+        }
+        try s.putCard(c)
     }
 
     static func applyHome(_ s: some FoldStore, _ e: Event) throws {

@@ -24,6 +24,7 @@ type MemStore struct {
 	photos  map[string]Photo
 	trips   map[string]Trip
 	props   map[string]Proposal
+	cards   map[string]Card
 }
 
 // NewMemStore returns an empty store.
@@ -32,6 +33,7 @@ func NewMemStore() *MemStore {
 		items: map[string]Item{}, aliases: map[string]Alias{}, lists: map[string]List{}, entries: map[string]Entry{},
 		flags: map[[2]string]Flag{}, staples: map[[2]string]Staple{}, homes: map[string]Home{}, spots: map[string]Spot{},
 		photos: map[string]Photo{}, trips: map[string]Trip{}, props: map[string]Proposal{},
+		cards: map[string]Card{},
 	}
 }
 
@@ -367,6 +369,15 @@ func (m *MemStore) PutTrip(t Trip) error {
 	return nil
 }
 
+func (m *MemStore) Card(id string) (*Card, error) {
+	if c, ok := m.cards[id]; ok {
+		return &c, nil
+	}
+	return nil, nil
+}
+
+func (m *MemStore) PutCard(c Card) error { m.cards[c.ID] = c; return nil }
+
 // Tables returns every materialised table, sorted.
 func (m *MemStore) Tables() Tables {
 	var t Tables
@@ -402,6 +413,9 @@ func (m *MemStore) Tables() Tables {
 	}
 	for _, v := range m.props {
 		t.Proposals = append(t.Proposals, v)
+	}
+	for _, v := range m.cards {
+		t.Cards = append(t.Cards, v)
 	}
 	t.Sort()
 	return t

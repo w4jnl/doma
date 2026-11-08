@@ -42,6 +42,10 @@ final class EventSchemaTests: XCTestCase {
         (Kind.tripPlanned, TripPlanPayload(tripID: "T1", fromHomeID: "H1", toHomeID: "H2", date: 1_800_000_000_000, listID: "L1")),
         (Kind.tripCancelled, TripPlanPayload(tripID: "T1")),
         (Kind.tripArrived, TripPayload(tripID: "T1", fromHomeID: "H1", toHomeID: "H2", moved: ["I1", "I2"])),
+        (Kind.cardAdded, CardPayload(cardID: "C1", ownerPersonID: "P1", name: "Albert Heijn", colour: "teal", format: "ean13", value: "2620000000006", domain: "ah.nl")),
+        (Kind.cardEdited, CardPayload(cardID: "C1", name: "AH", colour: "teal", format: "ean13", value: "2620000000006")),
+        (Kind.cardArchived, CardPayload(cardID: "C1", ownerPersonID: "P1")),
+        (Kind.cardLogo, CardPayload(cardID: "C1", logoID: "a1")),
     ]
 
     func testEveryPayloadTheAppWritesIsValid() throws {

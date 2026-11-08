@@ -20,6 +20,8 @@ type Tables struct {
 	Trips   []Trip   `json:"trips"`
 	// Proposals are what a vision model suggested, open or closed.
 	Proposals []Proposal `json:"proposals"`
+	// Cards are the family's loyalty cards.
+	Cards []Card `json:"cards"`
 }
 
 // Sort orders every table by its key.
@@ -45,6 +47,7 @@ func (t *Tables) Sort() {
 	sort.Slice(t.Photos, func(i, j int) bool { return t.Photos[i].ID < t.Photos[j].ID })
 	sort.Slice(t.Trips, func(i, j int) bool { return t.Trips[i].ID < t.Trips[j].ID })
 	sort.Slice(t.Proposals, func(i, j int) bool { return t.Proposals[i].ID < t.Proposals[j].ID })
+	sort.Slice(t.Cards, func(i, j int) bool { return t.Cards[i].ID < t.Cards[j].ID })
 }
 
 // Canonical renders the tables as JSON with every null, empty, zero and

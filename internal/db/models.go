@@ -12,6 +12,21 @@ type Admin struct {
 	CreatedAt    int64
 }
 
+type Card struct {
+	ID            string
+	HouseholdID   string
+	Name          string
+	Colour        string
+	OwnerPersonID *string
+	Format        string
+	Value         string
+	Domain        *string
+	LogoID        *string
+	LogoHlc       *string
+	UpdatedHlc    *string
+	ArchivedAt    *int64
+}
+
 type Credential struct {
 	ID           string
 	PersonID     string

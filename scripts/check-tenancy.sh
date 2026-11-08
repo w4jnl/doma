@@ -8,7 +8,7 @@ set -eu
 dir="$(dirname "$0")/../internal/db/queries"
 [ -d "$dir" ] || { echo "tenancy gate: no queries yet"; exit 0; }
 
-household_tables="memberships invites events snapshots homes spots items item_aliases lists entries flags staples photos trips push_log"
+household_tables="memberships invites events snapshots homes spots items item_aliases lists entries flags staples photos trips push_log cards proposals"
 status=0
 
 for table in $household_tables; do

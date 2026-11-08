@@ -517,6 +517,42 @@ func (s *Store) PutTrip(t fold.Trip) error {
 
 // Tables reads every materialised table of the household, for tests and
 // for the snapshot job.
+// cards
+
+func (s *Store) Card(id string) (*fold.Card, error) {
+	r, err := s.q.GetCard(s.ctx, db.GetCardParams{HouseholdID: s.HouseholdID, ID: id})
+	if noRows(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	c, err := cardRow(r)
+	return &c, err
+}
+
+func cardRow(r db.Card) (fold.Card, error) {
+	u, err := hlcPtr(r.UpdatedHlc)
+	if err != nil {
+		return fold.Card{}, err
+	}
+	lh, err := hlcPtr(r.LogoHlc)
+	if err != nil {
+		return fold.Card{}, err
+	}
+	return fold.Card{
+		ID: r.ID, Name: r.Name, Colour: r.Colour, OwnerPersonID: r.OwnerPersonID, Format: r.Format, Value: r.Value,
+		Domain: r.Domain, LogoID: r.LogoID, LogoHLC: lh, UpdatedHLC: u, ArchivedAt: r.ArchivedAt,
+	}, nil
+}
+
+func (s *Store) PutCard(c fold.Card) error {
+	return s.q.UpsertCard(s.ctx, db.UpsertCardParams{
+		ID: c.ID, HouseholdID: s.HouseholdID, Name: c.Name, Colour: c.Colour, OwnerPersonID: c.OwnerPersonID, Format: c.Format,
+		Value: c.Value, Domain: c.Domain, LogoID: c.LogoID, LogoHlc: strPtr(c.LogoHLC), UpdatedHlc: strPtr(c.UpdatedHLC), ArchivedAt: c.ArchivedAt,
+	})
+}
+
 func (s *Store) Tables() (fold.Tables, error) {
 	var t fold.Tables
 	items, err := s.Items()
@@ -626,6 +662,17 @@ func (s *Store) Tables() (fold.Tables, error) {
 			return t, err
 		}
 		t.Proposals = append(t.Proposals, p)
+	}
+	cards, err := s.q.ListCards(s.ctx, s.HouseholdID)
+	if err != nil {
+		return t, err
+	}
+	for _, r := range cards {
+		c, err := cardRow(r)
+		if err != nil {
+			return t, err
+		}
+		t.Cards = append(t.Cards, c)
 	}
 	return t, nil
 }

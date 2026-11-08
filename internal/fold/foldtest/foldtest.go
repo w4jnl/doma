@@ -30,7 +30,7 @@ type Case struct {
 }
 
 // Tables are the materialised tables a snapshot holds, in fixture order.
-var Tables = []string{"items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals"}
+var Tables = []string{"items", "item_aliases", "lists", "entries", "flags", "staples", "homes", "spots", "photos", "trips", "proposals", "cards"}
 
 // Path is the fixture's path, found from this file.
 func Path() string {
