@@ -38,20 +38,23 @@ type suite struct {
 	srv        *httptest.Server
 	a, b       tenant
 	guestToken string
+	// photos is the photo directory, where card logos live too
+	photos string
 }
 
 func newSuite(t *testing.T) *suite {
 	t.Helper()
 	auth.FastParamsForTests()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := service.New(dbtest.Open(t), service.Config{BaseURL: "http://doma.test", SnapshotsDir: t.TempDir(), PhotosDir: t.TempDir(), MaxUploadBytes: 200 << 10}, log)
+	photos := t.TempDir()
+	svc := service.New(dbtest.Open(t), service.Config{BaseURL: "http://doma.test", SnapshotsDir: t.TempDir(), PhotosDir: photos, MaxUploadBytes: 200 << 10}, log)
 	h, err := dhttp.Handler(dhttp.Deps{Cfg: config.Default(), Log: log, Svc: svc})
 	if err != nil {
 		t.Fatal(err)
 	}
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
-	s := &suite{t: t, svc: svc, srv: srv}
+	s := &suite{t: t, svc: svc, srv: srv, photos: photos}
 	s.a = s.tenant("Family A")
 	s.b = s.tenant("Family B")
 	g, err := svc.CreateGuestLink(context.Background(), domain.Scope{HouseholdID: s.a.id, Role: domain.RoleOwner}, s.a.home, s.a.list, "cleaner", 0)
@@ -142,6 +145,10 @@ func TestCrossTenantIs404Everywhere(t *testing.T) {
 			return s.a.owner.Upload(ctx, "/photos/v1/"+other+"/"+domain.NewID(), jpegBytes(t, 8, 8), "image/jpeg", nil)
 		},
 		"photo get": func() error { _, _, err := s.a.owner.Download(ctx, "/photos/v1/"+other+"/"+domain.NewID()); return err },
+		"card logo": func() error {
+			_, _, err := s.a.owner.Download(ctx, "/cards/v1/"+other+"/"+domain.NewID()+"/logo/0123456789abcdef")
+			return err
+		},
 		"photo thumb": func() error {
 			_, _, err := s.a.owner.Download(ctx, "/photos/v1/"+other+"/"+domain.NewID()+"/thumb")
 			return err

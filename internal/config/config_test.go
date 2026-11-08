@@ -131,6 +131,8 @@ func TestValidate(t *testing.T) {
 		{"vision without url", map[string]string{"DOMA_VISION_ENABLED": "true", "DOMA_VISION_MODEL": "m"}, "vision.url"},
 		{"vision without model", map[string]string{"DOMA_VISION_ENABLED": "true", "DOMA_VISION_URL": "http://ollama:11434/v1"}, "vision.model"},
 		{"anthropic without key", map[string]string{"DOMA_VISION_ENABLED": "true", "DOMA_VISION_PROVIDER": "anthropic", "DOMA_VISION_MODEL": "claude-opus-5-5"}, "vision.api_key"},
+		{"logos without key", map[string]string{"DOMA_LOGOS_ENABLED": "true"}, "logos.api_key"},
+		{"logos timeout", map[string]string{"DOMA_LOGOS_TIMEOUT_SECONDS": "0"}, "logos.timeout_seconds"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

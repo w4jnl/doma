@@ -36,6 +36,7 @@ type Config struct {
 	Secrets   Secrets   `toml:"secrets"`
 	Admin     Admin     `toml:"admin"`
 	Vision    Vision    `toml:"vision"`
+	Logos     Logos     `toml:"logos"`
 }
 
 type Server struct {
@@ -90,6 +91,16 @@ type Vision struct {
 	Model  string `toml:"model"`
 	APIKey string `toml:"api_key" redact:"true"`
 	// TimeoutSeconds bounds one look at a photo.
+	TimeoutSeconds int `toml:"timeout_seconds"`
+}
+
+// Logos is logo.dev, which the server asks for a shop's logo when the
+// family adds or edits a card. Off, nothing in the process dials it.
+type Logos struct {
+	Enabled bool `toml:"enabled"`
+	// APIKey is the Brand API's secret key; env:NAME keeps it out of the file.
+	APIKey string `toml:"api_key" redact:"true"`
+	// TimeoutSeconds bounds one fetch, the request and the download.
 	TimeoutSeconds int `toml:"timeout_seconds"`
 }
 
@@ -154,6 +165,7 @@ func Default() *Config {
 		Retention: Retention{EventsDays: 365, PhotosPerSpot: 5, SnapshotHour: 3},
 		Defaults:  Defaults{StalenessDays: 60},
 		Vision:    Vision{Provider: "openai", TimeoutSeconds: 60},
+		Logos:     Logos{TimeoutSeconds: 20},
 		Log:       Log{Level: "info", Format: "json"},
 		Admin:     Admin{Auth: "password"},
 	}
@@ -300,6 +312,12 @@ func (c *Config) Validate() error {
 	}
 	if c.Vision.TimeoutSeconds <= 0 {
 		fail("vision.timeout_seconds must be positive")
+	}
+	if c.Logos.Enabled && c.Logos.APIKey == "" {
+		fail("logos.enabled is on but logos.api_key is empty")
+	}
+	if c.Logos.TimeoutSeconds <= 0 {
+		fail("logos.timeout_seconds must be positive")
 	}
 	if c.Invites.DefaultDays <= 0 || c.Invites.GuestDefaultDays <= 0 {
 		fail("invites.default_days and invites.guest_default_days must be positive")

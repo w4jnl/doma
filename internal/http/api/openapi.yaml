@@ -66,6 +66,12 @@ paths:
       responses:
         "200": {description: image/jpeg}
         "404": {description: pending, pruned or not this household's}
+  /cards/v1/{household}/{card_id}/logo/{logo_id}:
+    get:
+      summary: The shop's logo the server fetched for a card, a PNG of at most 256 px; members, or a link the server signed
+      responses:
+        "200": {description: image/png}
+        "404": {description: no such logo, another person's card, or not this household's}
   /i/{token}:
     post:
       summary: Accept an invite with a new or known device key

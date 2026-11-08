@@ -56,6 +56,11 @@ model = ""                              # e.g. qwen2.5vl, or claude-opus-5-5
 api_key = ""                            # "env:DOMA_VISION_API_KEY" if the endpoint wants one; anthropic needs it
 timeout_seconds = 60
 
+[logos]
+enabled = false                         # the server fetches a shop's logo for each card from logo.dev
+api_key = ""                            # "env:DOMA_LOGOS_API_KEY", the Brand API's secret key
+timeout_seconds = 20
+
 [admin]
 auth = "password"                       # or "proxy": the reverse proxy in front (Authelia) signs the admin in
 # proxy_cidrs = ["172.16.0.0/12"]        # the proxy's addresses; Remote-User counts from nowhere else

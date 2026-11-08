@@ -277,6 +277,11 @@ func (s *Service) reconcilePhotos(ctx context.Context, householdID string) error
 		}
 		used += size
 	}
+	logoBytes, err := s.logoFiles(ctx, householdID, named)
+	if err != nil {
+		return err
+	}
+	used += logoBytes
 	if root, err := os.OpenRoot(filepath.Join(s.cfg.PhotosDir, householdID)); err == nil {
 		_ = fs.WalkDir(root.FS(), ".", func(p string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() {

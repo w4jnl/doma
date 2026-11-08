@@ -24,6 +24,7 @@ import (
 	dhttp "github.com/w4jnl/doma/internal/http"
 	"github.com/w4jnl/doma/internal/http/web"
 	"github.com/w4jnl/doma/internal/logging"
+	"github.com/w4jnl/doma/internal/logos"
 	"github.com/w4jnl/doma/internal/metrics"
 	"github.com/w4jnl/doma/internal/push"
 	"github.com/w4jnl/doma/internal/secrets"
@@ -153,6 +154,13 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 		looker = vision.New(svc, client, logging.Sub(log, "vision"))
 		svc.SetVision(looker)
 	}
+	// the logo worker, the same way: only when logos.enabled is on
+	var logoWorker *logos.Worker
+	if cfg.Logos.Enabled {
+		client := logos.NewClient(logos.Config{APIKey: cfg.Logos.APIKey, Timeout: time.Duration(cfg.Logos.TimeoutSeconds) * time.Second})
+		logoWorker = logos.New(svc, client, logging.Sub(log, "logos"))
+		svc.SetLogos(logoWorker)
+	}
 	started := time.Now()
 	redacted, _ := cfg.Redacted().TOML()
 	facts := &web.ServerFacts{
@@ -180,7 +188,7 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
-	errc := make(chan error, 3)
+	errc := make(chan error, 5)
 	run := func(name string, fn func(context.Context) error) {
 		wg.Add(1)
 		go func() {
@@ -195,6 +203,9 @@ func runServe(ctx context.Context, cfg *config.Config, log *slog.Logger, debug b
 	run("push", func(ctx context.Context) error { return pusher.Run(ctx, changes.Subscribe()) })
 	if looker != nil {
 		run("vision", looker.Run)
+	}
+	if logoWorker != nil {
+		run("logos", logoWorker.Run)
 	}
 	run("http", func(ctx context.Context) error { return dhttp.Run(ctx, log, cfg.Server.Listen, h) })
 	var firstErr error

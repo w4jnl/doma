@@ -54,20 +54,20 @@ func Process(r io.Reader) (*Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrNotJPEG, err)
 	}
-	full := fit(img, MaxEdge)
+	full := Fit(img, MaxEdge)
 	out := &Result{Width: full.Bounds().Dx(), Height: full.Bounds().Dy()}
 	if out.Full, err = encode(full); err != nil {
 		return nil, err
 	}
-	if out.Thumb, err = encode(fit(full, ThumbEdge)); err != nil {
+	if out.Thumb, err = encode(Fit(full, ThumbEdge)); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// fit scales img down so its long side is at most edge; a smaller picture
+// Fit scales img down so its long side is at most edge; a smaller picture
 // is returned as is.
-func fit(img image.Image, edge int) image.Image {
+func Fit(img image.Image, edge int) image.Image {
 	b := img.Bounds()
 	w, h := b.Dx(), b.Dy()
 	long := max(w, h)

@@ -192,6 +192,7 @@ func notYours(kind string) string {
 func (s *Service) syncHousehold(ctx context.Context, v *events.Validator, personID, credentialID string, hh SyncHousehold) (*SyncHouseholdResult, error) {
 	res := &SyncHouseholdResult{ID: hh.ID, Accepted: []string{}, Rejected: []Rejected{}, Events: []SyncEvent{}, Next: hh.Since}
 	var lastSeq int64
+	var logoJobs []string
 	exchange := func(q *db.Queries) error {
 		owners, err := listOwners(ctx, q, hh.ID)
 		if err != nil {
@@ -240,15 +241,21 @@ func (s *Service) syncHousehold(ctx context.Context, v *events.Validator, person
 				if s.metrics != nil {
 					s.metrics.Events.WithLabelValues(hh.ID, in.Kind).Inc()
 				}
-				if in.Kind == "list.created" || in.Kind == "card.added" {
-					// a personal list or card created in this batch filters the rest of it
+				if in.Kind == "list.created" || in.Kind == "card.added" || in.Kind == "card.edited" {
+					// a personal list or card created in this batch filters the rest of it; a
+					// card added or edited is a logo to fetch once the transaction holds
 					var p struct {
 						ListID        string  `json:"list_id"`
 						CardID        string  `json:"card_id"`
 						OwnerPersonID *string `json:"owner_person_id"`
 					}
-					if json.Unmarshal(in.Payload, &p) == nil && p.OwnerPersonID != nil {
-						owners[p.ListID+p.CardID] = *p.OwnerPersonID
+					if json.Unmarshal(in.Payload, &p) == nil {
+						if p.OwnerPersonID != nil && in.Kind != "card.edited" {
+							owners[p.ListID+p.CardID] = *p.OwnerPersonID
+						}
+						if p.CardID != "" {
+							logoJobs = append(logoJobs, p.CardID)
+						}
 					}
 				}
 			}
@@ -286,5 +293,10 @@ func (s *Service) syncHousehold(ctx context.Context, v *events.Validator, person
 	}
 	s.log.LogAttrs(ctx, slog.LevelInfo, "sync", slog.String("household", hh.ID), slog.Int("accepted", len(res.Accepted)), slog.Int("rejected", len(res.Rejected)), slog.Int("returned", len(res.Events)), slog.Int64("next", res.Next))
 	s.changed(hh.ID, lastSeq)
+	if s.logos != nil {
+		for _, id := range logoJobs {
+			s.logos.Enqueue(hh.ID, id)
+		}
+	}
 	return res, nil
 }

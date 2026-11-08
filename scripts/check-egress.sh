@@ -1,7 +1,8 @@
 #!/bin/sh
-# Fails when Go code opens network connections anywhere but internal/push:
-# doma makes no outbound call except to APNs, and none at all when
-# push.enabled is false. The allowlist names the one place that dials.
+# Fails when Go code opens network connections anywhere but the three
+# clients behind their switches: APNs (push.enabled), the vision model
+# (vision.enabled) and logo.dev (logos.enabled); with all three off doma
+# makes no outbound call at all. The allowlist names the places that dial.
 set -eu
 
 cd "$(dirname "$0")/.."
@@ -12,6 +13,7 @@ pattern='http\.Client{|http\.Get\(|http\.Post\(|http\.Head\(|http\.DefaultClient
 allow='
 internal/push/apns.go:the APNs client, built only when push.enabled is true
 internal/vision/client.go:the vision model client, built only when vision.enabled is true
+internal/logos/client.go:the logo.dev client, built only when logos.enabled is true
 internal/client/client.go:the Go client of a doma server, used by tests and the e2e smoke
 cmd/domaload/main.go:the load check, many Go clients of the doma under test
 '
@@ -19,7 +21,7 @@ cmd/domaload/main.go:the load check, many Go clients of the doma under test
 status=0
 for f in $(grep -rlE "$pattern" --include='*.go' internal cmd 2>/dev/null | grep -v '_test\.go$' | sort); do
   if ! printf '%s\n' "$allow" | grep -q "^$f:"; then
-    echo "egress gate: $f opens connections outside internal/push and internal/vision:" >&2
+    echo "egress gate: $f opens connections outside internal/push, internal/vision and internal/logos:" >&2
     grep -nE "$pattern" "$f" >&2
     status=1
   fi
