@@ -65,13 +65,18 @@ final class CardLogicTests: XCTestCase {
 
     func testTheShopTableSuggestsTheRegionFirst() {
         let table = [
-            Shop(name: "Albert Heijn", domain: "ah.nl", countries: ["be", "nl"]),
-            Shop(name: "Albert", domain: "albert.cz", countries: ["cz"]),
-            Shop(name: "Aldi", domain: "aldi.nl", countries: ["nl"]),
-            Shop(name: "IKEA", domain: "ikea.com", countries: ["eu"]),
-            Shop(name: "Tesco", domain: "tesco.sk", countries: ["sk"]),
-            Shop(name: "Hornbach Baumarkt", domain: "hornbach.de", countries: ["de", "nl"]),
+            Shop(name: "Albert Heijn", domains: ["ah.nl", "ah.be"], countries: ["be", "nl"]),
+            Shop(name: "Albert", domains: ["albert.cz"], countries: ["cz"]),
+            Shop(name: "Aldi", domains: ["aldi.nl"], countries: ["nl"]),
+            Shop(name: "IKEA", domains: ["ikea.com"], countries: ["eu"]),
+            Shop(name: "Tesco", domains: ["tescoplc.com", "itesco.sk", "tesco.sk", "tesco.ie"], countries: ["eu"]),
+            Shop(name: "Hornbach Baumarkt", domains: ["hornbach.de"], countries: ["de", "nl"]),
         ]
+        XCTAssertEqual(table[4].domain(for: "SK"), "tesco.sk", "the shortest domain of the country")
+        XCTAssertEqual(table[4].domain(for: "IE"), "tesco.ie")
+        XCTAssertEqual(table[4].domain(for: "NL"), "tescoplc.com", "no Dutch site: the main one")
+        XCTAssertEqual(table[0].domain(for: "BE"), "ah.be")
+        XCTAssertEqual(table[0].domain(for: nil), "ah.nl")
         XCTAssertEqual(Shops.suggest("al", region: "NL", in: table).map(\.name), ["Albert Heijn", "Aldi", "Albert"], "the Dutch ones first, then the rest")
         XCTAssertEqual(Shops.suggest("al", region: "CZ", in: table).map(\.name), ["Albert", "Albert Heijn", "Aldi"])
         XCTAssertEqual(Shops.suggest("bau", region: "NL", in: table).map(\.name), ["Hornbach Baumarkt"], "a later word matches too")
@@ -86,6 +91,8 @@ final class CardLogicTests: XCTestCase {
         let ah = all.first { $0.name == "Albert Heijn" }
         XCTAssertEqual(ah?.domain, "ah.nl")
         XCTAssertEqual(ah?.countries, ["be", "nl"])
+        XCTAssertEqual(all.first { $0.name == "Tesco" }?.domain(for: "SK"), "tesco.sk")
+        XCTAssertEqual(all.first { $0.name == "Kaufland" }?.domain(for: "SK"), "kaufland.sk")
         XCTAssertTrue(all.contains { $0.name == "Tesco" && ($0.countries == ["eu"] || $0.countries.contains("sk")) }, "a chain found everywhere, or in Slovakia")
         XCTAssertTrue(all.contains { $0.name == "Kaufland" && $0.countries.contains("sk") })
     }

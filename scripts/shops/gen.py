@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Writes app/shared/Resources/shops.json, the bundled shop table the apps suggest names from
-when a card is added: for each chain the name, the website's domain and the countries it trades
-in, for the EU, EFTA and the UK. The source is OpenStreetMap's Name Suggestion Index
+when a card is added: for each chain the name, its websites' domains (the main one, then the
+country ones) and the countries it trades in, for the EU, EFTA and the UK. The source is OpenStreetMap's Name Suggestion Index
 (BSD-3-Clause, named in NOTICE), from its npm package: the brands of the kinds of shop a family
 holds a card of, and its cache of Wikidata for the websites. Names and websites only; no logo is bundled.
 
@@ -81,13 +81,18 @@ def main():
                 name = tags.get("brand") or tags.get("name") or item.get("displayName")
                 if not name:
                     continue
-                d = None
+                # every official website's domain, the main one first: the app picks the one of
+                # the device's country, tesco.sk on a Slovak phone, and falls back to the main one
+                domains = []
                 q = tags.get("brand:wikidata")
                 if q and q in wikidata:
                     w = wikidata[q]
-                    site = (w.get("identities") or {}).get("website") or next(iter(w.get("officialWebsites") or []), None)
-                    if site:
-                        d = domain(site)
+                    sites = [(w.get("identities") or {}).get("website")] + list(w.get("officialWebsites") or [])
+                    for site in sites:
+                        d = domain(site) if site else None
+                        if d and d not in domains:
+                            domains.append(d)
+                d = domains[0] if domains else None
                 key = (name.lower(), d)
                 have = shops.get(key)
                 if have:
@@ -99,6 +104,8 @@ def main():
                 entry = {"n": name, "c": cs}
                 if d:
                     entry["d"] = d
+                if len(domains) > 1:
+                    entry["ds"] = domains[1:]
                 shops[key] = entry
     rows = sorted(shops.values(), key=lambda s: (s["n"].lower(), s.get("d", "")))
     out = {"_source": f"name-suggestion-index {v}, BSD-3-Clause; names and websites only, see scripts/shops/gen.py", "shops": rows}

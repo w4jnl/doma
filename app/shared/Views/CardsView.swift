@@ -184,22 +184,25 @@ struct CardTile: View {
     @Environment(Session.self) private var session
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Tokens.radiusSM)
-                .fill(Tokens.listColor(card.colour))
+        Group {
             if let logoID = card.logoID, let cg = session.photos.logo(cardID: card.id, logoID: logoID) {
+                // a logo is drawn for white: the same white tile and the same margin for every shop,
+                // in both appearances
                 Image(decorative: cg, scale: 1)
                     .resizable()
                     .scaledToFit()
-                    .padding(size / 10)
-                    .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
+                    .padding(size / 9)
+                    .frame(width: size, height: size)
+                    .background(Color.white, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
+                    .overlay(RoundedRectangle(cornerRadius: Tokens.radiusSM).strokeBorder(Tokens.line))
             } else {
                 Text(card.initials)
                     .font(Tokens.mono(fixed: size * 0.4, bold: true))
                     .foregroundStyle(Tokens.onAccent)
+                    .frame(width: size, height: size)
+                    .background(Tokens.listColor(card.colour), in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
             }
         }
-        .frame(width: size, height: size)
         .accessibilityHidden(true)
     }
 }
@@ -218,36 +221,55 @@ struct CardView: View {
     var body: some View {
         let c = card?.value ?? nil
         ZStack {
-            Color.white.ignoresSafeArea()
-            VStack(spacing: Tokens.space4) {
-                if let c {
-                    if let cg = Barcode.image(c.value, format: c.format) {
-                        Image(decorative: cg, scale: 1)
-                            .interpolation(.none)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: Barcode.isLinear(c.format) ? .infinity : 360)
-                            .padding(.horizontal, Tokens.space4)
-                            .accessibilityIdentifier("barcode")
-                    } else {
-                        Text("This code cannot be drawn; show the number.")
-                            .font(.footnote)
-                            .foregroundStyle(.black.opacity(0.6))
+            Tokens.ground.ignoresSafeArea()
+            if let c {
+                VStack(spacing: 0) {
+                    // the band: the shop's logo or initials and its name, in the card's colour
+                    HStack(spacing: Tokens.space3) {
+                        CardTile(card: c, size: Tokens.rowH)
+                        Text(c.name)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Tokens.onAccent)
+                        Spacer()
                     }
-                    Text(c.value)
-                        .font(Tokens.mono(.title3))
-                        .foregroundStyle(.black)
-                        .textSelection(.enabled)
-                        .accessibilityIdentifier("card-number")
-                    Text(Barcode.name(of: c.format))
-                        .font(.footnote)
-                        .foregroundStyle(.black.opacity(0.5))
+                    .padding(Tokens.space4)
+                    .background(Tokens.listColor(c.colour))
+                    // the code on white, whatever the appearance, with room around it
+                    VStack(spacing: Tokens.space3) {
+                        if let cg = Barcode.image(c.value, format: c.format) {
+                            Image(decorative: cg, scale: 1)
+                                .interpolation(.none)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: Barcode.isLinear(c.format) ? 360 : 240)
+                                .accessibilityIdentifier("barcode")
+                        } else {
+                            Text("This code cannot be drawn; show the number.")
+                                .font(.footnote)
+                                .foregroundStyle(.black.opacity(0.6))
+                        }
+                        Text(c.value)
+                            .font(Tokens.mono(.title3))
+                            .foregroundStyle(.black)
+                            .textSelection(.enabled)
+                            .accessibilityIdentifier("card-number")
+                        Text(Barcode.name(of: c.format))
+                            .font(.footnote)
+                            .foregroundStyle(.black.opacity(0.5))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, Tokens.space5)
+                    .padding(.vertical, Tokens.space6)
+                    .background(Color.white)
                 }
+                .clipShape(RoundedRectangle(cornerRadius: Tokens.radiusMD))
+                .frame(maxWidth: 480)
+                .padding(.horizontal, Tokens.space4)
+                .padding(.top, Tokens.space4)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
-            .frame(maxWidth: Tokens.contentMax)
-            .padding(.vertical, Tokens.space6)
         }
-        .navigationTitle(c?.name ?? "")
+        .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -314,6 +336,9 @@ struct AddCardView: View {
 
     enum Field { case number, shop }
 
+    /// The device's country, which picks a chain's local website.
+    private static var region: String? { Locale.current.region?.identifier }
+
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && !CardActions.cleaned(value).isEmpty
     }
@@ -349,7 +374,7 @@ struct AddCardView: View {
                         .submitLabel(.next)
                         .onSubmit { focus = .shop }
                         .accessibilityIdentifier("card-value")
-                    PasteButton(supportedContentTypes: [.image]) { providers in
+                    PasteButton(supportedContentTypes: [.image, .plainText]) { providers in
                         paste(providers)
                     }
                     .labelStyle(.iconOnly)
@@ -383,14 +408,14 @@ struct AddCardView: View {
                     Button {
                         name = s.name
                         pickedName = s.name
-                        domain = s.domain
+                        domain = s.domain(for: Self.region)
                         suggestions = []
                     } label: {
                         HStack {
                             Text(s.name)
                                 .foregroundStyle(Tokens.ink)
                             Spacer()
-                            if let d = s.domain {
+                            if let d = s.domain(for: Self.region) {
                                 Text(d)
                                     .font(Tokens.mono(.footnote))
                                     .foregroundStyle(Tokens.inkMuted)
@@ -454,8 +479,9 @@ struct AddCardView: View {
             domain = c.domain
             personal = c.isPersonal
         }
-        focus = editing == nil && (QRScanner.isAvailable || value.isEmpty) ? .number : .shop
-        if editing == nil, QRScanner.isAvailable { focus = nil }
+        // the caret blinks, so a picture of this screen is taken with no field focused
+        guard !UITestHooks.testing else { return }
+        focus = editing == nil && QRScanner.isAvailable ? nil : (editing == nil ? .number : .shop)
     }
 
     /// A code the camera read.
@@ -473,27 +499,37 @@ struct AddCardView: View {
         focus = .shop
     }
 
-    /// A picture from the clipboard, read for its barcode: the way out of another wallet.
+    /// The clipboard: a picture, read for its barcode, which is the way out of another wallet;
+    /// or a number copied from somewhere, taken as typed.
     private func paste(_ providers: [NSItemProvider]) {
         guard let p = providers.first else { return }
         Task {
-            let data = await Self.data(from: p)
-            guard let data, let cg = PhotoLoader.decode(data), let read = Barcode.read(cg) else {
-                problem = String(localized: "No barcode in the picture.")
-                return
+            if p.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                let data = await Self.data(from: p, as: .image)
+                guard let data, let cg = PhotoLoader.decode(data), let read = Barcode.read(cg) else {
+                    problem = String(localized: "No barcode in the picture.")
+                    return
+                }
+                value = read.value
+                format = read.format
+                formatChosen = true
+                scanned = true
+                problem = nil
+                focus = .shop
+            } else if let data = await Self.data(from: p, as: .plainText), let text = String(data: data, encoding: .utf8) {
+                let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !t.isEmpty else { return }
+                formatChosen = false
+                value = t
+                problem = nil
+                focus = .shop
             }
-            value = read.value
-            format = read.format
-            formatChosen = true
-            scanned = true
-            problem = nil
-            focus = .shop
         }
     }
 
-    private static func data(from provider: NSItemProvider) async -> Data? {
+    private static func data(from provider: NSItemProvider, as type: UTType) async -> Data? {
         await withCheckedContinuation { cont in
-            _ = provider.loadDataRepresentation(for: .image) { data, _ in cont.resume(returning: data) }
+            _ = provider.loadDataRepresentation(for: type) { data, _ in cont.resume(returning: data) }
         }
     }
 

@@ -7,8 +7,7 @@ updates this file first. Dates are the tag dates.
 ## Unreleased
 
 - **Cards.** The family's loyalty cards in doma, so the till is two taps from the list: Cards
-  sits at the foot of the Lists overview next to History and behind the card glyph on every
-  shopping list. A card is a name, a colour, a barcode and, when the server fetched it, the
+  is the second tab, and behind the card glyph on every shopping list. A card is a name, a colour, a barcode and, when the server fetched it, the
   shop's logo; the household's by default or one person's, like a list, with Edit, Share with
   the family and Remove behind a swipe. The Card screen draws the barcode large on white at full
   brightness, the phone awake, with the digits under it; the app draws every code itself, Core
