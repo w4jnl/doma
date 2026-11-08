@@ -101,6 +101,12 @@ enum HomeActions {
         try session.record(Kind.itemRenamed, ItemPayload(itemID: itemID, name: n))
     }
 
+    /// Retires an item, from History: it stops coming up while typing and keeps its place in
+    /// the past months; typing its name again in full brings it back.
+    static func retireItem(_ itemID: String, in session: Session) throws {
+        try session.record(Kind.itemArchived, ItemPayload(itemID: itemID))
+    }
+
     /// Folds one item into another, from History: the kept item takes the dropped one's entries,
     /// flags and staples, and the dropped name becomes an alias of it. One way.
     static func mergeItem(_ dropID: String, into keepID: String, in session: Session) throws {

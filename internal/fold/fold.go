@@ -226,7 +226,7 @@ type Store interface {
 // Kinds is every event kind the fold knows, in the order of the design
 // document's table.
 var Kinds = []string{
-	"item.named", "item.renamed", "item.merged",
+	"item.named", "item.renamed", "item.merged", "item.archived",
 	"list.created", "list.renamed", "list.archived",
 	"entry.added", "entry.edited", "entry.checked", "entry.unchecked", "entry.cleared", "entry.moved", "entry.removed",
 	"flag.set", "flag.proposed", "proposal.declined",
@@ -246,7 +246,7 @@ var ErrPayload = errors.New("fold: bad payload")
 // the event to the log the store reads for replays.
 func Apply(s Store, e Event) error {
 	switch e.Kind {
-	case "item.named", "item.renamed", "item.merged":
+	case "item.named", "item.renamed", "item.merged", "item.archived":
 		return replayCatalog(s)
 	case "list.created", "list.renamed", "list.archived":
 		return applyList(s, e)

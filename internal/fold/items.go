@@ -17,12 +17,41 @@ type itemPayload struct {
 type catItem struct {
 	id, name, norm, mergedInto string
 	created, updated           domain.HLC
+	// archivedAt is set by item.archived and cleared when the family names
+	// the item again or merges into it; revived says a clear happened in
+	// the log, so a base row's archive is undone too
+	archivedAt int64
+	revived    bool
 }
 
 // catalog replays item events in stamp order with the sequential rules.
 type catalog struct {
 	items   map[string]*catItem
 	aliases map[string]string // norm -> owner id
+	// late holds archives of items the log no longer names: applied to
+	// the stored rows as they are
+	late map[string]int64
+}
+
+// revive brings an item back when the family uses its name again.
+func (c *catalog) revive(id string) {
+	if it := c.items[id]; it != nil {
+		it.archivedAt, it.revived = 0, true
+	}
+}
+
+// archived retires an item: it stops coming up while typing and keeps its
+// place in the history. An unknown owner is a row the log no longer names.
+func (c *catalog) archived(id string, h domain.HLC) {
+	owner := c.resolve(id)
+	if it := c.items[owner]; it != nil {
+		it.archivedAt, it.revived = h.Wall, false
+		return
+	}
+	if c.late == nil {
+		c.late = map[string]int64{}
+	}
+	c.late[owner] = h.Wall
 }
 
 func (c *catalog) resolve(id string) string {
@@ -51,14 +80,18 @@ func (c *catalog) ownerOf(norm string) string {
 
 func (c *catalog) named(id, name string, h domain.HLC) {
 	if _, ok := c.items[id]; ok {
+		// the apps name an item they know again when it was retired
+		c.revive(c.resolve(id))
 		c.renamed(id, name, h)
 		return
 	}
 	norm := domain.NormName(name)
 	it := &catItem{id: id, name: name, created: h, updated: h}
 	if owner := c.ownerOf(norm); owner != "" {
-		// two phones typed the same thing: one item, the newcomer an alias id
+		// two phones typed the same thing: one item, the newcomer an alias id;
+		// a retired item named again in full is back
 		it.mergedInto = owner
+		c.revive(owner)
 	} else {
 		it.norm = norm
 	}
@@ -115,6 +148,7 @@ func (c *catalog) mergeInto(keep, drop string, alias bool) {
 			it.mergedInto = keep
 		}
 	}
+	c.revive(keep)
 }
 
 // replayCatalog derives items and aliases from every item event, writes
@@ -148,6 +182,11 @@ func replayCatalog(s Store) error {
 				return need(ev, "keep_id and drop_id", "")
 			}
 			c.merged(p.KeepID, p.DropID)
+		case "item.archived":
+			if p.ItemID == "" {
+				return need(ev, "item_id", "")
+			}
+			c.archived(p.ItemID, ev.HLC)
 		}
 	}
 
@@ -192,6 +231,11 @@ func replayCatalog(s Store) error {
 		if had {
 			row.Category, row.LastUsedAt, row.UseCount, row.ArchivedAt = prev.Category, prev.LastUsedAt, prev.UseCount, prev.ArchivedAt
 		}
+		if ci.archivedAt != 0 {
+			row.ArchivedAt = ptr(ci.archivedAt)
+		} else if ci.revived {
+			row.ArchivedAt = nil
+		}
 		if !had || oldOwner(ci.id) != c.resolve(ci.id) {
 			changed[c.resolve(ci.id)] = true
 			changed[oldOwner(ci.id)] = true
@@ -208,6 +252,16 @@ func replayCatalog(s Store) error {
 		later = append(later, row)
 	}
 	for _, row := range later {
+		if err := s.PutItem(row); err != nil {
+			return err
+		}
+	}
+	for id, at := range c.late {
+		row, ok := oldRows[oldOwner(id)]
+		if !ok || (row.ArchivedAt != nil && *row.ArchivedAt == at) {
+			continue
+		}
+		row.ArchivedAt = ptr(at)
 		if err := s.PutItem(row); err != nil {
 			return err
 		}
@@ -245,10 +299,10 @@ func replayCatalog(s Store) error {
 
 func sameItem(a, b Item) bool {
 	return a.Name == b.Name && eqPtr(a.NormName, b.NormName) && eqPtr(a.MergedInto, b.MergedInto) &&
-		a.CreatedHLC == b.CreatedHLC && a.UpdatedHLC == b.UpdatedHLC
+		a.CreatedHLC == b.CreatedHLC && a.UpdatedHLC == b.UpdatedHLC && eqPtr(a.ArchivedAt, b.ArchivedAt)
 }
 
-func eqPtr(a, b *string) bool {
+func eqPtr[T comparable](a, b *T) bool {
 	if a == nil || b == nil {
 		return a == nil && b == nil
 	}

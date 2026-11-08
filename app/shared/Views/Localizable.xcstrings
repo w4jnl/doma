@@ -2385,6 +2385,22 @@
         }
       }
     },
+    "Really retire?": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Echt afvoeren?"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naozaj vyradiť?"
+          }
+        }
+      }
+    },
     "Really revoke?": {
       "localizations": {
         "nl": {
@@ -2445,6 +2461,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Premenovať"
+          }
+        }
+      }
+    },
+    "Retire": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afvoeren"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vyradiť"
           }
         }
       }

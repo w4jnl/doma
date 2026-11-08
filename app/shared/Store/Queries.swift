@@ -232,6 +232,11 @@ enum Queries {
         }
     }
 
+    /// Whether an item was retired from History: it is named again when typed in full.
+    static func isRetired(_ db: Database, _ s: Scope, itemID: String) throws -> Bool {
+        try Bool.fetchOne(db, sql: "SELECT archived_at IS NOT NULL FROM items WHERE server_id = ? AND household_id = ? AND id = ?", arguments: [s.serverID, s.householdID, itemID]) ?? false
+    }
+
     /// Items on a list other than one, for Merge with: the ones a person sees side by side.
     static func otherItems(_ db: Database, _ s: Scope, listID: String, except itemID: String) throws -> [Match] {
         try Row.fetchAll(db, sql: """

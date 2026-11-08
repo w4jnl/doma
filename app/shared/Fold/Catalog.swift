@@ -11,6 +11,11 @@ enum Catalog {
         var mergedInto: String
         var created: HLC
         var updated: HLC
+        /// Set by item.archived and cleared when the family names the item again or merges
+        /// into it; revived says a clear happened in the log, so a base row's archive is
+        /// undone too.
+        var archivedAt: Int64?
+        var revived = false
         init(id: String, name: String, norm: String, mergedInto: String, created: HLC, updated: HLC) {
             self.id = id
             self.name = name
@@ -24,6 +29,8 @@ enum Catalog {
     final class State {
         var items: [String: CatItem] = [:]
         var aliases: [String: String] = [:] // norm -> owner id
+        /// Archives of items the log no longer names: applied to the stored rows as they are.
+        var late: [String: Int64] = [:]
 
         func resolve(_ id: String) -> String {
             var id = id
@@ -46,14 +53,18 @@ enum Catalog {
 
         func named(_ id: String, _ name: String, _ h: HLC) {
             if items[id] != nil {
+                // the apps name an item they know again when it was retired
+                revive(resolve(id))
                 renamed(id, name, h)
                 return
             }
             let norm = Norm.name(name)
             let it = CatItem(id: id, name: name, norm: "", mergedInto: "", created: h, updated: h)
             if let owner = owner(of: norm) {
-                // two phones typed the same thing: one item, the newcomer an alias id
+                // two phones typed the same thing: one item, the newcomer an alias id; a
+                // retired item named again in full is back
                 it.mergedInto = owner
+                revive(owner)
             } else {
                 it.norm = norm
             }
@@ -105,6 +116,26 @@ enum Catalog {
             d.mergedInto = keep
             for (_, it) in items where it.mergedInto == drop {
                 it.mergedInto = keep
+            }
+            revive(keep)
+        }
+
+        /// Brings an item back when the family uses its name again.
+        func revive(_ id: String) {
+            guard let it = items[id] else { return }
+            it.archivedAt = nil
+            it.revived = true
+        }
+
+        /// Retires an item: it stops coming up while typing and keeps its place in the
+        /// history. An unknown owner is a row the log no longer names.
+        func archived(_ id: String, _ h: HLC) {
+            let owner = resolve(id)
+            if let it = items[owner] {
+                it.archivedAt = h.wall
+                it.revived = false
+            } else {
+                late[owner] = h.wall
             }
         }
     }
@@ -193,6 +224,11 @@ enum Catalog {
                     throw FoldError.badPayload(kind: ev.kind, id: ev.id, reason: "keep_id and drop_id is empty")
                 }
                 c.merged(keep: keep, drop: drop)
+            case Kind.itemArchived:
+                guard let id = p.itemID, !id.isEmpty else {
+                    throw FoldError.badPayload(kind: ev.kind, id: ev.id, reason: "item_id is empty")
+                }
+                c.archived(id, ev.hlc)
             default:
                 break
             }
@@ -232,6 +268,11 @@ enum Catalog {
                 row.useCount = prev.useCount
                 row.archivedAt = prev.archivedAt
             }
+            if let at = ci.archivedAt {
+                row.archivedAt = at
+            } else if ci.revived {
+                row.archivedAt = nil
+            }
             if prev == nil || oldOwner(ci.id) != c.resolve(ci.id) {
                 changed.insert(c.resolve(ci.id))
                 changed.insert(oldOwner(ci.id))
@@ -244,6 +285,11 @@ enum Catalog {
             later.append(row)
         }
         for row in later {
+            try s.putItem(row)
+        }
+        for (id, at) in c.late.sorted(by: { $0.key < $1.key }) {
+            guard var row = oldRows[oldOwner(id)], row.archivedAt != at else { continue }
+            row.archivedAt = at
             try s.putItem(row)
         }
         let aliases = c.aliases.map { ItemAlias(itemID: c.resolve($0.value), normName: $0.key) }.filter { !pseudo.contains($0.itemID) }.sorted { $0.normName < $1.normName }
@@ -261,7 +307,7 @@ enum Catalog {
     }
 
     private static func sameItem(_ a: Item, _ b: Item) -> Bool {
-        a.name == b.name && a.normName == b.normName && a.mergedInto == b.mergedInto && a.createdHLC == b.createdHLC && a.updatedHLC == b.updatedHLC
+        a.name == b.name && a.normName == b.normName && a.mergedInto == b.mergedInto && a.createdHLC == b.createdHLC && a.updatedHLC == b.updatedHLC && a.archivedAt == b.archivedAt
     }
 
     /// Rebuilds, from the log, everything stored under an item and the ids merged into it:

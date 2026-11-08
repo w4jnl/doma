@@ -58,7 +58,7 @@ struct SQLFoldStore: FoldStore {
     }
 
     func itemEvents() throws -> [Event] {
-        try Row.fetchAll(db, sql: "SELECT * FROM events WHERE server_id = ? AND household_id = ? AND kind IN ('item.named','item.renamed','item.merged') ORDER BY hlc", arguments: sh).map(Event.init(row:))
+        try Row.fetchAll(db, sql: "SELECT * FROM events WHERE server_id = ? AND household_id = ? AND kind IN ('item.named','item.renamed','item.merged','item.archived') ORDER BY hlc", arguments: sh).map(Event.init(row:))
     }
 
     func itemEvents(for itemIDs: [String]) throws -> [Event] {

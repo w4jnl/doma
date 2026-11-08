@@ -10,7 +10,7 @@ SELECT * FROM events WHERE household_id = ? AND seq > ? ORDER BY seq LIMIT ?;
 
 -- name: ItemEvents :many
 SELECT * FROM events
-WHERE household_id = ? AND kind IN ('item.named', 'item.renamed', 'item.merged')
+WHERE household_id = ? AND kind IN ('item.named', 'item.renamed', 'item.merged', 'item.archived')
 ORDER BY hlc;
 
 -- name: ItemEventsFor :many

@@ -28,8 +28,10 @@ enum ListActions {
             return .alreadyOpen(entryID: open.id)
         }
         let itemID = existing ?? ULID.make()
+        // a retired item typed again in full is named again, which brings it back
+        let retired = try existing.map { id in try store.read(scope) { db, s in try Queries.isRetired(db, s, itemID: id) } } ?? false
         try session.record { events, clock, person in
-            if existing == nil {
+            if existing == nil || retired {
                 events.append(Event(id: ULID.make(), personID: person, hlc: clock.next(), kind: Kind.itemNamed, payload: ItemPayload(itemID: itemID, name: parsed.name).jsonValue))
             }
             var p = EntryPayload(listID: listID, itemID: itemID)

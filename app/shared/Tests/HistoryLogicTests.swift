@@ -101,4 +101,27 @@ final class HistoryLogicTests: XCTestCase {
         let again = try s.store.read(scope) { db, sc in try Queries.matches(db, sc, prefix: "mlk") }
         XCTAssertEqual(again.map(\.itemID), [melk])
     }
+
+    /// Retire from History: the item leaves autocomplete and the usual items, keeps its month,
+    /// and typing its name again in full brings it back.
+    func testRetireLeavesTypingAndKeepsTheMonth() throws {
+        let s = try session()
+        let scope = try XCTUnwrap(s.scope)
+        _ = try ListActions.add("wijn", to: "L1", in: s)
+        try shop(s)
+        let month = try XCTUnwrap(s.store.read(scope) { db, sc in try Queries.purchaseMonths(db, sc) }.first).month
+        let wijn = try XCTUnwrap(s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: month) }.items.first).itemID
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.matches(db, sc, prefix: "w") }.map(\.itemID), [wijn])
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.usual(db, sc, listID: "L1") }.map(\.itemID), [wijn])
+
+        try HomeActions.retireItem(wijn, in: s)
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.matches(db, sc, prefix: "w") }, [], "a retired item does not come up")
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.usual(db, sc, listID: "L1") }, [])
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.purchases(db, sc, month: month) }.items.map(\.name), ["wijn"], "the month keeps it")
+
+        // typed again in full: the same item, back
+        guard case .added(let again) = try ListActions.add("wijn", to: "L1", in: s) else { return XCTFail("not added") }
+        XCTAssertEqual(again, wijn)
+        XCTAssertEqual(try s.store.read(scope) { db, sc in try Queries.matches(db, sc, prefix: "w") }.map(\.itemID), [wijn])
+    }
 }

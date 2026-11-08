@@ -27,6 +27,7 @@
     "item.named": {"type": "object", "required": ["item_id", "name"], "properties": {"item_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
     "item.renamed": {"type": "object", "required": ["item_id", "name"], "properties": {"item_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
     "item.merged": {"type": "object", "required": ["keep_id", "drop_id"], "properties": {"keep_id": {"$ref": "#/$defs/id"}, "drop_id": {"$ref": "#/$defs/id"}}},
+    "item.archived": {"type": "object", "required": ["item_id"], "properties": {"item_id": {"$ref": "#/$defs/id"}}},
     "list.created": {"type": "object", "required": ["list_id", "name"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}, "colour": {"type": "string", "maxLength": 32}, "owner_person_id": {"$ref": "#/$defs/idOrNull"}, "default": {"type": "boolean"}, "kind": {"enum": ["shopping", "tasks"]}}},
     "list.renamed": {"type": "object", "required": ["list_id", "name"], "properties": {"list_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}, "colour": {"type": "string", "maxLength": 32}}},
     "list.archived": {"type": "object", "required": ["list_id"], "properties": {"list_id": {"$ref": "#/$defs/id"}}},
