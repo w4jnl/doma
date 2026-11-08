@@ -154,9 +154,28 @@ struct ListView: View {
                         .accessibilityIdentifier("all-lists")
                     }
                 }
+                if summary?.value?.isTasks != true {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink(value: CardsRoute()) {
+                            Label("Cards", systemImage: "creditcard")
+                        }
+                        .accessibilityIdentifier("cards")
+                    }
+                }
                 ToolbarItem(placement: .automatic) { OfflineBadge() }
                     .sharedBackgroundVisibility(.hidden)
                 #else
+                if summary?.value?.isTasks != true {
+                    ToolbarItem(placement: .automatic) {
+                        Button {
+                            nav.showCards += 1
+                        } label: {
+                            Label("Cards", systemImage: "creditcard")
+                        }
+                        .help("The family's cards")
+                        .accessibilityIdentifier("cards")
+                    }
+                }
                 ToolbarItem(placement: .automatic) { OfflineBadge() }
                 #endif
             }

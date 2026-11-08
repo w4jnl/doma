@@ -4,8 +4,19 @@ User-facing changes per release, newest first. `scripts/release.sh` refuses to t
 that has no section here and uses the section as the GitHub release notes, so every release
 updates this file first. Dates are the tag dates.
 
-## Unreleased
+## 0.7.0 (2026-11-08)
 
+- **Cards.** The family's loyalty cards in doma, so the till is two taps from the list: Cards
+  is the second tab, and behind the card glyph on every shopping list. A card is a name, a colour, a barcode and, when the server fetched it, the
+  shop's logo; the household's by default or one person's, like a list, with Edit, Share with
+  the family and Remove behind a swipe. The Card screen draws the barcode large on white at full
+  brightness, the phone awake, with the digits under it; the app draws every code itself, Core
+  Image for Code 128, QR, Aztec and PDF417 and its own encoders for EAN-13, EAN-8, UPC-A,
+  UPC-E, Code 39, Code 93, ITF-14, Codabar and Data Matrix, each proven by reading it back. Add
+  a card by camera, by pasting a screenshot of the card in another wallet, or by typing the
+  number; the shop's name is suggested from a bundled table of European chains with their
+  websites, made from OpenStreetMap's Name Suggestion Index (`scripts/shops/gen.py`, `NOTICE`).
+  On the Mac, Cards is a sidebar section.
 - **Cards, the logos.** Behind `logos.enabled`, off by default, the server asks logo.dev for a
   shop's logo when a card is added or edited, by the shop's website or, failing that, its name,
   keeps a PNG of at most 256 px beside the household's photos and tells the phones with one

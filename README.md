@@ -101,6 +101,9 @@ What doma does about it:
   the server at, in your own network or not, or Claude with an API key, looks at each new picture of a spot and suggests
   which staples look low or out. The family accepts or keeps each suggestion on the home screen;
   nothing changes by itself.
+- **The family's loyalty cards**, so the till is two taps from the list: the barcode drawn by
+  the app, large and bright, the household's cards and each person's own, added by camera, by a
+  pasted screenshot of the card in another wallet, or by typing.
 - **A logo on each card**, if you want one: behind `logos.enabled`, the server asks logo.dev for
   the shop's logo when the family adds a loyalty card, keeps a small copy beside the photos and
   sends it to the phones; off, a card shows its initials in its colour. The Community plan is

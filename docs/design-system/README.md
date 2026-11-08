@@ -128,7 +128,7 @@ shapes, so a person who has seen one of them reads the others.
 
 ## iPhone and Mac apps
 
-The simplicity budget: four tabs, at most one list and one detail per screen, no screen with more
+The simplicity budget: five tabs, at most one list and one detail per screen, no screen with more
 than one text field apart from Scan. Anything that does not fit is a long-press item or a Settings
 row, not a new screen.
 

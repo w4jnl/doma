@@ -609,6 +609,22 @@
         }
       }
     },
+    "Add a card": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaart toevoegen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridať kartu"
+          }
+        }
+      }
+    },
     "Add a device": {
       "localizations": {
         "nl": {
@@ -897,6 +913,22 @@
         }
       }
     },
+    "Barcode": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streepjescode"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Čiarový kód"
+          }
+        }
+      }
+    },
     "Bring": {
       "localizations": {
         "nl": {
@@ -973,6 +1005,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zrušiť cestu"
+          }
+        }
+      }
+    },
+    "Cards": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaarten"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Karty"
           }
         }
       }
@@ -1169,6 +1217,22 @@
         }
       }
     },
+    "Edit card": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaart bewerken"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upraviť kartu"
+          }
+        }
+      }
+    },
     "Face ID, or the passcode, when you come back to doma after that long away.": {
       "localizations": {
         "nl": {
@@ -1245,6 +1309,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pre domov"
+          }
+        }
+      }
+    },
+    "Format": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Formaat"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Formát"
           }
         }
       }
@@ -2033,6 +2113,22 @@
         }
       }
     },
+    "No barcode in the picture.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen streepjescode in de afbeelding."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na obrázku nie je čiarový kód."
+          }
+        }
+      }
+    },
     "No camera here": {
       "localizations": {
         "nl": {
@@ -2045,6 +2141,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tu nie je kamera"
+          }
+        }
+      }
+    },
+    "No cards yet. Add the first with +.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog geen kaarten. Voeg de eerste toe met +."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zatiaľ žiadne karty. Pridajte prvú cez +."
           }
         }
       }
@@ -2241,6 +2353,22 @@
         }
       }
     },
+    "Number": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nummer"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Číslo"
+          }
+        }
+      }
+    },
     "Off": {
       "localizations": {
         "nl": {
@@ -2333,6 +2461,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Slivková"
+          }
+        }
+      }
+    },
+    "Point the camera at the card's barcode.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richt de camera op de streepjescode van de kaart."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Namierte fotoaparát na čiarový kód karty."
           }
         }
       }
@@ -2593,6 +2737,22 @@
         }
       }
     },
+    "Save": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bewaren"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uložiť"
+          }
+        }
+      }
+    },
     "Say an item, in %@": {
       "localizations": {
         "nl": {
@@ -2749,6 +2909,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zdieľané"
+          }
+        }
+      }
+    },
+    "Shop": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Winkel"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obchod"
           }
         }
       }
@@ -3153,6 +3329,22 @@
         }
       }
     },
+    "That is not a valid %@.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dat is geen geldige %@."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To nie je platný kód %@."
+          }
+        }
+      }
+    },
     "That is not an invite. Ask for the link or the code again.": {
       "localizations": {
         "nl": {
@@ -3201,6 +3393,22 @@
         }
       }
     },
+    "The family's cards": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De kaarten van het gezin"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Karty rodiny"
+          }
+        }
+      }
+    },
     "The guest sees what is missing at that home and that list, for 7 days.": {
       "localizations": {
         "nl": {
@@ -3229,6 +3437,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nie je tu mikrofón, ktorým by sa dalo počúvať"
+          }
+        }
+      }
+    },
+    "This code cannot be drawn; show the number.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze code kan niet getekend worden; laat het nummer zien."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tento kód sa nedá nakresliť; ukážte číslo."
           }
         }
       }
@@ -3741,6 +3965,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "zbalené"
+          }
+        }
+      }
+    },
+    "doma cannot draw this kind of code.": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "doma kan dit soort code niet tekenen."
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "doma nevie nakresliť tento druh kódu."
           }
         }
       }

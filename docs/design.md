@@ -323,7 +323,7 @@ The family's loyalty cards, so the Bonuskaart is one tap from the list at the ti
 
 **Cards and Card**
 
-- *Cards* is a row at the foot of the Lists overview, next to History, with the count. It shows one tile per card, the logo or the initials in the card's colour with the name under it, the card last shown first (remembered on the device, like the last-used list); the household's cards and the person's own, never another person's. Every shopping list carries a card glyph in its toolbar that opens Cards, so the till is two taps from the list.
+- *Cards* is the second tab, between Lists and Homes, and a section of the Mac's sidebar. It shows one tile per card, the logo or the initials in the card's colour with the name under it, the card last shown first (remembered on the device, like the last-used list); the household's cards and the person's own, never another person's. Every shopping list carries a card glyph in its toolbar that opens Cards, so the till is two taps from the list.
 - A tap on a tile shows the *Card*: the barcode large on white in both appearances, the number in digits under it in the data face, the shop's name as the title. While it is in front the screen is at full brightness and stays awake; both are restored when it leaves. The code is drawn by the app, never fetched: Core Image for Code 128, QR, Aztec and PDF417, doma's own encoder in `app/shared/Design/Barcode.swift` for EAN-13, EAN-8, UPC-A, UPC-E, Code 39, Code 93, ITF-14 and Codabar, each tested by drawing a value and reading it back with Vision as the QR test does. A till that will not read a screen gets the digits.
 - A swipe on a tile (the row's menu on the Mac) offers *Edit*, *Share with the family* on a personal card, and *Remove*, armed in place. Share makes a household card with the same fields and archives the personal one, as a list is shared, so the owner is fixed at creation and the sync filter stays what it is. An archived card leaves the screen and keeps its events.
 
@@ -384,7 +384,7 @@ Any tap sets any flag directly; the drawn arrows are the paths the app takes on 
 
 ## iPhone and Mac apps
 
-One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with the same four sections on Mac. Every screen reads from the local GRDB store and writes to the outbox; nothing waits on the network.
+One SwiftUI code base under `app/shared`, five tabs on iPhone (Lists, Cards, Homes, Trip, Family) and a sidebar with the same sections on Mac. Every screen reads from the local GRDB store and writes to the outbox; nothing waits on the network.
 
 **Screens**
 
@@ -393,7 +393,7 @@ One SwiftUI code base under `app/shared`, four tabs on iPhone and a sidebar with
 | Scan (first launch, or Family → Add) | camera, paste-link fallback, display-name field on first join; a browser's sign-in code, scanned or pasted, signs that browser in | registers the device, accepts the invite |
 | Lists | opens into the last-used list; the Lists button or a second tab tap leads to the overview: household lists, then personal, colour dot, name, the checklist symbol on a tasks list, how many to get or to do; `+` to create, shopping or tasks | `list.created` |
 | History | under the Lists overview, a row at its foot with this month's count: the month stepped back and forth, the month's purchases per item with the times and the totals of `qty` by `unit`, per home, who shopped; reads the entries table; swipe on an item row for Rename, Merge into and Retire | `item.renamed`, `item.merged`, `item.archived` |
-| Cards | under the Lists overview, a row at its foot next to History; a tile per card, logo or initials in its colour, last shown first; `+` adds one; swipe for Edit, Share with the family, Remove; reached from the card glyph in every shopping list's toolbar | `card.edited`, `card.archived`, `card.added` (share) |
+| Cards | the second tab; a tile per card, logo or initials in its colour, last shown first; `+` adds one; swipe for Edit, Share with the family, Remove; reached from the card glyph in every shopping list's toolbar | `card.edited`, `card.archived`, `card.added` (share) |
 | Card | the barcode large on white, the digits under it, full brightness and the screen awake while in front | |
 | Add a card | camera for every symbology, Paste for a picture on the clipboard, the number and its format, the name with suggestions from the bundled shop table, Household or Just me | `card.added` |
 | List | open rows, the divider with the got count and Clear, struck rows, Recent; the add bar pinned at the bottom with matches or the usual items above it, and the mic at its end; swipe left for Not needed and Edit, long-press to drag | `item.named`, `entry.*` |
@@ -432,7 +432,7 @@ The Mac target reuses every screen in a `NavigationSplitView`: sidebar with List
 
 **Simplicity budget**
 
-Four tabs, at most one list and one detail per screen, no screen with more than one text field apart from Scan and Add a card. Anything that does not fit is a long-press item or a Settings row, not a new screen.
+Five tabs, at most one list and one detail per screen, no screen with more than one text field apart from Scan and Add a card. Anything that does not fit is a long-press item or a Settings row, not a new screen.
 
 ## Web: guest view, admin pages, later web client
 

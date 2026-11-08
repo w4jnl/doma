@@ -50,7 +50,18 @@ final class PhotoLoader {
 
     /// The picture if it is at hand; otherwise nil now and a load, which updates images.
     func image(_ photoID: String, thumb: Bool) -> CGImage? {
-        let k = key(photoID, thumb: thumb)
+        guard let scope = session.scope else { return nil }
+        return load(key: key(photoID, thumb: thumb), path: "/photos/v1/" + scope.householdID + "/" + photoID + (thumb ? "/thumb" : ""), cacheID: photoID, thumb: thumb)
+    }
+
+    /// A card's logo, as the server fetched it, by the card and the logo's id: fetched once
+    /// per id and kept with the pictures.
+    func logo(cardID: String, logoID: String) -> CGImage? {
+        guard let scope = session.scope else { return nil }
+        return load(key: "logo/" + cardID + "/" + logoID, path: "/cards/v1/" + scope.householdID + "/" + cardID + "/logo/" + logoID, cacheID: "logo-" + cardID + "-" + logoID, thumb: false)
+    }
+
+    private func load(key k: String, path: String, cacheID: String, thumb: Bool) -> CGImage? {
         if let img = images[k] { return img }
         if loading.contains(k) { return nil }
         if let at = failed[k], Date().timeIntervalSince(at) < 30 { return nil }
@@ -58,14 +69,14 @@ final class PhotoLoader {
         loading.insert(k)
         Task {
             defer { loading.remove(k) }
-            if let data = PhotoFiles.local(server: scope.serverID, household: scope.householdID, photoID: photoID, thumb: thumb), let img = Self.decode(data) {
+            if let data = PhotoFiles.local(server: scope.serverID, household: scope.householdID, photoID: cacheID, thumb: thumb), let img = Self.decode(data) {
                 images[k] = img
                 return
             }
             do {
-                let data = try await client.download("/photos/v1/" + scope.householdID + "/" + photoID + (thumb ? "/thumb" : ""))
+                let data = try await client.download(path)
                 guard let img = Self.decode(data) else { throw ClientError.badResponse(0) }
-                PhotoFiles.cache(data, server: scope.serverID, photoID: photoID, thumb: thumb)
+                PhotoFiles.cache(data, server: scope.serverID, photoID: cacheID, thumb: thumb)
                 images[k] = img
             } catch {
                 failed[k] = Date()
