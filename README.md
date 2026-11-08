@@ -101,6 +101,11 @@ What doma does about it:
   the server at, in your own network or not, or Claude with an API key, looks at each new picture of a spot and suggests
   which staples look low or out. The family accepts or keeps each suggestion on the home screen;
   nothing changes by itself.
+- **A logo on each card**, if you want one: behind `logos.enabled`, the server asks logo.dev for
+  the shop's logo when the family adds a loyalty card, keeps a small copy beside the photos and
+  sends it to the phones; off, a card shows its initials in its colour. The Community plan is
+  free, the key goes in `logos.api_key`, and logo.dev is sent a shop's website or name, never a
+  card's number. Logos provided by [Logo.dev](https://logo.dev).
 
 ## Scope and status
 

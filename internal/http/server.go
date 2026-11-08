@@ -15,6 +15,7 @@ import (
 	"github.com/w4jnl/doma/internal/auth"
 	"github.com/w4jnl/doma/internal/config"
 	"github.com/w4jnl/doma/internal/http/api"
+	"github.com/w4jnl/doma/internal/http/cards"
 	"github.com/w4jnl/doma/internal/http/middleware"
 	"github.com/w4jnl/doma/internal/http/photos"
 	syncv1 "github.com/w4jnl/doma/internal/http/sync"
@@ -63,6 +64,7 @@ func Handler(d Deps) (http.Handler, error) {
 		a.Mount(mux)
 		syncv1.New(d.Svc).Mount(a, mux)
 		photos.New(d.Svc).Mount(a, mux)
+		cards.New(d.Svc).Mount(a, mux)
 		if d.Metrics != nil {
 			mux.Handle("GET /metrics", d.Metrics.Handler(d.Cfg.Metrics.Token))
 		}

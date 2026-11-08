@@ -10,7 +10,7 @@ must work from a phone on mobile data without a browser sign-in.
 | the operator, in a browser | `/`, `/setup`, `/admin` and everything under it | yes |
 | a family member's phone browser, from an invite QR or link | `/i/…`, `/static/` | no |
 | a guest with no app | `/g/…`, `/static/` | no |
-| the apps | `/api/…`, `/sync/…`, `/photos/…` | no |
+| the apps | `/api/…`, `/sync/…`, `/photos/…`, `/cards/…` | no |
 | a family member's browser | `/app` and everything under it, which has its own sign-in | no |
 | probes and Prometheus | `/healthz`, `/readyz`, `/metrics` | no |
 

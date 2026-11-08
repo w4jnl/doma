@@ -44,6 +44,7 @@ func TestOpenPathsNeedNoBrowserSession(t *testing.T) {
 		{http.MethodPost, "/photos/v1/nope/nope"},
 		{http.MethodGet, "/photos/v1/nope/nope"},
 		{http.MethodGet, "/photos/v1/nope/nope/thumb"},
+		{http.MethodGet, "/cards/v1/nope/nope/logo/0123456789abcdef"},
 		{http.MethodGet, "/healthz"},
 		{http.MethodGet, "/readyz"},
 		{http.MethodGet, "/metrics"},

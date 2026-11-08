@@ -81,7 +81,9 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   card events (`card.added`, `card.edited`, `card.archived`, the server's `card.logo`) in both
   folds (`internal/fold/cards.go`, `Lists.applyCard` in the Swift port) with a fixture case,
   personal cards filtered like personal lists in sync, snapshot and export (`cards.csv`); the
-  logo job and the screens are still to come.
+  logo job in `internal/logos` (the logo.dev client and a worker behind `logos.enabled`, the
+  service glue in `internal/service/logos.go`, the download route in `internal/http/cards`); the
+  screens are still to come.
   Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;
@@ -147,9 +149,9 @@ the fold can rebuild from the log, and a test proves it.
 - Take the defaults in the open-decisions table unless overruled; do not add tables, events,
   screens, pages, colours or config keys beyond the spec and the design system without asking.
   Simplicity is the main requirement.
-- Never make an outbound network call other than APNs behind `push.enabled` and the vision model
-  behind `vision.enabled`, and none at all when both are false. No telemetry, no update check,
-  no CDN.
+- Never make an outbound network call other than APNs behind `push.enabled`, the vision model
+  behind `vision.enabled` and logo.dev behind `logos.enabled`, and none at all when all three
+  are false. No telemetry, no update check, no CDN.
 - `main` takes pull requests only: work on a branch, open a PR, and CI must pass before it merges.
 - Before calling a task done: `gofmt -l ./cmd ./internal` is empty, `make vet`, `make lint` and
   `make test` pass, and `make e2e` passes after any change to the sync path or the fold; after a

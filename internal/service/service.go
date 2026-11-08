@@ -72,6 +72,8 @@ type Service struct {
 	webauthn *webauthn.WebAuthn
 	// vision is told about each photo that landed, when vision.enabled is on.
 	vision Proposer
+	// logos is told about each card added or edited, when logos.enabled is on.
+	logos Logoer
 }
 
 // New builds the service. The server's own events carry the device id

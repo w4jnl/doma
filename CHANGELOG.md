@@ -6,6 +6,13 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Cards, the logos.** Behind `logos.enabled`, off by default, the server asks logo.dev for a
+  shop's logo when a card is added or edited, by the shop's website or, failing that, its name,
+  keeps a PNG of at most 256 px beside the household's photos and tells the phones with one
+  `card.logo`. A shop logo.dev does not know leaves the card its initials. The phones fetch a
+  logo once by its id from `GET /cards/v1/{household}/{card}/logo/{logo}`; another person's
+  private card is a 404 there as everywhere. logo.dev is the third and last place the server
+  dials, after APNs and the vision model, and the egress gate names it.
 - **Cards, the groundwork.** The family's loyalty cards get their table and their events on the
   server and in the apps' store: a card is a name, a colour, a barcode and, later, the shop's
   logo, the household's or one person's. A personal card stays with its person through sync,
