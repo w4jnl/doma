@@ -95,6 +95,9 @@ drift apart.
   `doma-admin`, or the rule's `domain` does not match `DOMA_HOST`.
 - Pictures stay pending in the app and never show on another phone: `/photos/` is missing from
   the `doma-open` rule, so the uploads and downloads land on Authelia's sign-in.
+- A card keeps its initials and never shows the shop's logo, though the server fetched it:
+  `/cards/` is missing from the `doma-open` rule, so the phone's download of the logo is sent to
+  Authelia's sign-in and gets a page instead of a picture.
 - The family's web client at `/app` lands on Authelia: `/app` is missing from the `doma-open` rule.
   It signs the family in itself, by passkey or by the phone; Authelia is for the operator.
 - `/metrics` answers anyone: `DOMA_METRICS_TOKEN` is empty.
