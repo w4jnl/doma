@@ -4,6 +4,13 @@ User-facing changes per release, newest first. `scripts/release.sh` refuses to t
 that has no section here and uses the section as the GitHub release notes, so every release
 updates this file first. Dates are the tag dates.
 
+## Unreleased
+
+- **A spot's screen can rename and remove it.** Rename and Remove were only on a long-press of
+  the spot's picture on the home screen, where nobody found them. The spot's own screen now has
+  them in a More menu beside the camera: Rename opens a field above the picture, Remove asks
+  once more and then goes back to the home.
+
 ## 0.7.0 (2026-11-08)
 
 - **Cards.** The family's loyalty cards in doma, so the till is two taps from the list: Cards
