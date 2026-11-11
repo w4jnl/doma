@@ -3,8 +3,9 @@
 // flagged here; then the spots' pictures in a strip; then the trips through this home. A staple
 // is typed or said into the bar at the bottom, as an entry is on a list, with the same mic and
 // the same split of a spoken line into the items it names; a swipe or a long-press on its row
-// offers Rename and Remove; a spot comes from the + at the end of the strip and its
-// long-press offers the same two. Take photos walks the spots with the camera.
+// offers Rename and Remove; a spot comes from the + at the end of the strip, and its
+// long-press offers the same two, as does the More menu on its own screen. Take photos walks
+// the spots with the camera.
 import SwiftUI
 
 struct HomeView: View {

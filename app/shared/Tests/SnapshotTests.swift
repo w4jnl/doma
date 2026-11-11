@@ -204,6 +204,10 @@ final class SnapshotTests: XCTestCase {
         try await check("home") { NavigationStack { HomeView(homeID: "G") } }
     }
 
+    func testSpot() async throws {
+        try await check("spot") { NavigationStack { PhotoView(spot: SpotRow(id: "P", homeID: "G", name: "Pantry", sort: 0)) } }
+    }
+
     func testTrips() async throws {
         try await check("trips") { NavigationStack { TripsView() } }
     }

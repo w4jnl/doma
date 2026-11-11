@@ -2001,6 +2001,22 @@
         }
       }
     },
+    "More": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meer"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viac"
+          }
+        }
+      }
+    },
     "Moss": {
       "localizations": {
         "nl": {

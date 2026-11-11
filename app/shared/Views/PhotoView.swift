@@ -1,19 +1,48 @@
 // A spot's pictures: the current one large with who took it and when, the older ones in a strip
-// under it; and the departure sweep, which walks a home's spots with the camera open and one
-// tap per spot.
+// under it; Rename and Remove in the More menu, the same two the tile offers on a long-press,
+// a rename in a field above the picture and Remove armed under the title; and the departure
+// sweep, which walks a home's spots with the camera open and one tap per spot.
 import SwiftUI
 
 struct PhotoView: View {
     var spot: SpotRow
     @Environment(Session.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var photos: Live<[PhotoRow]>?
     @State private var shown: String?
     @State private var taking = false
+    /// The name as the title; a rename shows here before the fold catches up.
+    @State private var name: String?
+    @State private var renaming = false
+    @State private var renameText = ""
+    @State private var arming = false
+    @State private var disarm: Task<Void, Never>?
+    @FocusState private var renameFocused: Bool
 
     var body: some View {
         let all = photos?.value ?? []
         let current = all.first { $0.id == shown } ?? all.first
         VStack(spacing: Tokens.space3) {
+            if renaming {
+                renameRow
+            } else if arming {
+                Button {
+                    arming = false
+                    disarm?.cancel()
+                    try? HomeActions.archiveSpot(spot.id, in: session)
+                    dismiss()
+                } label: {
+                    Text("Really remove?")
+                        .font(.caption)
+                        .foregroundStyle(Tokens.onOut)
+                        .padding(.horizontal, Tokens.space2)
+                        .padding(.vertical, Tokens.space1)
+                        .background(Tokens.out, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
+                }
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("really-remove-spot")
+            }
             PhotoImage(photoID: current?.id, thumb: false)
                 .aspectRatio(4 / 3, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: Tokens.radiusMD))
@@ -60,17 +89,34 @@ struct PhotoView: View {
         .padding(.top, Tokens.space3)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Tokens.ground)
-        .navigationTitle(spot.name)
+        .animation(Motion.of(reduceMotion, Motion.quick), value: renaming)
+        .animation(Motion.of(reduceMotion, Motion.quick), value: arming)
+        .navigationTitle(name ?? spot.name)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .primaryAction) {
                 Button {
                     taking = true
                 } label: {
                     Label("Take a picture", systemImage: "camera")
                 }
+                Menu {
+                    Button("Rename") {
+                        arming = false
+                        disarm?.cancel()
+                        renameText = name ?? spot.name
+                        renaming = true
+                    }
+                    Button("Remove", role: .destructive) {
+                        renaming = false
+                        arm()
+                    }
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
+                }
+                .accessibilityIdentifier("spot-more")
             }
         }
         .navigationDestination(isPresented: $taking) {
@@ -78,6 +124,46 @@ struct PhotoView: View {
         }
         .onAppear(perform: observe)
         .onChange(of: session.scope) { observe() }
+    }
+
+    /// The field above the picture with the spot's new name.
+    private var renameRow: some View {
+        HStack(spacing: Tokens.space3) {
+            TextField("Name", text: $renameText)
+                .textFieldStyle(.plain)
+                .focused($renameFocused)
+                .submitLabel(.done)
+                .onSubmit(commitRename)
+                .accessibilityIdentifier("rename-spot")
+                .onAppear { renameFocused = true }
+            Button("Cancel") { renaming = false }
+                .buttonStyle(.plain)
+                .foregroundStyle(Tokens.inkMuted)
+        }
+        .frame(minHeight: Tokens.rowH)
+        .padding(.horizontal, Tokens.space4)
+        .frame(maxWidth: Tokens.contentMax)
+        #if os(macOS)
+        .onExitCommand { renaming = false }
+        #endif
+    }
+
+    private func commitRename() {
+        let t = renameText.trimmingCharacters(in: .whitespaces)
+        renaming = false
+        guard !t.isEmpty, t != (name ?? spot.name) else { return }
+        try? HomeActions.renameSpot(spot.id, to: t, in: session)
+        name = t
+    }
+
+    /// Remove asks once more, in a button that disarms by itself after four seconds.
+    private func arm() {
+        arming = true
+        disarm?.cancel()
+        disarm = Task {
+            try? await Task.sleep(for: .seconds(4))
+            if !Task.isCancelled { arming = false }
+        }
     }
 
     private func observe() {
