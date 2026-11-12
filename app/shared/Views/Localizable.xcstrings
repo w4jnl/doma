@@ -3233,6 +3233,22 @@
         }
       }
     },
+    "Stop adding to %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop met toevoegen aan %@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prestať pridávať do %@"
+          }
+        }
+      }
+    },
     "Stop listening": {
       "localizations": {
         "nl": {

@@ -307,6 +307,7 @@ struct HomeView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .overlay(alignment: .leading) { hearing }
+            targetChip
             MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
         }
     }
@@ -328,6 +329,7 @@ struct HomeView: View {
                 .onExitCommand { fieldFocused = false; text = "" }
                 .autocorrectionDisabled()
                 .overlay(alignment: .leading) { hearing }
+            targetChip
             MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
         }
         .frame(minHeight: Tokens.rowH)
@@ -340,6 +342,32 @@ struct HomeView: View {
     private var addPrompt: LocalizedStringKey {
         if let target { return "Add to \(target)" }
         return "Add a staple"
+    }
+
+    /// The section the bar adds to, in the bar while it does; a tap sends the bar back to the
+    /// staples outside every section.
+    @ViewBuilder
+    private var targetChip: some View {
+        if let target {
+            Button {
+                self.target = nil
+            } label: {
+                HStack(spacing: Tokens.space1) {
+                    Text(verbatim: target)
+                        .lineLimit(1)
+                    Image(systemName: "xmark")
+                        .imageScale(.small)
+                }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Tokens.accent)
+                .padding(.horizontal, Tokens.space2)
+                .padding(.vertical, Tokens.space1)
+                .background(Tokens.accentSoft, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(Text("Stop adding to \(target)"))
+            .accessibilityIdentifier("add-to-none")
+        }
     }
 
     private func matchButton(_ m: Match) -> some View {
