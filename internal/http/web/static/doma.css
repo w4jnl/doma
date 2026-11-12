@@ -73,6 +73,7 @@ code, .dm-mono { font-family: var(--font-mono); font-size: 0.9375rem; }
 
 /* the web client: the family's lists in a browser */
 .dm-app h2 { margin-top: var(--space-5); }
+.dm-app h3 { margin: var(--space-4) 0 var(--space-2); font-size: 0.875rem; color: var(--ink-muted); }
 .dm-signin .dm-qr { margin: var(--space-4) auto; }
 .dm-break { word-break: break-all; }
 .dm-switch { display: flex; gap: var(--space-3); font-size: 0.875rem; }

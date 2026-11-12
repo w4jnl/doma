@@ -25,6 +25,15 @@ type WebFlagRow struct {
 	SetAt  int64
 	Note   string
 	Staple bool
+	// Section is the group a staple is shown under, "" for none.
+	Section string
+}
+
+// WebStapleGroup is one section of a home's staples; the first has no name
+// when there are staples outside every section.
+type WebStapleGroup struct {
+	Name string
+	Rows []WebFlagRow
 }
 
 // WebSpot is a spot with its newest picture's thumbnail, signed for an hour.
@@ -49,8 +58,10 @@ type WebHome struct {
 type WebHomeView struct {
 	Home    WebHome
 	Staples []WebFlagRow
-	Others  []WebFlagRow
-	Trips   []WebTrip
+	// Groups is Staples under their sections, in the same order.
+	Groups []WebStapleGroup
+	Others []WebFlagRow
+	Trips  []WebTrip
 }
 
 // tablesOf reads a household's tables with the item names and the staleness.
@@ -77,9 +88,10 @@ func (s *Service) readHousehold(ctx context.Context, q *db.Queries, householdID 
 	return &hhTables{tables: tables, names: names, staleness: time.Duration(s.StalenessDays(ptr(household(h)))) * 24 * time.Hour, row: h}, nil
 }
 
-// flagRows is the home's staples first, by sort and name, then every other
-// item with a flag there, by name; a flag older than the staleness reads
-// unknown, as on the phone.
+// flagRows is the home's staples first, then every other item with a flag
+// there, by name; a flag older than the staleness reads unknown, as on the
+// phone. The staples outside every section come first, then the sections in
+// the order of their first staple, each by sort and name.
 func (s *Service) flagRows(h *hhTables, homeID string) (staples, others []WebFlagRow) {
 	flags := map[string]fold.Flag{}
 	for _, f := range h.tables.Flags {
@@ -88,15 +100,21 @@ func (s *Service) flagRows(h *hhTables, homeID string) (staples, others []WebFla
 		}
 	}
 	sortOf := map[string]int64{}
+	sectionOf := map[string]string{}
+	first := map[string]int64{}
 	isStaple := map[string]bool{}
 	for _, st := range h.tables.Staples {
 		if st.HomeID == homeID && st.Present() {
 			isStaple[st.ItemID] = true
 			sortOf[st.ItemID] = st.Sort
+			sectionOf[st.ItemID] = st.Section
+			if at, ok := first[st.Section]; !ok || st.Sort < at {
+				first[st.Section] = st.Sort
+			}
 		}
 	}
 	row := func(itemID string) WebFlagRow {
-		r := WebFlagRow{ItemID: itemID, Name: nameOf(h.names, itemID), State: "unknown", Staple: isStaple[itemID]}
+		r := WebFlagRow{ItemID: itemID, Name: nameOf(h.names, itemID), State: "unknown", Staple: isStaple[itemID], Section: sectionOf[itemID]}
 		if f, ok := flags[itemID]; ok {
 			r.SetAt, r.Note = f.SetHLC.Wall, f.Note
 			if s.now().Sub(f.SetHLC.Time()) < h.staleness {
@@ -114,6 +132,15 @@ func (s *Service) flagRows(h *hhTables, homeID string) (staples, others []WebFla
 		}
 	}
 	sort.Slice(staples, func(i, j int) bool {
+		if a, b := staples[i].Section, staples[j].Section; a != b {
+			if a == "" || b == "" {
+				return a == ""
+			}
+			if first[a] != first[b] {
+				return first[a] < first[b]
+			}
+			return a < b
+		}
 		if sortOf[staples[i].ItemID] != sortOf[staples[j].ItemID] {
 			return sortOf[staples[i].ItemID] < sortOf[staples[j].ItemID]
 		}
@@ -121,6 +148,18 @@ func (s *Service) flagRows(h *hhTables, homeID string) (staples, others []WebFla
 	})
 	sort.Slice(others, func(i, j int) bool { return strings.ToLower(others[i].Name) < strings.ToLower(others[j].Name) })
 	return staples, others
+}
+
+// stapleGroups cuts the staples, already in their order, at each new section.
+func stapleGroups(staples []WebFlagRow) []WebStapleGroup {
+	var groups []WebStapleGroup
+	for _, r := range staples {
+		if n := len(groups); n == 0 || groups[n-1].Name != r.Section {
+			groups = append(groups, WebStapleGroup{Name: r.Section})
+		}
+		groups[len(groups)-1].Rows = append(groups[len(groups)-1].Rows, r)
+	}
+	return groups
 }
 
 func (s *Service) spotsOf(h *hhTables, householdID, homeID string) []WebSpot {
@@ -203,6 +242,7 @@ func (s *Service) WebHome(ctx context.Context, sc domain.Scope, homeID string) (
 		}
 		v.Home = s.homeCard(h, sc.HouseholdID, home)
 		v.Staples, v.Others = s.flagRows(h, homeID)
+		v.Groups = stapleGroups(v.Staples)
 		for _, t := range webTrips(h) {
 			if t.FromID == homeID || t.ToID == homeID {
 				v.Trips = append(v.Trips, t)

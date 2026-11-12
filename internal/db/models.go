@@ -227,6 +227,8 @@ type Staple struct {
 	Sort        int64
 	AddedHlc    *string
 	RemovedHlc  *string
+	Section     string
+	SectionHlc  *string
 }
 
 type Trip struct {

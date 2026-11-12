@@ -82,7 +82,7 @@ func (q *Queries) GetFlag(ctx context.Context, arg GetFlagParams) (Flag, error) 
 }
 
 const getStaple = `-- name: GetStaple :one
-SELECT household_id, home_id, item_id, sort, added_hlc, removed_hlc FROM staples WHERE household_id = ? AND home_id = ? AND item_id = ?
+SELECT household_id, home_id, item_id, sort, added_hlc, removed_hlc, section, section_hlc FROM staples WHERE household_id = ? AND home_id = ? AND item_id = ?
 `
 
 type GetStapleParams struct {
@@ -101,6 +101,8 @@ func (q *Queries) GetStaple(ctx context.Context, arg GetStapleParams) (Staple, e
 		&i.Sort,
 		&i.AddedHlc,
 		&i.RemovedHlc,
+		&i.Section,
+		&i.SectionHlc,
 	)
 	return i, err
 }
@@ -141,7 +143,7 @@ func (q *Queries) ListFlags(ctx context.Context, householdID string) ([]Flag, er
 }
 
 const listStaples = `-- name: ListStaples :many
-SELECT household_id, home_id, item_id, sort, added_hlc, removed_hlc FROM staples WHERE household_id = ? ORDER BY home_id, item_id
+SELECT household_id, home_id, item_id, sort, added_hlc, removed_hlc, section, section_hlc FROM staples WHERE household_id = ? ORDER BY home_id, item_id
 `
 
 func (q *Queries) ListStaples(ctx context.Context, householdID string) ([]Staple, error) {
@@ -160,6 +162,8 @@ func (q *Queries) ListStaples(ctx context.Context, householdID string) ([]Staple
 			&i.Sort,
 			&i.AddedHlc,
 			&i.RemovedHlc,
+			&i.Section,
+			&i.SectionHlc,
 		); err != nil {
 			return nil, err
 		}
@@ -205,10 +209,10 @@ func (q *Queries) UpsertFlag(ctx context.Context, arg UpsertFlagParams) error {
 }
 
 const upsertStaple = `-- name: UpsertStaple :exec
-INSERT INTO staples (household_id, home_id, item_id, sort, added_hlc, removed_hlc)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO staples (household_id, home_id, item_id, sort, section, section_hlc, added_hlc, removed_hlc)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(home_id, item_id) DO UPDATE SET
-  sort = excluded.sort, added_hlc = excluded.added_hlc, removed_hlc = excluded.removed_hlc
+  sort = excluded.sort, section = excluded.section, section_hlc = excluded.section_hlc, added_hlc = excluded.added_hlc, removed_hlc = excluded.removed_hlc
 `
 
 type UpsertStapleParams struct {
@@ -216,6 +220,8 @@ type UpsertStapleParams struct {
 	HomeID      string
 	ItemID      string
 	Sort        int64
+	Section     string
+	SectionHlc  *string
 	AddedHlc    *string
 	RemovedHlc  *string
 }
@@ -226,6 +232,8 @@ func (q *Queries) UpsertStaple(ctx context.Context, arg UpsertStapleParams) erro
 		arg.HomeID,
 		arg.ItemID,
 		arg.Sort,
+		arg.Section,
+		arg.SectionHlc,
 		arg.AddedHlc,
 		arg.RemovedHlc,
 	)

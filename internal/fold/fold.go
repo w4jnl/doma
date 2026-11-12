@@ -107,6 +107,10 @@ type Staple struct {
 	HomeID string `json:"home_id"`
 	ItemID string `json:"item_id"`
 	Sort   int64  `json:"sort"`
+	// Section names the group the staple is shown under, "" for none.
+	Section string `json:"section"`
+	// SectionHLC is the latest add that named a section, nil when none has.
+	SectionHLC *domain.HLC `json:"section_hlc"`
 	// AddedHLC is the latest add, nil when only a remove has been seen.
 	AddedHLC   *domain.HLC `json:"added_hlc"`
 	RemovedHLC *domain.HLC `json:"removed_hlc"`

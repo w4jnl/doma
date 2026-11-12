@@ -282,10 +282,21 @@ func (s *Service) Export(ctx context.Context, sc domain.Scope, w io.Writer) erro
 					staples = append(staples, st)
 				}
 			}
-			sort.Slice(staples, func(i, j int) bool { return itemName(staples[i].ItemID) < itemName(staples[j].ItemID) })
+			// the staples outside every section first, then the sections by name
+			sort.Slice(staples, func(i, j int) bool {
+				if staples[i].Section != staples[j].Section {
+					return staples[i].Section < staples[j].Section
+				}
+				return itemName(staples[i].ItemID) < itemName(staples[j].ItemID)
+			})
 			if len(staples) > 0 {
 				fmt.Fprintf(f, "## Staples\n\n")
+				section := ""
 				for _, st := range staples {
+					if st.Section != section {
+						section = st.Section
+						fmt.Fprintf(f, "\n### %s\n\n", section)
+					}
 					state := "unknown"
 					when := ""
 					if fl, ok := flags[st.ItemID]; ok {
