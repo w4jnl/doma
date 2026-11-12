@@ -3,7 +3,10 @@
 // flagged here; then the spots' pictures in a strip; then the trips through this home. A staple
 // is typed or said into the bar at the bottom, as an entry is on a list, with the same mic and
 // the same split of a spoken line into the items it names; a swipe or a long-press on its row
-// offers Rename and Remove; a spot comes from the + at the end of the strip, and its
+// offers Rename, Move to and Remove. Sections split the staples under headers: a staple dragged
+// past a header joins that section, Move to lists them with None and New section in the row,
+// the + on a header points the bar at it, and a long-press on a header renames or removes it,
+// which keeps its staples. A spot comes from the + at the end of the strip, and its
 // long-press offers the same two, as does the More menu on its own screen. Take photos walks
 // the spots with the camera.
 import SwiftUI
@@ -30,14 +33,29 @@ struct HomeView: View {
     @State private var spotText = ""
     @State private var arming: String?
     @State private var disarm: Task<Void, Never>?
+    /// The section the bar adds to, from a header's +; nil is none, as a home without sections.
+    @State private var target: String?
+    @State private var untarget: Task<Void, Never>?
+    /// The staple whose row offers the sections to move to.
+    @State private var moving: String?
+    /// The row that is a field for a section's name: a new one for a staple, or a header's.
+    @State private var sectionField: SectionField?
+    @State private var sectionText = ""
     @State private var sweeping = false
     @State private var spotShown: SpotRow?
     @FocusState private var fieldFocused: Bool
     @FocusState private var renameFocused: Bool
     @FocusState private var spotFocused: Bool
+    @FocusState private var sectionFocused: Bool
 
     private enum SpotField: Hashable {
         case new
+        case rename(String)
+    }
+
+    private enum SectionField: Hashable {
+        /// A new section for this staple.
+        case new(String)
         case rename(String)
     }
 
@@ -48,6 +66,8 @@ struct HomeView: View {
         let all = rows?.value ?? []
         let staples = all.filter(\.isStaple)
         let others = all.filter { !$0.isStaple }
+        let entries = StapleOrder.entries(staples)
+        let sections = StapleOrder.sections(staples)
         List {
             if let ps = proposals?.value, !ps.isEmpty {
                 // what the pictures suggested, each answered in its row
@@ -60,15 +80,32 @@ struct HomeView: View {
                 }
             }
             Section {
-                ForEach(staples) { row in
-                    if renaming == row.itemID {
-                        renameRow(row)
-                    } else {
-                        stapleRow(row)
+                // one run of rows, the headers among them, so a drag can cross a header
+                ForEach(entries) { entry in
+                    switch entry {
+                    case .header(let name):
+                        Group {
+                            if sectionField == .rename(name) {
+                                sectionFieldRow
+                            } else {
+                                sectionHeader(name)
+                            }
+                        }
+                        .moveDisabled(true)
+                    case .row(let row):
+                        if renaming == row.itemID {
+                            renameRow(row)
+                        } else if sectionField == .new(row.itemID) {
+                            sectionFieldRow
+                        } else if moving == row.itemID {
+                            moveRow(row, sections: sections)
+                        } else {
+                            stapleRow(row, sections: sections)
+                        }
                     }
                 }
                 .onMove { from, to in
-                    try? HomeActions.moveStaples(all, from: from, to: to, home: homeID, in: session)
+                    try? HomeActions.moveStaples(entries, from: from, to: to, home: homeID, in: session)
                 }
                 #if os(macOS)
                 if renaming == nil {
@@ -142,7 +179,7 @@ struct HomeView: View {
         .navigationBarTitleDisplayMode(.large)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // the bar steps aside while a row is a field, so one field is live
-            if renaming == nil, spotField == nil {
+            if renaming == nil, spotField == nil, sectionField == nil {
                 addBar
             }
         }
@@ -175,6 +212,18 @@ struct HomeView: View {
         .onDisappear { stopDictation() }
         .animation(Motion.of(reduceMotion, Motion.base), value: renaming)
         .animation(Motion.of(reduceMotion, Motion.base), value: spotField)
+        .animation(Motion.of(reduceMotion, Motion.base), value: sectionField)
+        .animation(Motion.of(reduceMotion, Motion.quick), value: moving)
+        // the bar points at a section until the field is left; a return keeps the field, so
+        // the wait is for the focus to come back
+        .onChange(of: fieldFocused) { _, focused in
+            untarget?.cancel()
+            guard !focused, target != nil else { return }
+            untarget = Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                if !Task.isCancelled, !fieldFocused { target = nil }
+            }
+        }
         .onAppear(perform: observe)
         .onChange(of: session.scope) { observe() }
         .onChange(of: text) { _, t in
@@ -249,7 +298,7 @@ struct HomeView: View {
                     .foregroundStyle(Tokens.onAccent)
             }
             .accessibilityHidden(true)
-            TextField("Add a staple", text: $text, selection: $selection)
+            TextField(addPrompt, text: $text, selection: $selection)
                 .accessibilityIdentifier("new-staple")
                 .textFieldStyle(.plain)
                 .focused($fieldFocused)
@@ -271,7 +320,7 @@ struct HomeView: View {
                 .foregroundStyle(Tokens.accent)
                 .frame(width: Tokens.space5)
                 .accessibilityHidden(true)
-            TextField("Add a staple", text: $text, selection: $selection)
+            TextField(addPrompt, text: $text, selection: $selection)
                 .accessibilityIdentifier("new-staple")
                 .textFieldStyle(.plain)
                 .focused($fieldFocused)
@@ -287,9 +336,15 @@ struct HomeView: View {
     }
     #endif
 
+    /// What the bar says it does: Add a staple, or Add to the section a header's + chose.
+    private var addPrompt: LocalizedStringKey {
+        if let target { return "Add to \(target)" }
+        return "Add a staple"
+    }
+
     private func matchButton(_ m: Match) -> some View {
         Button {
-            try? HomeActions.addStaple(itemID: m.itemID, home: homeID, in: session)
+            try? HomeActions.addStaple(itemID: m.itemID, home: homeID, section: target, in: session)
             text = ""
         } label: {
             Text(m.name)
@@ -305,9 +360,11 @@ struct HomeView: View {
     private func addTyped() {
         let t = text.trimmingCharacters(in: .whitespaces)
         guard !t.isEmpty else { return }
-        _ = try? HomeActions.addStaple(t, home: homeID, in: session)
+        _ = try? HomeActions.addStaple(t, home: homeID, section: target, in: session)
         text = ""
         matches = []
+        // the next one for the same section is typed straight after
+        if target != nil { fieldFocused = true }
     }
 
     // MARK: Saying a staple
@@ -361,7 +418,7 @@ struct HomeView: View {
         let names = (try? session.store.read(scope) { db, s in try Queries.itemNames(db, s) }) ?? []
         let pieces = Spoken.split(text, language: Language.remembered, names: names)
         for piece in pieces {
-            _ = try? HomeActions.addStaple(piece, home: homeID, in: session)
+            _ = try? HomeActions.addStaple(piece, home: homeID, section: target, in: session)
         }
         text = ""
         matches = []
@@ -498,23 +555,173 @@ struct HomeView: View {
 
     // MARK: Rows
 
-    /// A staple: the flag row with Rename and Remove on a swipe; a long press drags it into
-    /// place, as on a list. On the Mac the menu has both and a double click renames.
-    private func stapleRow(_ row: FlagRow) -> some View {
+    /// A staple: the flag row with Rename, Move to and Remove on a swipe; a long press drags it
+    /// into place, as on a list, and past a header into that section. On the Mac the menu has
+    /// the three, the sections under Move to, and a double click renames.
+    private func stapleRow(_ row: FlagRow, sections: [String]) -> some View {
         flagRow(row)
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 Button("Remove", role: .destructive) { arm(row.itemID) }
                     .tint(Tokens.out)
+                Button("Move to") { moving = row.itemID }
+                    .tint(Tokens.inkMuted)
                 Button("Rename") { startRename(row) }
                     .tint(Tokens.accent)
             }
             #if os(macOS)
             .contextMenu {
                 Button("Rename") { startRename(row) }
+                Menu("Move to") {
+                    Button("None") { move(row, to: "") }
+                        .disabled(row.section.isEmpty)
+                    ForEach(sections, id: \.self) { name in
+                        Button(name) { move(row, to: name) }
+                            .disabled(row.section == name)
+                    }
+                    Divider()
+                    Button("New section") { startSection(for: row) }
+                }
                 Button("Remove", role: .destructive) { arm(row.itemID) }
             }
             .onTapGesture(count: 2) { startRename(row) }
             #endif
+    }
+
+    // MARK: Sections
+
+    /// A section's header among the rows: its name, and a + that points the bar at it. A
+    /// long-press renames it or removes it, which keeps its staples.
+    private func sectionHeader(_ name: String) -> some View {
+        HStack(spacing: Tokens.space3) {
+            Text(verbatim: name)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(target == name ? Tokens.accent : Tokens.inkMuted)
+            Spacer(minLength: Tokens.space2)
+            Button {
+                target = name
+                fieldFocused = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Tokens.accent)
+                    .frame(minWidth: Tokens.space7, minHeight: Tokens.space7, alignment: .trailing)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(Text("Add to \(name)"))
+            .accessibilityIdentifier("add-to-" + name)
+        }
+        .frame(minHeight: ListView.rowHeight, alignment: .bottom)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button("Rename") {
+                sectionText = name
+                sectionField = .rename(name)
+            }
+            Button("Remove") {
+                if target == name { target = nil }
+                try? HomeActions.removeSection(name, home: homeID, in: session)
+            }
+        }
+        .listRowBackground(Tokens.ground)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("section-" + name)
+    }
+
+    /// Move to, in the row: no section, each section there is, a new one, or leave it.
+    private func moveRow(_ row: FlagRow, sections: [String]) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: Tokens.space2) {
+                Text(row.name)
+                    .foregroundStyle(Tokens.ink)
+                    .padding(.trailing, Tokens.space1)
+                chip(Text("None"), on: row.section.isEmpty) { move(row, to: "") }
+                    .accessibilityIdentifier("move-to-none")
+                ForEach(sections, id: \.self) { name in
+                    chip(Text(verbatim: name), on: row.section == name) { move(row, to: name) }
+                        .accessibilityIdentifier("move-to-" + name)
+                }
+                chip(Text("New section"), on: false) { startSection(for: row) }
+                    .accessibilityIdentifier("move-to-new")
+                Button("Cancel") { moving = nil }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Tokens.inkMuted)
+                    .padding(.leading, Tokens.space1)
+            }
+        }
+        .scrollIndicators(.hidden)
+        .frame(minHeight: ListView.rowHeight)
+        #if os(macOS)
+        .onExitCommand { moving = nil }
+        #endif
+        .listRowBackground(Tokens.surface)
+        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+    }
+
+    /// One choice in the move row; the section the staple is in now is marked and does nothing.
+    private func chip(_ label: Text, on: Bool, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            label
+                .font(.subheadline)
+                .foregroundStyle(on ? Tokens.accent : Tokens.ink)
+                .padding(.horizontal, Tokens.space3)
+                .padding(.vertical, Tokens.space1)
+                .background(on ? Tokens.accentSoft : Tokens.surfaceSunk, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
+        }
+        .buttonStyle(.borderless)
+        .disabled(on)
+    }
+
+    private func move(_ row: FlagRow, to section: String) {
+        moving = nil
+        try? HomeActions.moveStaple(row.itemID, to: section, home: homeID, in: session)
+    }
+
+    private func startSection(for row: FlagRow) {
+        moving = nil
+        sectionText = ""
+        sectionField = .new(row.itemID)
+    }
+
+    /// The row as a field: a new section's name for a staple, or a header's new name.
+    private var sectionFieldRow: some View {
+        HStack(spacing: Tokens.space3) {
+            TextField("New section", text: $sectionText)
+                .textFieldStyle(.plain)
+                .focused($sectionFocused)
+                .submitLabel(.done)
+                .onSubmit(commitSection)
+                .accessibilityIdentifier("section-name")
+                .onAppear { sectionFocused = true }
+            Button("Cancel") { sectionField = nil }
+                .buttonStyle(.plain)
+                .foregroundStyle(Tokens.inkMuted)
+        }
+        .frame(minHeight: ListView.rowHeight)
+        #if os(macOS)
+        .onExitCommand { sectionField = nil }
+        #endif
+        .listRowBackground(Tokens.surface)
+        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+    }
+
+    private func commitSection() {
+        let name = sectionText.trimmingCharacters(in: .whitespaces)
+        let field = sectionField
+        sectionField = nil
+        sectionText = ""
+        guard !name.isEmpty else { return }
+        switch field {
+        case .new(let itemID):
+            try? HomeActions.moveStaple(itemID, to: name, home: homeID, in: session)
+        case .rename(let old):
+            if target == old { target = nil }
+            try? HomeActions.renameSection(old, to: name, home: homeID, in: session)
+        case nil:
+            break
+        }
     }
 
     /// One proposal: the suggested flag, the item, the flag as it stands, Accept and Keep.

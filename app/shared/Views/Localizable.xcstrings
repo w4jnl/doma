@@ -721,6 +721,22 @@
         }
       }
     },
+    "Add to %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg toe aan %@"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridať do %@"
+          }
+        }
+      }
+    },
     "Add to list": {
       "localizations": {
         "nl": {
@@ -2033,6 +2049,22 @@
         }
       }
     },
+    "Move to": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verplaats naar"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presunúť do"
+          }
+        }
+      }
+    },
     "Name": {
       "localizations": {
         "nl": {
@@ -2077,6 +2109,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nový zoznam"
+          }
+        }
+      }
+    },
+    "New section": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuwe sectie"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nová sekcia"
           }
         }
       }
@@ -2237,6 +2285,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zatiaľ žiadna naplánovaná cesta. Ťukni na + a naplánuj: odkiaľ, kam, kedy a s ktorým zoznamom."
+          }
+        }
+      }
+    },
+    "None": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Žiadna"
           }
         }
       }
