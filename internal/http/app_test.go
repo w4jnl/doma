@@ -17,6 +17,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/w4jnl/doma/internal/domain"
+	"github.com/w4jnl/doma/internal/service"
 )
 
 // The web client: a browser signed in by the phone, then by a passkey, reading
@@ -479,6 +482,26 @@ func TestWebClientHomesTripsAndFamily(t *testing.T) {
 	}
 	if res, _ := b.form(trip+"/arrived", url.Values{"_csrf": {csrf}}); res.StatusCode != http.StatusConflict {
 		t.Errorf("arriving twice: %d", res.StatusCode)
+	}
+	// sections: the phone puts melk under Fridge and adds zout under none; the page shows
+	// zout first and melk under the header
+	{
+		clock, _ := domain.NewClock("m", nil)
+		zout := domain.NewID()
+		var resp service.SyncResponse
+		err := s.a.member.Sync(context.Background(), service.SyncRequest{Households: []service.SyncHousehold{{ID: s.a.id, Events: []json.RawMessage{
+			event(clock, "item.named", map[string]any{"item_id": zout, "name": "zout"}),
+			event(clock, "staple.added", map[string]any{"home_id": hutID, "item_id": zout, "sort": 9000}),
+			event(clock, "staple.added", map[string]any{"home_id": hutID, "item_id": melk, "sort": 1000, "section": "Fridge"}),
+		}}}}, &resp)
+		if err != nil || len(resp.Households[0].Accepted) != 3 {
+			t.Fatalf("sections: %v %+v", err, resp)
+		}
+		_, body := b.get(hut)
+		z, h, m := strings.Index(body, "zout"), strings.Index(body, "<h3>Fridge</h3>"), strings.LastIndex(body, "melk")
+		if z < 0 || h < z || m < h {
+			t.Errorf("the staples are not under their sections: zout %d, Fridge %d, melk %d", z, h, m)
+		}
 	}
 	// family: members, an invite with its QR, a guest link, the devices
 	res, body = b.get(base + "/family")

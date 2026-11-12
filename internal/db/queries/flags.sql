@@ -25,10 +25,10 @@ SELECT * FROM staples WHERE household_id = ? AND home_id = ? AND item_id = ?;
 SELECT * FROM staples WHERE household_id = ? ORDER BY home_id, item_id;
 
 -- name: UpsertStaple :exec
-INSERT INTO staples (household_id, home_id, item_id, sort, added_hlc, removed_hlc)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO staples (household_id, home_id, item_id, sort, section, section_hlc, added_hlc, removed_hlc)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(home_id, item_id) DO UPDATE SET
-  sort = excluded.sort, added_hlc = excluded.added_hlc, removed_hlc = excluded.removed_hlc;
+  sort = excluded.sort, section = excluded.section, section_hlc = excluded.section_hlc, added_hlc = excluded.added_hlc, removed_hlc = excluded.removed_hlc;
 
 -- name: DeleteStaplesForItems :exec
 DELETE FROM staples

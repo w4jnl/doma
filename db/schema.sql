@@ -167,7 +167,7 @@ CREATE TABLE staples (
   item_id       TEXT NOT NULL,
   sort          INTEGER NOT NULL DEFAULT 0,
   added_hlc     TEXT,
-  removed_hlc   TEXT,
+  removed_hlc   TEXT, section TEXT NOT NULL DEFAULT '', section_hlc TEXT,
   PRIMARY KEY (home_id, item_id)
 );
 CREATE INDEX staples_household ON staples(household_id, home_id);
@@ -239,4 +239,5 @@ INSERT INTO "schema_migrations" (version) VALUES
   ('20261105000000'),
   ('20261107000000'),
   ('20261107010000'),
-  ('20261108000000');
+  ('20261108000000'),
+  ('20261112000000');

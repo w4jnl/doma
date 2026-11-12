@@ -114,12 +114,38 @@ struct Staple: Hashable, Sendable, Codable {
     var homeID: String
     var itemID: String
     var sort: Int64 = 0
+    /// The group the staple is shown under, "" for none.
+    var section = ""
+    /// The latest add that named a section, nil when none has.
+    var sectionHLC: HLC?
     /// The latest add, nil when only a remove has been seen.
     var addedHLC: HLC?
     var removedHLC: HLC?
     enum CodingKeys: String, CodingKey {
-        case sort
-        case homeID = "home_id", itemID = "item_id", addedHLC = "added_hlc", removedHLC = "removed_hlc"
+        case sort, section
+        case homeID = "home_id", itemID = "item_id", sectionHLC = "section_hlc", addedHLC = "added_hlc", removedHLC = "removed_hlc"
+    }
+
+    init(homeID: String, itemID: String, sort: Int64 = 0, section: String = "", sectionHLC: HLC? = nil, addedHLC: HLC? = nil, removedHLC: HLC? = nil) {
+        self.homeID = homeID
+        self.itemID = itemID
+        self.sort = sort
+        self.section = section
+        self.sectionHLC = sectionHLC
+        self.addedHLC = addedHLC
+        self.removedHLC = removedHLC
+    }
+
+    /// A server from before sections sends a staple without one.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        homeID = try c.decode(String.self, forKey: .homeID)
+        itemID = try c.decode(String.self, forKey: .itemID)
+        sort = try c.decodeIfPresent(Int64.self, forKey: .sort) ?? 0
+        section = try c.decodeIfPresent(String.self, forKey: .section) ?? ""
+        sectionHLC = try c.decodeIfPresent(HLC.self, forKey: .sectionHLC)
+        addedHLC = try c.decodeIfPresent(HLC.self, forKey: .addedHLC)
+        removedHLC = try c.decodeIfPresent(HLC.self, forKey: .removedHLC)
     }
 
     /// On the home's list: the latest add is newer than the latest remove.

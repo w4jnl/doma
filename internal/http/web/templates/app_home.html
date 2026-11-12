@@ -11,9 +11,12 @@
       <button class="dm-button" type="submit">Add</button>
     </form>
     {{if .Data.View.Staples}}
+    {{range .Data.View.Groups}}
+    {{if .Name}}<h3>{{.Name}}</h3>{{end}}
     <ul class="dm-rows">
-      {{range .Data.View.Staples}}{{template "flagrow" (dict "Page" $page "CSRF" $csrf "R" . "Staple" true)}}{{end}}
+      {{range .Rows}}{{template "flagrow" (dict "Page" $page "CSRF" $csrf "R" . "Staple" true)}}{{end}}
     </ul>
+    {{end}}
     {{else}}
     <p class="dm-muted">What this home should always have. Type the first one above.</p>
     {{end}}

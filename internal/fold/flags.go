@@ -115,10 +115,14 @@ type staplePayload struct {
 	HomeID string `json:"home_id"`
 	ItemID string `json:"item_id"`
 	Sort   *int64 `json:"sort"`
+	// Section is the group the staple is shown under; nil when the add does
+	// not say, which keeps the one it had, and "" for none.
+	Section *string `json:"section"`
 }
 
 // applyStaple keeps the latest add and the latest remove; the staple is
-// present when the add is newer.
+// present when the add is newer. The latest add's sort stands, and the section
+// of the latest add that names one.
 func applyStaple(s Store, e Event) error {
 	var p staplePayload
 	if err := decode(e, &p); err != nil {
@@ -152,6 +156,12 @@ func putStaple(s Store, e Event, p staplePayload, item string) error {
 			if p.Sort != nil {
 				cur.Sort = *p.Sort
 			}
+		}
+		// the section has its own stamp: the latest add that names one decides,
+		// whichever order the adds arrive in
+		if p.Section != nil && (cur.SectionHLC == nil || cur.SectionHLC.Less(e.HLC)) {
+			cur.Section = *p.Section
+			cur.SectionHLC = ptr(e.HLC)
 		}
 	case "staple.removed":
 		if cur.RemovedHLC == nil || cur.RemovedHLC.Less(e.HLC) {

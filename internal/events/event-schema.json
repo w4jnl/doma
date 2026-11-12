@@ -42,7 +42,7 @@
     "flag.set": {"type": "object", "required": ["home_id", "item_id", "state"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "state": {"enum": ["have", "low", "out"]}, "note": {"$ref": "#/$defs/note"}}},
     "flag.proposed": {"type": "object", "required": ["home_id", "item_id", "state"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "state": {"enum": ["have", "low", "out"]}, "photo_id": {"$ref": "#/$defs/id"}}},
     "proposal.declined": {"type": "object", "required": ["proposal_id", "home_id", "item_id"], "properties": {"proposal_id": {"$ref": "#/$defs/id"}, "home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}}},
-    "staple.added": {"type": "object", "required": ["home_id", "item_id"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "sort": {"type": "integer"}}},
+    "staple.added": {"type": "object", "required": ["home_id", "item_id"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}, "sort": {"type": "integer"}, "section": {"type": "string", "maxLength": 40}}},
     "staple.removed": {"type": "object", "required": ["home_id", "item_id"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "item_id": {"$ref": "#/$defs/id"}}},
     "home.created": {"type": "object", "required": ["home_id", "name"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},
     "home.renamed": {"type": "object", "required": ["home_id", "name"], "properties": {"home_id": {"$ref": "#/$defs/id"}, "name": {"$ref": "#/$defs/name"}}},

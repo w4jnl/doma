@@ -137,8 +137,10 @@ struct StaplePayload: Codable, Sendable {
     var homeID: String
     var itemID: String
     var sort: Int64?
+    /// The group the staple is shown under: nil leaves it as it is, "" takes it out of any.
+    var section: String?
     enum CodingKeys: String, CodingKey {
-        case sort
+        case sort, section
         case homeID = "home_id", itemID = "item_id"
     }
 }

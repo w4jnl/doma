@@ -49,7 +49,7 @@ func (t *traced) DeleteFlag(homeID, itemID string) error {
 }
 
 func (t *traced) PutStaple(s Staple) error {
-	t.logf("fold staple home=%s item=%s present=%v", s.HomeID, s.ItemID, s.Present())
+	t.logf("fold staple home=%s item=%s section=%q present=%v", s.HomeID, s.ItemID, s.Section, s.Present())
 	return t.Store.PutStaple(s)
 }
 

@@ -323,7 +323,12 @@ enum Catalog {
         var baseStaples: [Staple] = []
         for st in try s.staples(forItems: ids) {
             let logged = try (st.addedHLC.map { try s.hasEvent(stamp: $0) } ?? false) || (st.removedHLC.map { try s.hasEvent(stamp: $0) } ?? false)
-            if !logged { baseStaples.append(st) }
+            if !logged {
+                baseStaples.append(st)
+            } else if let h = st.sectionHLC, try !s.hasEvent(stamp: h) {
+                // the adds are in the log but the one that named the section is not
+                baseStaples.append(Staple(homeID: st.homeID, itemID: st.itemID, section: st.section, sectionHLC: h))
+            }
         }
         try s.deleteFlags(forItems: ids)
         try s.deleteStaples(forItems: ids)
@@ -333,6 +338,10 @@ enum Catalog {
             if let a = st.addedHLC, cur.addedHLC == nil || cur.addedHLC! < a {
                 cur.addedHLC = a
                 cur.sort = st.sort
+            }
+            if let h = st.sectionHLC, cur.sectionHLC == nil || cur.sectionHLC! < h {
+                cur.section = st.section
+                cur.sectionHLC = h
             }
             if let r = st.removedHLC, cur.removedHLC == nil || cur.removedHLC! < r {
                 cur.removedHLC = r

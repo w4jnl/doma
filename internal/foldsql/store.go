@@ -421,7 +421,11 @@ func stapleRow(r db.Staple) (fold.Staple, error) {
 	if err != nil {
 		return fold.Staple{}, err
 	}
-	return fold.Staple{HomeID: r.HomeID, ItemID: r.ItemID, Sort: r.Sort, AddedHLC: a, RemovedHLC: rm}, nil
+	sec, err := hlcPtr(r.SectionHlc)
+	if err != nil {
+		return fold.Staple{}, err
+	}
+	return fold.Staple{HomeID: r.HomeID, ItemID: r.ItemID, Sort: r.Sort, Section: r.Section, SectionHLC: sec, AddedHLC: a, RemovedHLC: rm}, nil
 }
 
 func (s *Store) Staple(homeID, itemID string) (*fold.Staple, error) {
@@ -437,7 +441,7 @@ func (s *Store) Staple(homeID, itemID string) (*fold.Staple, error) {
 }
 
 func (s *Store) PutStaple(st fold.Staple) error {
-	return s.q.UpsertStaple(s.ctx, db.UpsertStapleParams{HouseholdID: s.HouseholdID, HomeID: st.HomeID, ItemID: st.ItemID, Sort: st.Sort, AddedHlc: strPtr(st.AddedHLC), RemovedHlc: strPtr(st.RemovedHLC)})
+	return s.q.UpsertStaple(s.ctx, db.UpsertStapleParams{HouseholdID: s.HouseholdID, HomeID: st.HomeID, ItemID: st.ItemID, Sort: st.Sort, Section: st.Section, SectionHlc: strPtr(st.SectionHLC), AddedHlc: strPtr(st.AddedHLC), RemovedHlc: strPtr(st.RemovedHLC)})
 }
 
 func (s *Store) DeleteStaplesForItems(itemIDs []string) error {

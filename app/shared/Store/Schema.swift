@@ -254,6 +254,13 @@ enum Schema {
                 t.primaryKey(["server_id", "household_id", "id"])
             }
         }
+        // v7: a staple's section, the name of the group it is shown under
+        m.registerMigration("v7") { db in
+            try db.alter(table: "staples") { t in
+                t.add(column: "section", .text).notNull().defaults(to: "")
+                t.add(column: "section_hlc", .text)
+            }
+        }
         return m
     }
 
@@ -339,12 +346,12 @@ extension Proposal {
 
 extension Staple {
     init(row r: Row) {
-        self.init(homeID: r["home_id"], itemID: r["item_id"], sort: r["sort"], addedHLC: HLC(column: r["added_hlc"]), removedHLC: HLC(column: r["removed_hlc"]))
+        self.init(homeID: r["home_id"], itemID: r["item_id"], sort: r["sort"], section: r["section"], sectionHLC: HLC(column: r["section_hlc"]), addedHLC: HLC(column: r["added_hlc"]), removedHLC: HLC(column: r["removed_hlc"]))
     }
     func arguments(_ s: Scope) -> StatementArguments {
-        [s.serverID, s.householdID, homeID, itemID, sort, addedHLC?.description, removedHLC?.description]
+        [s.serverID, s.householdID, homeID, itemID, sort, section, sectionHLC?.description, addedHLC?.description, removedHLC?.description]
     }
-    static let insert = "INSERT OR REPLACE INTO staples (server_id, household_id, home_id, item_id, sort, added_hlc, removed_hlc) VALUES (?,?,?,?,?,?,?)"
+    static let insert = "INSERT OR REPLACE INTO staples (server_id, household_id, home_id, item_id, sort, section, section_hlc, added_hlc, removed_hlc) VALUES (?,?,?,?,?,?,?,?,?)"
 }
 
 extension Home {

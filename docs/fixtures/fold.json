@@ -757,6 +757,185 @@
       }
     },
     {
+      "name": "a staple's section is that of the latest add that names one: an add without one keeps it, an empty one clears it, and a re-add after a remove keeps it too",
+      "events": [
+        {
+          "id": "i1",
+          "person_id": "pa",
+          "hlc": "900:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I1",
+            "name": "melk"
+          }
+        },
+        {
+          "id": "i2",
+          "person_id": "pa",
+          "hlc": "901:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I2",
+            "name": "pasta"
+          }
+        },
+        {
+          "id": "i3",
+          "person_id": "pa",
+          "hlc": "902:0:a",
+          "kind": "item.named",
+          "payload": {
+            "item_id": "I3",
+            "name": "zout"
+          }
+        },
+        {
+          "id": "s1",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "sort": 1000,
+            "section": "Fridge"
+          }
+        },
+        {
+          "id": "s2",
+          "person_id": "pb",
+          "hlc": "1100:0:b",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "sort": 3000
+          }
+        },
+        {
+          "id": "s3",
+          "person_id": "pa",
+          "hlc": "1050:0:a",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I1",
+            "sort": 2000,
+            "section": "Pantry"
+          }
+        },
+        {
+          "id": "s4",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I2",
+            "sort": 2000,
+            "section": "Pantry"
+          }
+        },
+        {
+          "id": "s5",
+          "person_id": "pb",
+          "hlc": "1200:0:b",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I2",
+            "sort": 2000,
+            "section": ""
+          }
+        },
+        {
+          "id": "s6",
+          "person_id": "pa",
+          "hlc": "1000:0:a",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I3",
+            "sort": 4000,
+            "section": "Jaro"
+          }
+        },
+        {
+          "id": "s7",
+          "person_id": "pb",
+          "hlc": "1100:0:b",
+          "kind": "staple.removed",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I3"
+          }
+        },
+        {
+          "id": "s8",
+          "person_id": "pb",
+          "hlc": "1200:0:b",
+          "kind": "staple.added",
+          "payload": {
+            "home_id": "H1",
+            "item_id": "I3",
+            "sort": 5000
+          }
+        }
+      ],
+      "expect": {
+        "items": [
+          {
+            "id": "I1",
+            "name": "melk",
+            "norm_name": "melk",
+            "created_hlc": "900:0:a",
+            "updated_hlc": "900:0:a"
+          },
+          {
+            "id": "I2",
+            "name": "pasta",
+            "norm_name": "pasta",
+            "created_hlc": "901:0:a",
+            "updated_hlc": "901:0:a"
+          },
+          {
+            "id": "I3",
+            "name": "zout",
+            "norm_name": "zout",
+            "created_hlc": "902:0:a",
+            "updated_hlc": "902:0:a"
+          }
+        ],
+        "staples": [
+          {
+            "home_id": "H1",
+            "item_id": "I1",
+            "sort": 3000,
+            "section": "Pantry",
+            "added_hlc": "1100:0:b",
+            "section_hlc": "1050:0:a"
+          },
+          {
+            "home_id": "H1",
+            "item_id": "I2",
+            "sort": 2000,
+            "section": "",
+            "added_hlc": "1200:0:b",
+            "section_hlc": "1200:0:b"
+          },
+          {
+            "home_id": "H1",
+            "item_id": "I3",
+            "sort": 5000,
+            "section": "Jaro",
+            "added_hlc": "1200:0:b",
+            "removed_hlc": "1100:0:b",
+            "section_hlc": "1000:0:a"
+          }
+        ]
+      }
+    },
+    {
       "name": "an explicit merge keeps the dropped name as an alias and moves flags and entries",
       "events": [
         {

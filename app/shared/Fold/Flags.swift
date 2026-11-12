@@ -143,6 +143,12 @@ enum Flags {
                 cur.addedHLC = e.hlc
                 if let sort = p.sort { cur.sort = sort }
             }
+            // the section has its own stamp: the latest add that names one decides, whichever
+            // order the adds arrive in
+            if let section = p.section, cur.sectionHLC == nil || cur.sectionHLC! < e.hlc {
+                cur.section = section
+                cur.sectionHLC = e.hlc
+            }
         case Kind.stapleRemoved:
             if cur.removedHLC == nil || cur.removedHLC! < e.hlc {
                 cur.removedHLC = e.hlc
