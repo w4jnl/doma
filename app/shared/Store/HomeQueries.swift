@@ -139,7 +139,7 @@ enum StapleOrder {
         return seen
     }
 
-    static func entries(_ staples: [FlagRow]) -> [StapleEntry] {
+    static func entries(_ staples: [FlagRow], collapsed: Set<String> = []) -> [StapleEntry] {
         var out: [StapleEntry] = []
         var section = ""
         for r in display(staples) {
@@ -147,14 +147,16 @@ enum StapleOrder {
                 section = r.section
                 out.append(.header(section))
             }
-            out.append(.row(r))
+            if !collapsed.contains(r.section) { out.append(.row(r)) }
         }
         return out
     }
 
     /// The staples after a drag of the screen's rows: a staple belongs to the header above it,
     /// and to no section above the first one. Headers stay where they are.
-    static func moved(_ entries: [StapleEntry], from source: IndexSet, to destination: Int) -> (wanted: [FlagRow], changed: Set<String>) {
+    /// The staples of a collapsed section are not among the rows: they keep their place under
+    /// their header, and a staple dropped under it comes after them.
+    static func moved(_ entries: [StapleEntry], from source: IndexSet, to destination: Int, hidden: [FlagRow] = []) -> (wanted: [FlagRow], changed: Set<String>) {
         var changed = Set<String>()
         for i in source {
             if case .row(let r) = entries[i] { changed.insert(r.itemID) }
@@ -165,7 +167,9 @@ enum StapleOrder {
         var section = ""
         for e in after {
             switch e {
-            case .header(let name): section = name
+            case .header(let name):
+                section = name
+                wanted += display(hidden.filter { $0.section == name })
             case .row(var r):
                 r.section = section
                 wanted.append(r)

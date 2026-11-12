@@ -120,6 +120,15 @@ final class HomeLogicTests: XCTestCase {
         // a drag past a header joins that section: kaas (5) to under Pantry's pasta
         try HomeActions.moveStaples(try StapleOrder.entries(staples()), from: IndexSet(integer: 5), to: 8, home: "G", in: s)
         XCTAssertEqual(try shown(), ["zout", "peper", "[Fridge]", "melk", "boter", "[Pantry]", "pasta", "kaas"])
+        // a collapsed section shows its header only; a staple dropped under it comes after
+        // the ones out of sight, which stay as they are
+        let folded = try StapleOrder.entries(staples(), collapsed: ["Pantry"])
+        XCTAssertEqual(folded.count, 6, "zout, peper, Fridge, melk, boter, Pantry")
+        let hidden = try staples().filter { $0.section == "Pantry" }
+        try HomeActions.moveStaples(folded, from: IndexSet(integer: 1), to: 6, hidden: hidden, home: "G", in: s)
+        XCTAssertEqual(try shown(), ["zout", "[Fridge]", "melk", "boter", "[Pantry]", "pasta", "kaas", "peper"])
+        try HomeActions.moveStaples(try StapleOrder.entries(staples()), from: IndexSet(integer: 7), to: 1, home: "G", in: s)
+        XCTAssertEqual(try shown(), ["zout", "peper", "[Fridge]", "melk", "boter", "[Pantry]", "pasta", "kaas"])
         // and above the first header leaves every section: boter (4) to the top
         try HomeActions.moveStaples(try StapleOrder.entries(staples()), from: IndexSet(integer: 4), to: 0, home: "G", in: s)
         XCTAssertEqual(try shown(), ["boter", "zout", "peper", "[Fridge]", "melk", "[Pantry]", "pasta", "kaas"])

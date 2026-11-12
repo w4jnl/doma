@@ -11,7 +11,9 @@ updates this file first. Dates are the tag dates.
   New section; drag a staple past a header to move it there; the + on a header points the add
   bar at it, so what is typed or said next lands in that section. A long-press on a header
   renames it or removes it, which keeps its staples. A section disappears with its last
-  staple, and a home without sections looks as before. Flags, the shopping list and trips
+  staple, and a home without sections looks as before. A tap on a header collapses its
+  section to the header and a count, and a second tap opens it; each device remembers which
+  are collapsed. Flags, the shopping list and trips
   follow every staple as they did. The web client shows the same headers. The server needs
   this version before the apps' sections reach its web pages and its snapshots.
 - **A spot's screen can rename and remove it.** Rename and Remove were only on a long-press of

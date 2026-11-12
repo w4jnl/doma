@@ -86,8 +86,8 @@ enum HomeActions {
 
     /// Moves staples as the screen's rows move, headers among them: each moved staple is added
     /// again with a sort between its new neighbours and the section of the header above it.
-    static func moveStaples(_ entries: [StapleEntry], from source: IndexSet, to destination: Int, home homeID: String, in session: Session) throws {
-        let (wanted, changed) = StapleOrder.moved(entries, from: source, to: destination)
+    static func moveStaples(_ entries: [StapleEntry], from source: IndexSet, to destination: Int, hidden: [FlagRow] = [], home homeID: String, in session: Session) throws {
+        let (wanted, changed) = StapleOrder.moved(entries, from: source, to: destination, hidden: hidden)
         guard !changed.isEmpty else { return }
         try write(wanted, changed: changed, home: homeID, in: session)
     }

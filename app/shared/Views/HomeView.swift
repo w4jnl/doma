@@ -41,6 +41,8 @@ struct HomeView: View {
     /// The row that is a field for a section's name: a new one for a staple, or a header's.
     @State private var sectionField: SectionField?
     @State private var sectionText = ""
+    /// The sections shown as their header only, remembered on the device per home.
+    @State private var collapsed: Set<String> = []
     @State private var sweeping = false
     @State private var spotShown: SpotRow?
     @FocusState private var fieldFocused: Bool
@@ -66,7 +68,8 @@ struct HomeView: View {
         let all = rows?.value ?? []
         let staples = all.filter(\.isStaple)
         let others = all.filter { !$0.isStaple }
-        let entries = StapleOrder.entries(staples)
+        let entries = StapleOrder.entries(staples, collapsed: collapsed)
+        let hidden = staples.filter { collapsed.contains($0.section) }
         let sections = StapleOrder.sections(staples)
         List {
             if let ps = proposals?.value, !ps.isEmpty {
@@ -88,7 +91,7 @@ struct HomeView: View {
                             if sectionField == .rename(name) {
                                 sectionFieldRow
                             } else {
-                                sectionHeader(name)
+                                sectionHeader(name, hidden: hidden.count(where: { $0.section == name }))
                             }
                         }
                         .moveDisabled(true)
@@ -105,7 +108,10 @@ struct HomeView: View {
                     }
                 }
                 .onMove { from, to in
-                    try? HomeActions.moveStaples(entries, from: from, to: to, home: homeID, in: session)
+                    // a staple dropped under a collapsed header opens it, so the staple stays in sight
+                    let (wanted, changed) = StapleOrder.moved(entries, from: from, to: to, hidden: hidden)
+                    for r in wanted where changed.contains(r.itemID) { setCollapsed(r.section, false) }
+                    try? HomeActions.moveStaples(entries, from: from, to: to, hidden: hidden, home: homeID, in: session)
                 }
                 #if os(macOS)
                 if renaming == nil {
@@ -214,6 +220,7 @@ struct HomeView: View {
         .animation(Motion.of(reduceMotion, Motion.base), value: spotField)
         .animation(Motion.of(reduceMotion, Motion.base), value: sectionField)
         .animation(Motion.of(reduceMotion, Motion.quick), value: moving)
+        .animation(Motion.of(reduceMotion, Motion.base), value: collapsed)
         // the bar points at a section until the field is left; a return keeps the field, so
         // the wait is for the focus to come back
         .onChange(of: fieldFocused) { _, focused in
@@ -240,6 +247,15 @@ struct HomeView: View {
         rows = Live(session.store, initial: []) { db in try Queries.flagRows(db, scope, homeID: id, staleness: staleness) }
         trips = Live(session.store, initial: []) { db in try Queries.trips(db, scope, homeID: id) }
         proposals = Live(session.store, initial: []) { db in try Queries.proposals(db, scope, homeID: id, staleness: staleness) }
+        collapsed = Set(UserDefaults.standard.stringArray(forKey: collapsedKey) ?? [])
+    }
+
+    private var collapsedKey: String { "home.collapsed." + homeID }
+
+    private func setCollapsed(_ name: String, _ on: Bool) {
+        guard !name.isEmpty, collapsed.contains(name) != on else { return }
+        if on { collapsed.insert(name) } else { collapsed.remove(name) }
+        UserDefaults.standard.set(collapsed.sorted(), forKey: collapsedKey)
     }
 
     private func subtitle(_ card: HomeCard?) -> Text {
@@ -617,15 +633,36 @@ struct HomeView: View {
 
     // MARK: Sections
 
-    /// A section's header among the rows: its name, and a + that points the bar at it. A
-    /// long-press renames it or removes it, which keeps its staples.
-    private func sectionHeader(_ name: String) -> some View {
-        HStack(spacing: Tokens.space3) {
-            Text(verbatim: name)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(target == name ? Tokens.accent : Tokens.inkMuted)
-            Spacer(minLength: Tokens.space2)
+    /// A section's header among the rows: its name, a tap on which collapses the section to
+    /// the header and the count of its staples or opens it again, and a + that points the bar
+    /// at it. A long-press renames it or removes it, which keeps its staples.
+    private func sectionHeader(_ name: String, hidden: Int) -> some View {
+        let closed = collapsed.contains(name)
+        return HStack(spacing: Tokens.space3) {
             Button {
+                setCollapsed(name, !closed)
+            } label: {
+                HStack(spacing: Tokens.space2) {
+                    Image(systemName: closed ? "chevron.right" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .frame(width: Tokens.space4)
+                    Text(verbatim: name)
+                        .font(.subheadline.weight(.semibold))
+                    if closed {
+                        Text(verbatim: String(hidden))
+                            .font(Tokens.mono(.footnote))
+                    }
+                    Spacer(minLength: Tokens.space2)
+                }
+                .foregroundStyle(target == name ? Tokens.accent : Tokens.inkMuted)
+                .frame(minHeight: Tokens.space7)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .accessibilityValue(closed ? Text("Collapsed") : Text("Expanded"))
+            .accessibilityIdentifier("toggle-" + name)
+            Button {
+                setCollapsed(name, false)
                 target = name
                 fieldFocused = true
             } label: {
@@ -648,6 +685,7 @@ struct HomeView: View {
             }
             Button("Remove") {
                 if target == name { target = nil }
+                setCollapsed(name, false)
                 try? HomeActions.removeSection(name, home: homeID, in: session)
             }
         }
@@ -746,6 +784,7 @@ struct HomeView: View {
             try? HomeActions.moveStaple(itemID, to: name, home: homeID, in: session)
         case .rename(let old):
             if target == old { target = nil }
+            setCollapsed(old, false)
             try? HomeActions.renameSection(old, to: name, home: homeID, in: session)
         case nil:
             break
