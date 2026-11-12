@@ -1089,6 +1089,22 @@
         }
       }
     },
+    "Collapsed": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingeklapt"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zbalené"
+          }
+        }
+      }
+    },
     "Colour": {
       "localizations": {
         "nl": {
@@ -1245,6 +1261,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Upraviť kartu"
+          }
+        }
+      }
+    },
+    "Expanded": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uitgeklapt"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rozbalené"
           }
         }
       }
