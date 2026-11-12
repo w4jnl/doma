@@ -93,6 +93,159 @@ struct FlagRow: Identifiable, Hashable, Sendable {
     var ageShown: Bool
     /// The staple's place among the home's staples; 0 for the rest.
     var sort: Int64 = 0
+    /// The section the staple is shown under, "" for none and for the rest.
+    var section = ""
+}
+
+/// A home's staples as the screen lists them: a header before each section's staples.
+enum StapleEntry: Identifiable, Hashable, Sendable {
+    case header(String)
+    case row(FlagRow)
+
+    var id: String {
+        switch self {
+        case .header(let name): "section:" + name
+        case .row(let row): row.itemID
+        }
+    }
+}
+
+/// The order of a home's staples and the sorts that keep it: the staples outside every section
+/// first, then the sections in the order of their first staple, each staple by its sort. Pure,
+/// so the screen, the actions and the tests agree.
+enum StapleOrder {
+    /// A section's name is at most this long, as the event schema says.
+    static let maxName = 40
+
+    static func display(_ staples: [FlagRow]) -> [FlagRow] {
+        var first: [String: Int64] = [:]
+        for r in staples { first[r.section] = min(first[r.section] ?? r.sort, r.sort) }
+        return staples.sorted { a, b in
+            if a.section != b.section {
+                if a.section.isEmpty || b.section.isEmpty { return a.section.isEmpty }
+                let fa = first[a.section] ?? 0, fb = first[b.section] ?? 0
+                return fa != fb ? fa < fb : a.section < b.section
+            }
+            if a.sort != b.sort { return a.sort < b.sort }
+            let x = a.name.lowercased(), y = b.name.lowercased()
+            return x != y ? x < y : a.itemID < b.itemID
+        }
+    }
+
+    /// The sections in the order they are shown.
+    static func sections(_ staples: [FlagRow]) -> [String] {
+        var seen: [String] = []
+        for r in display(staples) where !r.section.isEmpty && seen.last != r.section { seen.append(r.section) }
+        return seen
+    }
+
+    static func entries(_ staples: [FlagRow]) -> [StapleEntry] {
+        var out: [StapleEntry] = []
+        var section = ""
+        for r in display(staples) {
+            if r.section != section {
+                section = r.section
+                out.append(.header(section))
+            }
+            out.append(.row(r))
+        }
+        return out
+    }
+
+    /// The staples after a drag of the screen's rows: a staple belongs to the header above it,
+    /// and to no section above the first one. Headers stay where they are.
+    static func moved(_ entries: [StapleEntry], from source: IndexSet, to destination: Int) -> (wanted: [FlagRow], changed: Set<String>) {
+        var changed = Set<String>()
+        for i in source {
+            if case .row(let r) = entries[i] { changed.insert(r.itemID) }
+        }
+        var after = entries
+        after.move(fromOffsets: source, toOffset: destination)
+        var wanted: [FlagRow] = []
+        var section = ""
+        for e in after {
+            switch e {
+            case .header(let name): section = name
+            case .row(var r):
+                r.section = section
+                wanted.append(r)
+            }
+        }
+        return (wanted, changed)
+    }
+
+    /// The staples with rows put at the end of a section: after its last staple, before the
+    /// first header for no section, and after everything for a section that is new.
+    static func placed(_ rows: [FlagRow], in section: String, among staples: [FlagRow]) -> [FlagRow] {
+        let ids = Set(rows.map(\.itemID))
+        var out = display(staples.filter { !ids.contains($0.itemID) })
+        let at: Int
+        if let last = out.lastIndex(where: { $0.section == section }) {
+            at = last + 1
+        } else if section.isEmpty {
+            at = 0
+        } else {
+            at = out.count
+        }
+        out.insert(contentsOf: rows.map { var r = $0; r.section = section; return r }, at: at)
+        return out
+    }
+
+    /// The sorts to write so the staples read in this order: the changed ones only, each run
+    /// spread between its neighbours, or every staple renumbered when the others are out of
+    /// order or leave no room.
+    static func sorts(_ wanted: [FlagRow], changed: Set<String>) -> [String: Int64] {
+        let gap = HomeActions.sortGap
+        var out: [String: Int64] = [:]
+        let fixed = wanted.filter { !changed.contains($0.itemID) }
+        var fits = zip(fixed, fixed.dropFirst()).allSatisfy { $0.sort < $1.sort }
+        var i = 0
+        while fits, i < wanted.count {
+            guard changed.contains(wanted[i].itemID) else { i += 1; continue }
+            var j = i
+            while j < wanted.count, changed.contains(wanted[j].itemID) { j += 1 }
+            let run = wanted[i..<j]
+            let n = Int64(run.count)
+            let prev = i > 0 ? wanted[i - 1].sort : nil
+            let next = j < wanted.count ? wanted[j].sort : nil
+            let inOrder = zip(run, run.dropFirst()).allSatisfy { $0.sort < $1.sort }
+            if inOrder, prev.map({ $0 < run.first!.sort }) ?? true, next.map({ run.last!.sort < $0 }) ?? true {
+                // in place already: only the section changed
+                for r in run { out[r.itemID] = r.sort }
+            } else {
+                for (k, r) in run.enumerated() {
+                    let k = Int64(k)
+                    switch (prev, next) {
+                    case (nil, nil): out[r.itemID] = (k + 1) * gap
+                    case (let p?, nil): out[r.itemID] = p + (k + 1) * gap
+                    case (nil, let q?): out[r.itemID] = q - (n - k) * gap
+                    case (let p?, let q?):
+                        if q - p > n {
+                            out[r.itemID] = p + (k + 1) * ((q - p) / (n + 1))
+                        } else {
+                            fits = false
+                        }
+                    }
+                }
+            }
+            i = j
+        }
+        if !fits {
+            out = [:]
+            for (k, r) in wanted.enumerated() {
+                let s = Int64(k + 1) * gap
+                if s != r.sort || changed.contains(r.itemID) { out[r.itemID] = s }
+            }
+        }
+        return out
+    }
+
+    /// A typed section name as it is kept: trimmed, cut to the length the schema takes, and in
+    /// the spelling of a section that is there already.
+    static func name(_ typed: String, among sections: [String]) -> String {
+        let t = String(typed.trimmingCharacters(in: .whitespacesAndNewlines).prefix(maxName))
+        return sections.first { $0.caseInsensitiveCompare(t) == .orderedSame } ?? t
+    }
 }
 
 /// What a picture suggested about an item at a home, still waiting for an answer.
@@ -166,12 +319,12 @@ extension Queries {
         }
     }
 
-    /// The home's staples first, then every other item with a flag there; staples by their
-    /// sort and name, the rest by name. Each with the flag as it stands now.
+    /// The home's staples first, then every other item with a flag there; staples in their
+    /// sections' order (StapleOrder), the rest by name. Each with the flag as it stands now.
     static func flagRows(_ db: Database, _ s: Scope, homeID: String, staleness: Staleness) throws -> [FlagRow] {
-        try Row.fetchAll(db, sql: """
+        let all = try Row.fetchAll(db, sql: """
             SELECT i.id, i.name, f.state, CAST(substr(f.set_hlc, 1, 13) AS INTEGER) AS set_at, f.set_by, f.note,
-              CASE WHEN st.item_id IS NOT NULL THEN 1 ELSE 0 END AS is_staple, COALESCE(st.sort, 0) AS sort
+              CASE WHEN st.item_id IS NOT NULL THEN 1 ELSE 0 END AS is_staple, COALESCE(st.sort, 0) AS sort, COALESCE(st.section, '') AS section
             FROM items i
             LEFT JOIN staples st ON st.server_id = i.server_id AND st.household_id = i.household_id AND st.item_id = i.id AND st.home_id = ?
               AND st.added_hlc IS NOT NULL AND (st.removed_hlc IS NULL OR st.removed_hlc < st.added_hlc)
@@ -182,8 +335,9 @@ extension Queries {
             """, arguments: [homeID, homeID, s.serverID, s.householdID]).map { r in
             let setAt: Int64? = r["set_at"]
             let isStaple: Int64 = r["is_staple"]
-            return FlagRow(itemID: r["id"], name: r["name"], state: staleness.state(r["state"], setAt: setAt), setAt: setAt, setBy: r["set_by"], note: r["note"] ?? "", isStaple: isStaple == 1, ageShown: staleness.showsAge(setAt), sort: r["sort"])
+            return FlagRow(itemID: r["id"], name: r["name"], state: staleness.state(r["state"], setAt: setAt), setAt: setAt, setBy: r["set_by"], note: r["note"] ?? "", isStaple: isStaple == 1, ageShown: staleness.showsAge(setAt), sort: r["sort"], section: r["section"])
         }
+        return StapleOrder.display(all.filter(\.isStaple)) + all.filter { !$0.isStaple }
     }
 
     /// The home's open proposals, newest first, with the flag as it stands next to each.

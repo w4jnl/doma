@@ -89,6 +89,10 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   section, `Model/Shops.swift` over the bundled `Resources/shops.json` that `scripts/shops/gen.py`
   writes from the Name Suggestion Index (BSD-3-Clause, `NOTICE`), and `QRScanner` widened to
   every barcode for Add a card.
+  Sections for staples: `section` and `section_hlc` on `staples`, set by `staple.added` (the
+  latest add that names one decides), `StapleOrder` in `Store/HomeQueries.swift` (the order,
+  the screen's rows with headers, the sorts a move writes) and the section actions in
+  `Store/HomeActions.swift`; a section is only the name its staples carry.
   Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;

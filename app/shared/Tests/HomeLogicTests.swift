@@ -90,6 +90,60 @@ final class HomeLogicTests: XCTestCase {
         XCTAssertTrue(try rows(s, "G").last!.isStaple)
     }
 
+    func testSectionsSplitTheStaples() throws {
+        let s = try session()
+        func staples() throws -> [FlagRow] { try rows(s, "G").filter(\.isStaple) }
+        func shown() throws -> [String] {
+            try StapleOrder.entries(staples()).map { e in
+                switch e {
+                case .header(let name): "[" + name + "]"
+                case .row(let r): r.name
+                }
+            }
+        }
+        for name in ["zout", "melk", "boter", "pasta"] { _ = try HomeActions.addStaple(name, home: "G", in: s) }
+        XCTAssertEqual(try shown(), ["zout", "melk", "boter", "pasta"], "no section, no header")
+        // Move to makes a section and fills it; the staples outside every section stay first
+        let id = Dictionary(uniqueKeysWithValues: try staples().map { ($0.name, $0.itemID) })
+        try HomeActions.moveStaple(id["melk"]!, to: " Fridge ", home: "G", in: s)
+        try HomeActions.moveStaple(id["boter"]!, to: "fridge", home: "G", in: s)
+        XCTAssertEqual(try shown(), ["zout", "pasta", "[Fridge]", "melk", "boter"], "a second spelling is the same section")
+        try HomeActions.moveStaple(id["pasta"]!, to: "Pantry", home: "G", in: s)
+        XCTAssertEqual(try shown(), ["zout", "[Fridge]", "melk", "boter", "[Pantry]", "pasta"])
+        // the bar pointed at a section adds at its end; pointed at none, after the unsectioned
+        _ = try HomeActions.addStaple("kaas", home: "G", section: "Fridge", in: s)
+        _ = try HomeActions.addStaple("peper", home: "G", in: s)
+        XCTAssertEqual(try shown(), ["zout", "peper", "[Fridge]", "melk", "boter", "kaas", "[Pantry]", "pasta"])
+        // typed again without a section, a staple stays where it is
+        _ = try HomeActions.addStaple("melk", home: "G", in: s)
+        XCTAssertEqual(try shown(), ["zout", "peper", "[Fridge]", "melk", "boter", "kaas", "[Pantry]", "pasta"])
+        // a drag past a header joins that section: kaas (5) to under Pantry's pasta
+        try HomeActions.moveStaples(try StapleOrder.entries(staples()), from: IndexSet(integer: 5), to: 8, home: "G", in: s)
+        XCTAssertEqual(try shown(), ["zout", "peper", "[Fridge]", "melk", "boter", "[Pantry]", "pasta", "kaas"])
+        // and above the first header leaves every section: boter (4) to the top
+        try HomeActions.moveStaples(try StapleOrder.entries(staples()), from: IndexSet(integer: 4), to: 0, home: "G", in: s)
+        XCTAssertEqual(try shown(), ["boter", "zout", "peper", "[Fridge]", "melk", "[Pantry]", "pasta", "kaas"])
+        // the last staple out and the header is gone
+        try HomeActions.moveStaple(id["melk"]!, to: "", home: "G", in: s)
+        XCTAssertEqual(try shown(), ["boter", "zout", "peper", "melk", "[Pantry]", "pasta", "kaas"])
+        // rename in place, rename into another section, remove
+        try HomeActions.moveStaple(id["zout"]!, to: "Jaro", home: "G", in: s)
+        try HomeActions.renameSection("Pantry", to: "Kast", home: "G", in: s)
+        XCTAssertEqual(try shown(), ["boter", "peper", "melk", "[Kast]", "pasta", "kaas", "[Jaro]", "zout"])
+        try HomeActions.renameSection("Jaro", to: "kast", home: "G", in: s)
+        XCTAssertEqual(try shown(), ["boter", "peper", "melk", "[Kast]", "pasta", "kaas", "zout"], "a section's name joins it")
+        try HomeActions.removeSection("Kast", home: "G", in: s)
+        XCTAssertEqual(try shown(), ["boter", "peper", "melk", "pasta", "kaas", "zout"], "the staples stay")
+        let sorts = try staples().map(\.sort)
+        XCTAssertEqual(sorts, sorts.sorted(), "the order on the screen is the order of the sorts")
+        XCTAssertEqual(Set(sorts).count, sorts.count)
+        // an older app's drag says no section and the staple keeps its own
+        let kaas = try XCTUnwrap(staples().first { $0.name == "kaas" }?.itemID)
+        try HomeActions.moveStaple(kaas, to: "Fridge", home: "G", in: s)
+        try s.record(Kind.stapleAdded, StaplePayload(homeID: "G", itemID: kaas, sort: 123_456))
+        XCTAssertEqual(try staples().first { $0.name == "kaas" }?.section, "Fridge")
+    }
+
     func testHomesAndSpots() throws {
         let s = try session()
         let hut = try XCTUnwrap(HomeActions.createHome(named: " Hut ", in: s))

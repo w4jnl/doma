@@ -6,6 +6,14 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Sections for a home's staples.** A home's staples can be split under headers: Fridge,
+  Pantry, Cleaning, a person's name. Swipe a staple and choose Move to for a section, None or
+  New section; drag a staple past a header to move it there; the + on a header points the add
+  bar at it, so what is typed or said next lands in that section. A long-press on a header
+  renames it or removes it, which keeps its staples. A section disappears with its last
+  staple, and a home without sections looks as before. Flags, the shopping list and trips
+  follow every staple as they did. The web client shows the same headers. The server needs
+  this version before the apps' sections reach its web pages and its snapshots.
 - **A spot's screen can rename and remove it.** Rename and Remove were only on a long-press of
   the spot's picture on the home screen, where nobody found them. The spot's own screen now has
   them in a More menu beside the camera: Rename opens a field above the picture, Remove asks
