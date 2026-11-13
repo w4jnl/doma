@@ -6,6 +6,8 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+## 0.8.0 (2026-11-13)
+
 - **Sections for a home's staples.** A home's staples can be split under headers: Fridge,
   Pantry, Cleaning, a person's name. Swipe a staple and choose Move to for a section, None or
   New section; drag a staple past a header to move it there; the + on a header points the add
