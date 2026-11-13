@@ -181,7 +181,11 @@ func TestPhotos(t *testing.T) {
 		t.Error("a link opens another photo")
 	}
 	bad := u.Query()
-	bad.Set("sig", "x"+bad.Get("sig")[1:])
+	swap := "x"
+	if strings.HasPrefix(bad.Get("sig"), swap) {
+		swap = "y" // a signature that starts with x would be left as it was
+	}
+	bad.Set("sig", swap+bad.Get("sig")[1:])
 	if svc.CheckLink(u.Path, bad) {
 		t.Error("a tampered link opens")
 	}
