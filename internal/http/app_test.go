@@ -616,6 +616,114 @@ func TestWebClientListSuggestsEditsAndHears(t *testing.T) {
 	}
 }
 
+// What a member manages from a browser: a list's name and colour, sharing and
+// archiving it, a home's name, a spot's, and the sections of its staples.
+func TestWebClientManagesListsHomesAndSections(t *testing.T) {
+	s := newSuite(t)
+	b, csrf := signInByPhone(t, s, s.a.owner)
+	base := "/app/h/" + s.a.id
+	list := base + "/l/" + s.a.list
+	post := func(path string, v url.Values) reply {
+		v.Set("_csrf", csrf)
+		res, _ := b.form(path, v)
+		return res
+	}
+	// a list: renamed and recoloured; the first list does not archive
+	if res := post(list+"/rename", url.Values{"name": {"Boodschappen"}, "colour": {"list-3"}}); res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("rename: %d", res.StatusCode)
+	}
+	if _, body := b.get(list); !strings.Contains(body, "<h1>Boodschappen</h1>") || !strings.Contains(body, "dm-dot-list-3") {
+		t.Errorf("the list after its rename: %s", body)
+	}
+	if res := post(list+"/archive", url.Values{}); res.StatusCode != http.StatusUnprocessableEntity {
+		t.Errorf("archiving the first list: %d, want 422", res.StatusCode)
+	}
+	if res := post("/app/h/"+s.b.id+"/l/"+s.b.list+"/rename", url.Values{"name": {"x"}}); res.StatusCode != http.StatusNotFound {
+		t.Errorf("renaming another household's list: %d, want 404", res.StatusCode)
+	}
+	// a personal list shared: a household list with what was open, the personal one gone
+	mine := post(base+"/lists", url.Values{"name": {"Cadeaus"}, "who": {"me"}, "what": {"shopping"}}).Header.Get("Location")
+	post(mine+"/add", url.Values{"text": {"boek"}})
+	shared := post(mine+"/share", url.Values{}).Header.Get("Location")
+	if shared == "" || shared == mine {
+		t.Fatalf("share went to %q", shared)
+	}
+	if _, body := b.get(shared); !strings.Contains(body, "<h1>Cadeaus</h1>") || !strings.Contains(body, "boek") {
+		t.Errorf("the shared list: %s", body)
+	}
+	if res, _ := b.get(mine); res.StatusCode != http.StatusNotFound {
+		t.Errorf("the personal list after sharing: %d, want 404", res.StatusCode)
+	}
+	other, _ := signInByPhone(t, s, s.a.member)
+	if res, _ := other.get(shared); res.StatusCode != http.StatusOK {
+		t.Errorf("another member opening the shared list: %d", res.StatusCode)
+	}
+	// archive asks once more on the page, then the list is gone
+	if _, body := b.get(shared + "?arm=archive"); !strings.Contains(body, "Really archive?") {
+		t.Errorf("no second word for archive: %s", body)
+	}
+	if res := post(shared+"/archive", url.Values{}); res.StatusCode != http.StatusSeeOther || !strings.HasSuffix(res.Header.Get("Location"), "/lists") {
+		t.Errorf("archive: %d to %q", res.StatusCode, res.Header.Get("Location"))
+	}
+	if res, _ := b.get(shared); res.StatusCode != http.StatusNotFound {
+		t.Errorf("the archived list: %d, want 404", res.StatusCode)
+	}
+	// a home: renamed; staples moved under a section, added to it, the section renamed and dissolved
+	home := base + "/home/" + s.a.home
+	post(home+"/rename", url.Values{"name": {"Gouda"}})
+	post(home+"/staples", url.Values{"text": {"melk"}})
+	post(home+"/staples", url.Values{"text": {"zout"}})
+	_, body := b.get(home)
+	if !strings.Contains(body, "<h1>Gouda</h1>") {
+		t.Errorf("the home after its rename: %s", body)
+	}
+	m := regexp.MustCompile(`\?move=([A-Za-z0-9]+)" aria-label="Move melk`).FindStringSubmatch(body)
+	if m == nil {
+		t.Fatalf("no Move on melk: %s", body)
+	}
+	if _, body := b.get(home + "?move=" + m[1]); !strings.Contains(body, `placeholder="New section"`) {
+		t.Errorf("the move row: %s", body)
+	}
+	post(home+"/staples/"+m[1]+"/move", url.Values{"section": {" Koelkast "}})
+	post(home+"/staples", url.Values{"text": {"kaas"}, "section": {"koelkast"}})
+	_, body = b.get(home)
+	_, fridge, found := strings.Cut(body, "<h3>Koelkast</h3>")
+	if !found || !strings.Contains(fridge, "melk") || !strings.Contains(fridge, "kaas") || strings.Contains(fridge, "zout") {
+		t.Errorf("the section: %s", body)
+	}
+	post(home+"/section", url.Values{"old": {"Koelkast"}, "name": {"Fridge"}})
+	if _, body := b.get(home); !strings.Contains(body, "<h3>Fridge</h3>") || strings.Contains(body, "<h3>Koelkast</h3>") {
+		t.Errorf("the section after its rename: %s", body)
+	}
+	post(home+"/section", url.Values{"old": {"Fridge"}, "name": {""}})
+	if _, body := b.get(home); strings.Contains(body, "<h3>") || !strings.Contains(body, "kaas") {
+		t.Errorf("the dissolved section kept its header or lost its staples: %s", body)
+	}
+	if res := post(home+"/staples/"+m[1]+"/move", url.Values{"section": {strings.Repeat("x", 41)}}); res.StatusCode != http.StatusUnprocessableEntity {
+		t.Errorf("a section name too long: %d, want 422", res.StatusCode)
+	}
+	// a spot, made on the phone: renamed, then removed after the second word
+	clock, _ := domain.NewClock("m", nil)
+	spot := domain.NewID()
+	var resp service.SyncResponse
+	if err := s.a.owner.Sync(context.Background(), service.SyncRequest{Households: []service.SyncHousehold{{ID: s.a.id, Events: []json.RawMessage{
+		event(clock, "spot.created", map[string]any{"spot_id": spot, "home_id": s.a.home, "name": "Kast"}),
+	}}}}, &resp); err != nil {
+		t.Fatal(err)
+	}
+	post(home+"/spots/"+spot+"/rename", url.Values{"name": {"Voorraadkast"}})
+	if _, body := b.get(home + "?arm=" + spot); !strings.Contains(body, "Voorraadkast") || !strings.Contains(body, "Really remove?") {
+		t.Errorf("the spot renamed and armed: %s", body)
+	}
+	post(home+"/spots/"+spot+"/remove", url.Values{})
+	if _, body := b.get(home); strings.Contains(body, "Voorraadkast") {
+		t.Errorf("the removed spot is still there")
+	}
+	if res := post(base+"/home/"+s.b.home+"/spots/"+spot+"/rename", url.Values{"name": {"x"}}); res.StatusCode != http.StatusNotFound {
+		t.Errorf("a spot through another home: %d, want 404", res.StatusCode)
+	}
+}
+
 func TestVouchPageOpensTheApp(t *testing.T) {
 	s := newSuite(t)
 	b := newBrowser(t, s.srv.URL)

@@ -317,7 +317,7 @@ func (s *Service) WebSetFlag(ctx context.Context, sc domain.Scope, credentialID,
 }
 
 // WebAddStaple puts a typed name on the home's staples, after the last one.
-func (s *Service) WebAddStaple(ctx context.Context, sc domain.Scope, credentialID, homeID, text string) error {
+func (s *Service) WebAddStaple(ctx context.Context, sc domain.Scope, credentialID, homeID, text, section string) error {
 	if sc.IsGuest() {
 		return domain.ErrForbidden
 	}
@@ -344,7 +344,14 @@ func (s *Service) WebAddStaple(ctx context.Context, sc domain.Scope, credentialI
 				last = x.Sort
 			}
 		}
-		return append(evs, s.guestEvent(sc, "staple.added", map[string]any{"home_id": homeID, "item_id": itemID, "sort": last + 1000})), nil
+		payload := map[string]any{"home_id": homeID, "item_id": itemID, "sort": last + 1000}
+		// a section is named only when one was chosen: an add without one keeps the staple's own
+		if name, err := sectionName(section, tables.Staples, homeID); err != nil {
+			return nil, err
+		} else if name != "" {
+			payload["section"] = name
+		}
+		return append(evs, s.guestEvent(sc, "staple.added", payload)), nil
 	})
 }
 

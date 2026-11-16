@@ -23,6 +23,11 @@ func (h *Web) mountApp2(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/h/{household}/home/{home}/flag/{item}", h.inHousehold(h.appFlag))
 	mux.HandleFunc("POST /app/h/{household}/home/{home}/staples", h.inHousehold(h.appAddStaple))
 	mux.HandleFunc("POST /app/h/{household}/home/{home}/staples/{item}/remove", h.inHousehold(h.appRemoveStaple))
+	mux.HandleFunc("POST /app/h/{household}/home/{home}/staples/{item}/move", h.inHousehold(h.appMoveStaple))
+	mux.HandleFunc("POST /app/h/{household}/home/{home}/section", h.inHousehold(h.appRenameSection))
+	mux.HandleFunc("POST /app/h/{household}/home/{home}/rename", h.inHousehold(h.appRenameHome))
+	mux.HandleFunc("POST /app/h/{household}/home/{home}/spots/{spot}/rename", h.inHousehold(h.appRenameSpot))
+	mux.HandleFunc("POST /app/h/{household}/home/{home}/spots/{spot}/remove", h.inHousehold(h.appRemoveSpot))
 	mux.HandleFunc("GET /app/h/{household}/trips", h.inHousehold(h.appTrips))
 	mux.HandleFunc("POST /app/h/{household}/trips", h.inHousehold(h.appPlanTrip))
 	mux.HandleFunc("GET /app/h/{household}/trip/{trip}", h.inHousehold(h.appTrip))
@@ -115,6 +120,12 @@ type homeData struct {
 	Page  string
 	View  *service.WebHomeView
 	Error string
+	// Sections are the home's sections by name, for Move to and the add bar.
+	Sections []string
+	// What the page was asked to show as a field or to ask once more about,
+	// from its query: the staple being moved, the section or spot being
+	// renamed, the spot whose Remove waits for its second word.
+	Move, Section, Spot, Arm string
 }
 
 func (h *Web) appHome(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
@@ -133,7 +144,15 @@ func (h *Web) renderHome(w http.ResponseWriter, r *http.Request, sess *auth.Sess
 		return
 	}
 	p.Live = false
-	p.Data = homeData{Base: "/app/h/" + sc.HouseholdID, Page: "/app/h/" + sc.HouseholdID + "/home/" + view.Home.ID, View: view, Error: problem}
+	var sections []string
+	for _, g := range view.Groups {
+		if g.Name != "" {
+			sections = append(sections, g.Name)
+		}
+	}
+	q := r.URL.Query()
+	p.Data = homeData{Base: "/app/h/" + sc.HouseholdID, Page: "/app/h/" + sc.HouseholdID + "/home/" + view.Home.ID, View: view, Error: problem,
+		Sections: sections, Move: q.Get("move"), Section: q.Get("section"), Spot: q.Get("spot"), Arm: q.Get("arm")}
 	h.render(w, status, "app_home", p)
 }
 
@@ -146,11 +165,40 @@ func (h *Web) appFlag(w http.ResponseWriter, r *http.Request, sess *auth.Session
 }
 
 func (h *Web) appAddStaple(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
-	err := h.svc.WebAddStaple(r.Context(), sc, sess.Credential, r.PathValue("home"), strings.TrimSpace(r.PostFormValue("text")))
+	err := h.svc.WebAddStaple(r.Context(), sc, sess.Credential, r.PathValue("home"), strings.TrimSpace(r.PostFormValue("text")), r.PostFormValue("section"))
 	if h.problem(w, r, err, func(msg string) { h.renderHome(w, r, sess, sc, http.StatusUnprocessableEntity, msg) }) {
 		return
 	}
 	h.back(w, r, sc, "home/"+r.PathValue("home"))
+}
+
+// homeDone answers a change made from a field the page showed for it: the
+// home's page again, without the field.
+func (h *Web) homeDone(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope, err error) {
+	if h.problem(w, r, err, func(msg string) { h.renderHome(w, r, sess, sc, http.StatusUnprocessableEntity, msg) }) {
+		return
+	}
+	http.Redirect(w, r, "/app/h/"+sc.HouseholdID+"/home/"+r.PathValue("home"), http.StatusSeeOther) //nolint:gosec // G710: the home's own path, in the scope's household
+}
+
+func (h *Web) appMoveStaple(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	h.homeDone(w, r, sess, sc, h.svc.WebMoveStaple(r.Context(), sc, sess.Credential, r.PathValue("home"), r.PathValue("item"), r.PostFormValue("section")))
+}
+
+func (h *Web) appRenameSection(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	h.homeDone(w, r, sess, sc, h.svc.WebRenameSection(r.Context(), sc, sess.Credential, r.PathValue("home"), r.PostFormValue("old"), r.PostFormValue("name")))
+}
+
+func (h *Web) appRenameHome(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	h.homeDone(w, r, sess, sc, h.svc.WebRenameHome(r.Context(), sc, sess.Credential, r.PathValue("home"), r.PostFormValue("name")))
+}
+
+func (h *Web) appRenameSpot(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	h.homeDone(w, r, sess, sc, h.svc.WebRenameSpot(r.Context(), sc, sess.Credential, r.PathValue("home"), r.PathValue("spot"), r.PostFormValue("name")))
+}
+
+func (h *Web) appRemoveSpot(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	h.homeDone(w, r, sess, sc, h.svc.WebRemoveSpot(r.Context(), sc, sess.Credential, r.PathValue("home"), r.PathValue("spot")))
 }
 
 func (h *Web) appRemoveStaple(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
