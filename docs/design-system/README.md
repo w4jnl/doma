@@ -229,8 +229,11 @@ row, not a new screen.
 - **Motion.** Three durations and nothing else: `motion-quick` (150 ms) for a crossfade, a
   chip or match row, a label; `motion-base` (250 ms) for a row arriving or leaving, a count
   rolling, a badge, an armed button; `motion-settle` (350 ms) for rows closing a gap. A row
-  arrives from below and leaves by fading; a struck row fades out where it is and in under the
-  divider, never flying; Clear fades the struck group, then Recent or the empty state follows
+  arrives from below and leaves by fading; a row that changes place says where it went: got, put back, or added again from Recent,
+  its name flies on `accent-soft` from where the row was to where it is now in `motion-settle`,
+  while the row itself fades out there and in here (towards the edge and fading when the new
+  place is out of sight; no flight for more than three rows at once, or under Reduce Motion);
+  an add from Recent does not scroll the list; Clear fades the struck group, then Recent or the empty state follows
   after a quick delay; the match stack grows and shrinks from the bar; the Recent chevron turns.
   Not animated: tab switches and pushes beyond the system's, the
   1.5 s hold (no countdown), scrolling, polling, the glyphs' shapes, reorder beyond the system's
