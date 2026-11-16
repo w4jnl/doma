@@ -6,7 +6,9 @@ package web
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"html/template"
@@ -76,6 +78,10 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 	if err != nil {
 		return nil, err
 	}
+	assets, err := assetVersions()
+	if err != nil {
+		return nil, err
+	}
 	w := &Web{}
 	// every page once per language: a template's functions are fixed when it is parsed
 	for _, lang := range langs {
@@ -86,8 +92,11 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 			"date":   func(ms int64) string { return dateIn(lang, ms) },
 			// t is a phrase in the page's language, with what it names filled in; lang is
 			// that language's code and month a "2006-01" spelled out in it
-			"t":     func(phrase string, args ...any) string { return translate(lang, phrase, args...) },
-			"lang":  func() string { return lang },
+			"t":    func(phrase string, args ...any) string { return translate(lang, phrase, args...) },
+			"lang": func() string { return lang },
+			// asset is a static file's address with its content's hash, so a new
+			// build's sheet and script are fetched and never an hour-old copy
+			"asset": func(name string) string { return "/static/" + name + "?v=" + assets[name] },
 			"month": func(m string) string { return monthIn(lang, m) },
 			"qty": func(q *float64) string {
 				if q == nil {
@@ -242,11 +251,40 @@ func inlineSprite() (template.HTML, error) {
 	return template.HTML(svg), nil //nolint:gosec // G203: our own asset
 }
 
+// cacheStatic lets a browser keep a static file: for good when the address
+// carries the content's hash, as the pages' own links do, since a changed
+// file has another address; for an hour otherwise.
 func cacheStatic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=3600")
+		if r.URL.Query().Get("v") != "" {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			w.Header().Set("Cache-Control", "public, max-age=3600")
+		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// assetVersions is each static file's name with the first bytes of its
+// content's hash, which the pages put in its address.
+func assetVersions() (map[string]string, error) {
+	out := map[string]string{}
+	entries, err := staticFS.ReadDir("static")
+	if err != nil {
+		return nil, err
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		raw, err := staticFS.ReadFile("static/" + e.Name())
+		if err != nil {
+			return nil, err
+		}
+		sum := sha256.Sum256(raw)
+		out[e.Name()] = hex.EncodeToString(sum[:6])
+	}
+	return out, nil
 }
 
 // page is what every template gets.

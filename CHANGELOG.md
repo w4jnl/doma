@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **A new version's pages look right at once.** The pages link their style sheet and scripts
+  by a fingerprint of the file, so after an upgrade a browser no longer draws the new pages
+  with an hour-old sheet. A list's colours are picked as dots.
+
 - **The web pages speak Dutch and Slovak.** The family's pages, the sign-in, the invite page
   and the guest view follow the browser's language: English, Dutch or Slovak, in the app's own
   words. The admin pages stay English.
