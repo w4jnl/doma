@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{t .Title}} · doma</title>
-<link rel="icon" href="{{if .Alert}}/static/favicon-alert.svg{{else}}/static/favicon.svg{{end}}" type="image/svg+xml">
-<link rel="stylesheet" href="/static/tokens.css">
-<link rel="stylesheet" href="/static/doma.css">
+<link rel="icon" href="{{if .Alert}}{{asset "favicon-alert.svg"}}{{else}}{{asset "favicon.svg"}}{{end}}" type="image/svg+xml">
+<link rel="stylesheet" href="{{asset "tokens.css"}}">
+<link rel="stylesheet" href="{{asset "doma.css"}}">
 {{if .CSRF}}<meta name="csrf" content="{{.CSRF}}">{{end}}
 {{if .Live}}<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false}'>
-<script src="/static/htmx.min.js" defer></script>
-<script src="/static/doma.js" defer></script>{{end}}
-{{if .Passkeys}}<script src="/static/passkey.js" defer></script>{{end}}
+<script src="{{asset "htmx.min.js"}}" defer></script>
+<script src="{{asset "doma.js"}}" defer></script>{{end}}
+{{if .Passkeys}}<script src="{{asset "passkey.js"}}" defer></script>{{end}}
 </head>
 <body>
 {{sprite}}

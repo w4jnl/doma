@@ -848,6 +848,24 @@ func TestWebClientSpeaksTheBrowsersLanguage(t *testing.T) {
 	}
 }
 
+// A page links its sheet and scripts by their content's hash, so a new build
+// is never drawn with an hour-old sheet; such an address is kept for good.
+func TestStaticFilesAreLinkedByTheirHash(t *testing.T) {
+	s := newSuite(t)
+	b := newBrowser(t, s.srv.URL)
+	_, body := b.get("/app")
+	m := regexp.MustCompile(`href="(/static/doma\.css\?v=[0-9a-f]{12})"`).FindStringSubmatch(body)
+	if m == nil {
+		t.Fatalf("the sign-in page links no hashed sheet: %s", body)
+	}
+	if res, _ := b.get(m[1]); res.StatusCode != http.StatusOK || !strings.Contains(res.Header.Get("Cache-Control"), "immutable") {
+		t.Errorf("the hashed sheet: %d %q", res.StatusCode, res.Header.Get("Cache-Control"))
+	}
+	if res, _ := b.get("/static/doma.css"); strings.Contains(res.Header.Get("Cache-Control"), "immutable") {
+		t.Errorf("the bare address is kept for good: %q", res.Header.Get("Cache-Control"))
+	}
+}
+
 func TestVouchPageOpensTheApp(t *testing.T) {
 	s := newSuite(t)
 	b := newBrowser(t, s.srv.URL)
