@@ -42,6 +42,10 @@ struct ListView: View {
     /// is not taken for a remote one.
     @State private var justAdded: String?
     @State private var showRecent = false
+    /// The match whose row above the bar is a field for its name, and the name as typed.
+    @State private var renamingMatch: String?
+    @State private var matchText = ""
+    @FocusState private var matchFocused: Bool
     @State private var editing: String?
     @State private var editText = ""
     @State private var editHome: String?
@@ -314,6 +318,13 @@ struct ListView: View {
         if !text.isEmpty {
             ForEach(Array(matches.prefix(5).enumerated()), id: \.element.id) { i, m in
                 let exact = matches.contains { Norm.name($0.name) == Norm.name(text) }
+                if renamingMatch == m.itemID {
+                    matchRenameField(m)
+                        .padding(.leading, Tokens.space5 + Tokens.space3)
+                        .frame(minHeight: ListView.rowHeight)
+                        .listRowBackground(Tokens.surface)
+                        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+                } else {
                 Button { add(itemID: m.itemID) } label: {
                     HStack {
                         Text(m.name).foregroundStyle(Tokens.ink)
@@ -330,10 +341,12 @@ struct ListView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .contextMenu { tidyMenu(m) }
                 .listRowBackground(exact && i == 0 ? Tokens.accentSoft : Tokens.surface)
                 .listRowSeparatorTint(Tokens.line)
                 .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
                 .transition(.opacity)
+                }
             }
             if !matches.contains(where: { Norm.name($0.name) == Norm.name(text) }) {
                 Button(action: addTyped) {
@@ -699,6 +712,12 @@ struct ListView: View {
         return VStack(spacing: 0) {
             ForEach(Array(matches.prefix(5).reversed().enumerated()), id: \.element.id) { i, m in
                 let nearest = exact && i == min(matches.count, 5) - 1
+                if renamingMatch == m.itemID {
+                    matchRenameField(m)
+                        .padding(.horizontal, Tokens.space4)
+                        .frame(minHeight: Tokens.rowH)
+                        .background(Tokens.surface)
+                } else {
                 Button {
                     add(itemID: m.itemID)
                 } label: {
@@ -721,7 +740,10 @@ struct ListView: View {
                 }
                 .buttonStyle(.plain)
                 .background(nearest ? Tokens.accentSoft : Tokens.surface)
+                .contextMenu { tidyMenu(m) }
+                .accessibilityIdentifier("match-" + m.name)
                 .transition(.opacity)
+                }
                 #if os(macOS)
                 Rectangle().fill(Tokens.line).frame(height: 1)
                 #else
@@ -748,6 +770,59 @@ struct ListView: View {
                 .background(Tokens.accentSoft)
             }
         }
+    }
+
+    /// A long-press on a match tidies the item where it came up: Rename in the row, Merge into
+    /// one of the other matches showing, and Retire, which stops it coming up.
+    @ViewBuilder
+    private func tidyMenu(_ m: Match) -> some View {
+        let others = matches.prefix(5).filter { $0.itemID != m.itemID }
+        Button("Rename") {
+            matchText = m.name
+            renamingMatch = m.itemID
+            matchFocused = true
+        }
+        if !others.isEmpty {
+            Menu("Merge into…") {
+                ForEach(others) { o in
+                    Button(o.name) {
+                        try? HomeActions.mergeItem(m.itemID, into: o.itemID, in: session)
+                        reloadMatches()
+                    }
+                }
+            }
+        }
+        Button("Retire", role: .destructive) {
+            try? HomeActions.retireItem(m.itemID, in: session)
+            reloadMatches()
+        }
+    }
+
+    private func matchRenameField(_ m: Match) -> some View {
+        TextField("Name", text: $matchText)
+            .textFieldStyle(.plain)
+            .focused($matchFocused)
+            .submitLabel(.done)
+            .autocorrectionDisabled()
+            .onAppear { matchFocused = true }
+            .onSubmit {
+                try? HomeActions.renameItem(m.itemID, to: matchText, in: session)
+                renamingMatch = nil
+                reloadMatches()
+                fieldFocused = true
+            }
+            .onChange(of: matchFocused) { _, focused in
+                if !focused { renamingMatch = nil }
+            }
+            .accessibilityIdentifier("rename-item")
+    }
+
+    /// The matches again, after one of them was renamed, merged or retired.
+    private func reloadMatches() {
+        guard !text.isEmpty, let scope = session.scope else { return }
+        let typed = text
+        let tasks = isTasks
+        matches = (try? session.store.read(scope) { db, s in try Queries.matches(db, s, prefix: typed, tasks: tasks) }) ?? []
     }
 
     /// The household's usual items as one row of chips while the field is empty: Saturday's
