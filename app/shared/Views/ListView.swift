@@ -435,7 +435,7 @@ struct ListView: View {
             }
         }
         if let recent = recent?.value, !recent.isEmpty {
-            recentSection(recent)
+            RecentSection(recent: recent, shown: $showRecent) { add(itemID: $0) }
                 .transition(.opacity.animation(.easeOut(duration: Tokens.motionBase).delay(Tokens.motionQuick)))
         }
     }
@@ -971,51 +971,6 @@ struct ListView: View {
         .onExitCommand { editing = nil }
         #endif
         .listRowBackground(Tokens.surface)
-    }
-
-    private func recentSection(_ recent: [RecentRow]) -> some View {
-        Section {
-            if showRecent {
-                ForEach(recent) { r in
-                    Button {
-                        add(itemID: r.itemID)
-                    } label: {
-                        HStack {
-                            Text(r.name)
-                                .foregroundStyle(Tokens.ink)
-                            Spacer()
-                            RelativeText(millis: r.clearedAt)
-                        }
-                        .frame(minHeight: Tokens.rowH)
-                    }
-                    .buttonStyle(.plain)
-                    .transition(.opacity)
-                    .listRowBackground(Tokens.ground)
-                    .listRowSeparatorTint(Tokens.line)
-                    .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
-                    .alignmentGuide(.listRowSeparatorLeading) { d in d[.leading] + Tokens.space5 + Tokens.space3 }
-                    .accessibilityHint(Text("Adds it again"))
-                }
-            }
-        } header: {
-            Button {
-                withAnimation(Motion.of(reduceMotion, .easeInOut(duration: Tokens.motionQuick + 0.05))) { showRecent.toggle() }
-            } label: {
-                HStack(spacing: Tokens.space1) {
-                    Text("Recent")
-                        .font(.subheadline)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .rotationEffect(.degrees(showRecent ? 90 : 0))
-                }
-                .foregroundStyle(Tokens.inkMuted)
-                .padding(.top, Tokens.space4)
-                .padding(.bottom, Tokens.space2)
-            }
-            .buttonStyle(.plain)
-            .accessibilityValue(showRecent ? Text("open") : Text("collapsed"))
-        }
-        .textCase(nil)
     }
 
     // MARK: Reading
