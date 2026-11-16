@@ -3,7 +3,7 @@
   <h1>{{t "All items"}}</h1>
   {{$base := .Data.Base}}{{$csrf := .CSRF}}{{$q := .Data.Search}}
   {{if .Data.Error}}<p class="dm-error">{{t .Data.Error}}</p>{{end}}
-  <form method="get" action="{{$base}}/items" class="dm-add" role="search">
+  <form method="get" action="{{$base}}/items" class="dm-add dm-addbar" role="search">
     <input class="dm-input" type="search" name="q" value="{{$q}}" placeholder="{{t "Search"}}" autocomplete="off" aria-label="{{t "Search the items"}}"{{if not (or .Data.Rename .Data.Merge)}} autofocus{{end}}>
     <button class="dm-button dm-button-quiet" type="submit">{{t "Search"}}</button>
     <a class="dm-quiet-link" href="{{$base}}/history">{{t "History"}}</a>

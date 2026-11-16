@@ -21,7 +21,7 @@
   {{end}}
   <section class="dm-panel">
     <h2>{{t "New home"}}</h2>
-    <form method="post" action="{{$base}}/homes" class="dm-add">
+    <form method="post" action="{{$base}}/homes" class="dm-add dm-addbar">
       <input type="hidden" name="_csrf" value="{{.CSRF}}">
       <input class="dm-input" name="name" placeholder="{{t "Name"}}" required maxlength="200" autocomplete="off">
       <button class="dm-button" type="submit">{{t "Create home"}}</button>

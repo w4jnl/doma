@@ -6,6 +6,9 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **A better looking web client.** Rows sit in cards, pages have a clear title, the add bar
+  is one frame with its button, Recent is a row of chips, the flags are one three-way
+  control, and the sidebar is calmer with the page in front marked by an accent edge.
 - **A new version's pages look right at once.** The pages link their style sheet and scripts
   by a fingerprint of the file, so after an upgrade a browser no longer draws the new pages
   with an hour-old sheet. A list's colours are picked as dots.

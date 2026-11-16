@@ -267,7 +267,9 @@ CSS, no framework, no inline styles.
   (a member's role, a family's lists) are counts and metadata only.
 - **Setup page.** One card on `ground` with the mark above it, three fields, one button. It never
   renders again.
-- **A list at a computer.** The add field with *Add*, the matches as rows under it on `surface`, the one under the keys or the pointer on `accent-soft`; rows with *Edit* and *Not needed* as quiet words at their end; the divider with the got count and *Clear*; *Recent* as a second column with a `+` before each name.
+- **The dress.** The sidebar sits back on `surface-sunk`, its rows in `ink-muted` until the pointer or the page brings one forward on `surface` with an `accent` edge; a list's open count is a small pill. The page is centred in what the sidebar leaves. Its title is large and alone, a list's with its dot before it and its count as a mono pill after. Rows live in cards: `surface`, a `line` border, `radius-md`, rows at `row-h-list` that sink to `surface-sunk` under the pointer. Section words are small and `ink-muted` above their card. What a row offers at its end (*Edit*, *Not needed*, *Move*, *Remove*, *Rename*) waits for the pointer or the keyboard and is always there for a finger. Nothing has a shadow; depth is the three grounds.
+- **A list at a computer.** The add bar is one frame on `surface` holding the field and *Add*, ringed in `accent-soft` while it has the keys; the matches hang under it. The open rows are one card; the got count and a small *Clear* sit between it and the card of struck rows. *Recent* is a second column of chips, each a `+` and a name, the age in its tooltip.
+- **Have, low, out.** One control of three on a staple's row; the one that holds wears its flag's soft colour and its word in the flag's colour, beside the glyph and word that say the same at the row's start.
 - Live parts: a member's page hears the household change through one stream and reads its rows again; the guest list polls every 10 s. Both use `ETag`. htmx runs without `eval` and without its own inline style, as the page's policy demands.
 
 ## Pictograms

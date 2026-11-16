@@ -24,6 +24,7 @@
 <div class="dm-shell" hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}' data-live="/app/h/{{.Household}}/events">
   <aside class="dm-side">
     <a class="dm-wordmark" href="/app">{{mark}} doma</a>
+    {{if eq (len .Households) 1}}{{range .Households}}<p class="dm-side-home">{{.Name}}</p>{{end}}{{end}}
     {{if gt (len .Households) 1}}<nav class="dm-switch" aria-label="{{t "Household"}}">{{range .Households}}<a href="/app/h/{{.ID}}/lists"{{if eq .ID $.Household}} aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}
     <nav class="dm-nav" aria-label="doma">
       <a href="/app/h/{{.Household}}/lists"{{if and (eq .Nav "lists") (not .Current)}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-list"/></svg>{{t "Lists"}}</a>

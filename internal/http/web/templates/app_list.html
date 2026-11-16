@@ -1,8 +1,11 @@
 {{define "content"}}
 <div class="dm-app">
-  <h1>{{.Data.View.List.Name}}</h1>
+  <header class="dm-head">
+    <span class="dm-dot dm-dot-{{.Data.View.List.Colour}}" aria-hidden="true"></span>
+    <h1>{{.Data.View.List.Name}}</h1>
+    {{template "listcount" (dict "View" .Data.View "OOB" false)}}
+  </header>
   {{if .Data.Error}}<p class="dm-error">{{t .Data.Error}}</p>{{end}}
-  {{template "listcount" (dict "View" .Data.View "OOB" false)}}
   <div class="dm-cols">
     <div>{{template "apppanel" .}}</div>
     {{template "apprecent" (dict "Base" .Data.Base "View" .Data.View "CSRF" .CSRF "OOB" false)}}
