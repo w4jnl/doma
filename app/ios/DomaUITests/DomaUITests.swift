@@ -205,7 +205,18 @@ final class DomaUITests: XCTestCase {
         XCTAssertEqual(rename.value as? String, "melk")
         app.buttons["Cancel"].tap()
         XCTAssertTrue(recent.waitForExistence(timeout: 3), "and a row again")
-        app.staticTexts["Recent"].tap()
+        // the bar's keyboard-down button puts the keyboard away, and a tap in Recent adds
+        // the item without bringing it back over the new row
+        field.tap()
+        let down = app.buttons["keyboard-down"]
+        XCTAssertTrue(down.waitForExistence(timeout: 3), "the button is there while the keyboard is up")
+        down.tap()
+        XCTAssertFalse(app.keyboards.firstMatch.waitForExistence(timeout: 2), "the keyboard is down")
+        XCTAssertFalse(down.exists, "and the button went with it")
+        recent.tap()
+        XCTAssertTrue(app.buttons["entry-melk"].waitForExistence(timeout: 5), "melk is on the list again")
+        XCTAssertFalse(app.keyboards.firstMatch.exists, "and the keyboard stayed down")
+        if app.staticTexts["Recent"].exists, header.value as? String == "open" { app.staticTexts["Recent"].tap() }
         // Lists at the top left opens the overview; picking the list comes back
         app.buttons["all-lists"].tap()
         XCTAssertTrue(app.buttons["New list"].waitForExistence(timeout: 10), "the overview is up")

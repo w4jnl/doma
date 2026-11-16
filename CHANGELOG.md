@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The keyboard keeps out of the way.** A tap on an item under Recent adds it without
+  bringing the keyboard up over the new row. While the keyboard is up, the add bar of a list
+  and of a home shows a keyboard-down button before the mic that puts it away.
+
 - **The Mac app is dropped.** doma is the iPhone app and the web client from here on: on a Mac,
   open your doma's address in a browser and sign in with the code the phone scans, then a
   passkey. The Mac app up to 0.8.0 keeps working against the server but gets no more
