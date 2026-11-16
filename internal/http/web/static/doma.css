@@ -1,5 +1,7 @@
-/* doma web pages: one hand-written sheet over tokens.css. One column at content-max,
-   left-aligned, on ground. Classes are dm-*; colours, sizes and type come from the tokens. */
+/* doma web pages: one hand-written sheet over tokens.css. The family's pages and the admin's
+   share one shell: a sidebar and the page beside it, which folds into a bar on a narrow
+   screen. Guest pages are one column at content-max. Classes are dm-*; colours, sizes and type
+   come from the tokens. */
 *, *::before, *::after { box-sizing: border-box; }
 html { background: var(--ground); color: var(--ink); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
 body { margin: 0; min-height: 100vh; }
@@ -102,3 +104,45 @@ code, .dm-mono { font-family: var(--font-mono); font-size: 0.9375rem; }
 .dm-thumb { width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover; flex: none; }
 .dm-thumb-empty { display: inline-block; background: var(--surface-sunk); border: 1px solid var(--line); }
 .dm-rows li form { margin: 0; }
+
+/* the shell: a sidebar that stays, the page beside it at up to twice content-max */
+.dm-shell { display: grid; grid-template-columns: calc(var(--space-7) * 5.5) minmax(0, 1fr); min-height: 100vh; }
+.dm-side { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5) var(--space-3); background: var(--surface); border-right: 1px solid var(--line); }
+.dm-side .dm-wordmark { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); min-height: var(--row-h); }
+.dm-side .dm-mark { width: 22px; height: 22px; color: var(--mark); }
+.dm-nav { display: flex; flex-direction: column; gap: var(--space-1); }
+.dm-nav a { display: flex; align-items: center; gap: var(--space-3); min-height: var(--row-h-compact); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); color: var(--ink); text-decoration: none; }
+.dm-nav a:hover { background: var(--surface-sunk); }
+.dm-nav a:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.dm-nav a[aria-current="page"] { background: var(--accent-soft); font-weight: 600; }
+.dm-nav > a .dm-glyph { color: var(--ink-muted); }
+.dm-side-lists { list-style: none; margin: 0 0 var(--space-2); padding: 0 0 0 var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+.dm-side-lists a { font-size: 0.9375rem; }
+.dm-side-lists .dm-grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-side-lists .dm-meta { color: var(--ink-muted); font-size: 0.8125rem; }
+.dm-side .dm-switch { flex-direction: column; gap: var(--space-1); padding: 0 var(--space-3); }
+.dm-side-foot { margin-top: auto; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); padding: var(--space-3) var(--space-1) 0; border-top: 1px solid var(--line); }
+.dm-side-foot form { margin: 0; }
+.dm-side-foot a { text-decoration: none; }
+.dm-main { width: 100%; max-width: calc(var(--content-max) * 1.5); padding: var(--space-6) var(--space-6) var(--space-7); }
+.dm-main h1 { font-size: 1.75rem; margin-bottom: var(--space-4); }
+.dm-foot { text-align: center; margin-top: var(--space-4); }
+.dm-foot a { text-decoration: none; }
+
+/* two columns where a page has two things to say, one when there is no room */
+.dm-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--space-6); align-items: start; }
+.dm-cols > * > section:first-child h2 { margin-top: 0; }
+@media (max-width: 1100px) { .dm-cols { grid-template-columns: 1fr; gap: 0; } .dm-cols > * > section:first-child h2 { margin-top: var(--space-5); } }
+
+/* a narrow screen: the sidebar is a bar across the top, the lists behind Lists */
+@media (max-width: 860px) {
+  .dm-shell { display: block; }
+  .dm-side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-right: 0; border-bottom: 1px solid var(--line); }
+  .dm-side .dm-wordmark { padding: 0 var(--space-2) 0 0; }
+  .dm-nav { flex-direction: row; flex-wrap: wrap; }
+  .dm-nav > a .dm-glyph, .dm-side-lists { display: none; }
+  .dm-side .dm-switch { flex-direction: row; padding: 0; }
+  .dm-side-foot { margin: 0 0 0 auto; flex-direction: row; align-items: center; padding: 0; border-top: 0; }
+  .dm-main { padding: var(--space-4) var(--space-4) var(--space-7); }
+  .dm-main h1 { font-size: 1.5rem; }
+}

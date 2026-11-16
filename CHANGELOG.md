@@ -6,6 +6,12 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The web pages are laid out for a computer.** A sidebar lists the household's lists, Homes,
+  Trip and Family, with the page beside it; a home shows its staples next to its spots and
+  trips. On a narrow screen it folds into a bar. Your doma's address now opens the family's
+  pages instead of the admin's; Admin is a link at the foot of the sidebar and of the sign-in
+  page, and the admin pages wear the same frame.
+
 - **A row that moves shows where it went.** When an item is got, put back, or added again from
   Recent, its name flies from where the row was to where it is now. Adding from Recent no
   longer scrolls the list.

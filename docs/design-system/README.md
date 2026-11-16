@@ -245,15 +245,24 @@ row, not a new screen.
 
 ## Web pages
 
-The guest view and the admin pages are server-rendered with htmx, in vink's structure: load
-`tokens.css`, then the page CSS, no framework, no inline styles. They are one column at
-`content-max` (720px), left-aligned, on `ground`.
+Every page is server-rendered with htmx, in vink's structure: load `tokens.css`, then the page
+CSS, no framework, no inline styles.
+
+- **The shell.** The family's pages and the admin's share one frame, made for a laptop: a
+  sidebar on `surface` that stays (the mark, the household's lists by name with their dots and
+  open counts, then Homes, Trip and Family; at its foot Admin and Sign out), and the page beside
+  it on `ground`, up to one and a half times `content-max`, in two columns where a page has two
+  things to say (a home's staples beside its spots and trips). The row in front is on
+  `accent-soft`. Under 860px the sidebar folds into a bar across the top and the lists go behind
+  *Lists*. The address alone opens the family's doma; the admin pages are a link away, behind
+  their own sign-in, and link back.
 
 - **Guest view.** The home's name as the title, then *Missing* (staples flagged out, low or unknown
   with glyph, word and age) and the linked list with the same add, strike and clear as the app.
-  No top bar beyond the mark and the list's title; a 24-hour cookie after the first open.
-- **Admin pages.** vink's settings-tab layout: a top bar with the mark, Households and Server,
-  rows in a `Panel`, inline add and edit, one primary per panel. Values the operator does not own
+  One column at `content-max` (720px), no bar beyond the mark and the list's title; a 24-hour
+  cookie after the first open.
+- **Admin pages.** The shell with Households and Server in the sidebar and *The family's doma*
+  at its foot; rows in a `Panel`, inline add and edit, one primary per panel. Values the operator does not own
   (a member's role, a family's lists) are counts and metadata only.
 - **Setup page.** One card on `ground` with the mark above it, three fields, one button. It never
   renders again.

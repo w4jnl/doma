@@ -3,6 +3,8 @@
   <h1>{{.Data.View.Home.Name}}</h1>
   {{if .Data.Error}}<p class="dm-error">{{.Data.Error}}</p>{{end}}
   {{$page := .Data.Page}}{{$csrf := .CSRF}}
+  <div class="dm-cols">
+  <div>
   <section>
     <h2>Staples</h2>
     <form method="post" action="{{$page}}/staples" class="dm-add">
@@ -29,6 +31,8 @@
     </ul>
   </section>
   {{end}}
+  </div>
+  <div>
   {{if .Data.View.Home.Spots}}
   <section>
     <h2>Spots</h2>
@@ -50,6 +54,8 @@
     </ul>
   </section>
   {{end}}
+  </div>
+  </div>
 </div>
 {{end}}
 {{define "flagrow"}}

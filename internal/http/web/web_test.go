@@ -76,7 +76,8 @@ func TestSetupThenLogin(t *testing.T) {
 	if rec := get(mux, "/setup"); rec.Code != http.StatusNotFound {
 		t.Errorf("setup page after setup: %d", rec.Code)
 	}
-	if rec := get(mux, "/"); rec.Header().Get("Location") != "/admin" {
+	// the front door is the family's doma once the server is set up
+	if rec := get(mux, "/"); rec.Header().Get("Location") != "/app" {
 		t.Errorf("root after setup: %s", rec.Header().Get("Location"))
 	}
 	if rec := get(mux, "/admin"); rec.Code != http.StatusSeeOther || !strings.HasPrefix(rec.Header().Get("Location"), "/admin/login") {

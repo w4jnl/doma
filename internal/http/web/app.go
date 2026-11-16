@@ -378,7 +378,11 @@ func (h *Web) memberPage(r *http.Request, sess *auth.Session, sc domain.Scope, t
 	if err != nil {
 		return page{}, err
 	}
-	return page{Title: title, Member: true, Nav: nav, CSRF: sess.CSRF, Households: hs, Household: sc.HouseholdID, Live: true}, nil
+	lists, err := h.svc.WebLists(r.Context(), sc)
+	if err != nil {
+		return page{}, err
+	}
+	return page{Title: title, Member: true, Nav: nav, CSRF: sess.CSRF, Households: hs, Household: sc.HouseholdID, Live: true, Lists: lists}, nil
 }
 
 func (h *Web) offerPasskey(r *http.Request, sess *auth.Session) bool {
@@ -457,6 +461,7 @@ func (h *Web) appList(w http.ResponseWriter, r *http.Request, sess *auth.Session
 		h.fail(w, r, err)
 		return
 	}
+	p.Current = view.List.ID
 	p.Data = listData{Base: listBase(sc, r), View: view}
 	h.render(w, http.StatusOK, "app_list", p)
 }

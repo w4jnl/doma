@@ -19,19 +19,25 @@
   {{template "content" .}}
 </main>
 {{else if .Member}}
-<div class="dm-page" hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}'>
-  <header class="dm-topbar">
+<div class="dm-shell" hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}'>
+  <aside class="dm-side">
     <a class="dm-wordmark" href="/app">{{mark}} doma</a>
-    <nav aria-label="doma">
-      <a href="/app/h/{{.Household}}/lists"{{if eq .Nav "lists"}} aria-current="page"{{end}}>Lists</a>
-      <a href="/app/h/{{.Household}}/homes"{{if eq .Nav "homes"}} aria-current="page"{{end}}>Homes</a>
-      <a href="/app/h/{{.Household}}/trips"{{if eq .Nav "trips"}} aria-current="page"{{end}}>Trip</a>
-      <a href="/app/h/{{.Household}}/family"{{if eq .Nav "family"}} aria-current="page"{{end}}>Family</a>
-    </nav>
     {{if gt (len .Households) 1}}<nav class="dm-switch" aria-label="Household">{{range .Households}}<a href="/app/h/{{.ID}}/lists"{{if eq .ID $.Household}} aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}
-    <form method="post" action="/app/signout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Sign out</button></form>
-  </header>
-  <main>
+    <nav class="dm-nav" aria-label="doma">
+      <a href="/app/h/{{.Household}}/lists"{{if and (eq .Nav "lists") (not .Current)}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-list"/></svg>Lists</a>
+      {{if .Lists}}<ul class="dm-side-lists">
+        {{range .Lists}}<li><a href="/app/h/{{$.Household}}/l/{{.ID}}"{{if eq .ID $.Current}} aria-current="page"{{end}}><span class="dm-dot dm-dot-{{.Colour}}" aria-hidden="true"></span><span class="dm-grow">{{.Name}}</span>{{if .Open}}<span class="dm-meta dm-mono">{{.Open}}</span>{{end}}</a></li>{{end}}
+      </ul>{{end}}
+      <a href="/app/h/{{.Household}}/homes"{{if eq .Nav "homes"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-home"/></svg>Homes</a>
+      <a href="/app/h/{{.Household}}/trips"{{if eq .Nav "trips"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-trip"/></svg>Trip</a>
+      <a href="/app/h/{{.Household}}/family"{{if eq .Nav "family"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-family"/></svg>Family</a>
+    </nav>
+    <div class="dm-side-foot">
+      <a class="dm-quiet-link" href="/admin">Admin</a>
+      <form method="post" action="/app/signout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-quiet-link" type="submit">Sign out</button></form>
+    </div>
+  </aside>
+  <main class="dm-main">
     {{template "content" .}}
   </main>
 </div>
@@ -43,16 +49,19 @@
   </div>
 </main>
 {{else}}
-<div class="dm-page">
-  <header class="dm-topbar">
-    <a class="dm-wordmark" href="/admin">[⌂] doma</a>
-    <nav aria-label="Admin">
-      <a href="/admin"{{if eq .Nav "households"}} aria-current="page"{{end}}>Households</a>
-      <a href="/admin/server"{{if eq .Nav "server"}} aria-current="page"{{end}}>Server</a>
+<div class="dm-shell">
+  <aside class="dm-side">
+    <a class="dm-wordmark" href="/admin">{{mark}} doma</a>
+    <nav class="dm-nav" aria-label="Admin">
+      <a href="/admin"{{if eq .Nav "households"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-family"/></svg>Households</a>
+      <a href="/admin/server"{{if eq .Nav "server"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-item"/></svg>Server</a>
     </nav>
-    {{if and .CSRF (or (not .ProxyAuth) .LogoutURL)}}<form method="post" action="/admin/logout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Sign out</button></form>{{end}}
-  </header>
-  <main>
+    <div class="dm-side-foot">
+      <a class="dm-quiet-link" href="/app">The family's doma</a>
+      {{if and .CSRF (or (not .ProxyAuth) .LogoutURL)}}<form method="post" action="/admin/logout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-quiet-link" type="submit">Sign out</button></form>{{end}}
+    </div>
+  </aside>
+  <main class="dm-main">
     {{template "content" .}}
   </main>
 </div>
