@@ -43,6 +43,8 @@
 	<string>Scan your family's invite and take a picture of a spot before you leave.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock doma with Face ID.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>doma reaches your family's doma when it runs on your network at home.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Say an item onto a list. The words are made on this phone; the sound is never kept.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
