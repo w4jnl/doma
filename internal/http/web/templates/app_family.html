@@ -1,66 +1,66 @@
 {{define "content"}}
 <div class="dm-app">
   <h1>{{.Data.Household.Name}}</h1>
-  {{if .Data.Error}}<p class="dm-error">{{.Data.Error}}</p>{{end}}
+  {{if .Data.Error}}<p class="dm-error">{{t .Data.Error}}</p>{{end}}
   {{$base := .Data.Base}}{{$csrf := .CSRF}}{{$owner := .Data.Owner}}{{$me := .Data.Me}}
   <section>
-    <h2>Members</h2>
+    <h2>{{t "Members"}}</h2>
     <ul class="dm-rows">
       {{range .Data.Members}}
       <li>
-        <span class="dm-grow">{{.DisplayName}}{{if eq .PersonID $me}} <span class="dm-meta">you</span>{{end}}</span>
-        <span class="dm-meta">{{.Role}}{{if .LastSeenAt}}, seen {{ago .LastSeenAt}}{{end}}</span>
-        {{if and $owner (ne .PersonID $me)}}<form method="post" action="{{$base}}/family/members/{{.PersonID}}/remove"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-quiet-link" type="submit" aria-label="Remove {{.DisplayName}}">Remove</button></form>{{end}}
+        <span class="dm-grow">{{.DisplayName}}{{if eq .PersonID $me}} <span class="dm-meta">{{t "you"}}</span>{{end}}</span>
+        <span class="dm-meta">{{t (print .Role)}}{{if .LastSeenAt}}, {{t "seen %s" (ago .LastSeenAt)}}{{end}}</span>
+        {{if and $owner (ne .PersonID $me)}}<form method="post" action="{{$base}}/family/members/{{.PersonID}}/remove"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-quiet-link" type="submit" aria-label="{{t "Remove %s" .DisplayName}}">{{t "Remove"}}</button></form>{{end}}
       </li>
       {{end}}
     </ul>
   </section>
   {{if $owner}}
   <section class="dm-panel">
-    <h2>Invite</h2>
+    <h2>{{t "Invite"}}</h2>
     <form method="post" action="{{$base}}/family/invite" class="dm-row-actions">
       <input type="hidden" name="_csrf" value="{{$csrf}}">
-      <label><input type="radio" name="role" value="member" checked> Member</label>
-      <label><input type="radio" name="role" value="owner"> Owner</label>
-      <button class="dm-button" type="submit">Invite</button>
+      <label><input type="radio" name="role" value="member" checked> {{t "Member"}}</label>
+      <label><input type="radio" name="role" value="owner"> {{t "Owner"}}</label>
+      <button class="dm-button" type="submit">{{t "Invite"}}</button>
     </form>
     {{if .Data.Invites}}
     <ul class="dm-rows">
       {{range .Data.Invites}}{{if and (not .UsedAt) (not .RevokedAt)}}
-      <li><span class="dm-grow">{{.Role}} invite</span><span class="dm-meta">until {{date .ExpiresAt}}</span><form method="post" action="{{$base}}/family/invites/{{.ID}}/revoke"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-quiet-link" type="submit">Revoke</button></form></li>
+      <li><span class="dm-grow">{{t (print .Role " invite")}}</span><span class="dm-meta">{{t "until %s" (date .ExpiresAt)}}</span><form method="post" action="{{$base}}/family/invites/{{.ID}}/revoke"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-quiet-link" type="submit">{{t "Revoke"}}</button></form></li>
       {{end}}{{end}}
     </ul>
     {{end}}
   </section>
   <section class="dm-panel">
-    <h2>Guest links</h2>
+    <h2>{{t "Guest links"}}</h2>
     {{if and .Data.Homes .Data.Lists}}
     <form method="post" action="{{$base}}/family/guests" class="dm-inline-form">
       <input type="hidden" name="_csrf" value="{{$csrf}}">
-      <label class="dm-field"><span>Who</span><input class="dm-input" name="label" placeholder="the cleaner" required maxlength="80"></label>
-      <label class="dm-field"><span>Home</span><select class="dm-input" name="home">{{range .Data.Homes}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
-      <label class="dm-field"><span>List</span><select class="dm-input" name="list">{{range .Data.Lists}}<option value="{{.ID}}"{{if .Default}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+      <label class="dm-field"><span>{{t "Who"}}</span><input class="dm-input" name="label" placeholder="{{t "the cleaner"}}" required maxlength="80"></label>
+      <label class="dm-field"><span>{{t "Home"}}</span><select class="dm-input" name="home">{{range .Data.Homes}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
+      <label class="dm-field"><span>{{t "List"}}</span><select class="dm-input" name="list">{{range .Data.Lists}}<option value="{{.ID}}"{{if .Default}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
       <input type="hidden" name="days" value="7">
-      <button class="dm-button" type="submit">Make a link</button>
+      <button class="dm-button" type="submit">{{t "Make a link"}}</button>
     </form>
     {{end}}
     {{if .Data.Guests}}
     <ul class="dm-rows">
       {{range .Data.Guests}}{{if not .Revoked}}
-      <li><span class="dm-grow">{{.Label}}</span><span class="dm-meta">until {{date .ExpiresAt}}</span><form method="post" action="{{$base}}/family/guests/{{.CredentialID}}/revoke"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-quiet-link" type="submit">Revoke</button></form></li>
+      <li><span class="dm-grow">{{.Label}}</span><span class="dm-meta">{{t "until %s" (date .ExpiresAt)}}</span><form method="post" action="{{$base}}/family/guests/{{.CredentialID}}/revoke"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-quiet-link" type="submit">{{t "Revoke"}}</button></form></li>
       {{end}}{{end}}
     </ul>
     {{end}}
   </section>
   {{end}}
   <section>
-    <h2>Your devices</h2>
+    <h2>{{t "Your devices"}}</h2>
     <ul class="dm-rows">
       {{range .Data.Devices}}
       <li>
-        <span class="dm-grow">{{if .Label}}{{.Label}}{{else}}{{.Platform}}{{end}}{{if eq .ID $.Data.Credential}} <span class="dm-meta">this browser</span>{{end}}</span>
-        <span class="dm-meta">{{if eq .Kind "passkey"}}passkey{{else if eq .Kind "device_key"}}{{.Platform}}{{end}}{{if .LastUsedAt}}, seen {{ago .LastUsedAt}}{{end}}</span>
-        <form method="post" action="{{$base}}/family/devices/{{.ID}}/revoke"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-quiet-link" type="submit" aria-label="Revoke {{.Label}}">Revoke</button></form>
+        <span class="dm-grow">{{if .Label}}{{.Label}}{{else}}{{.Platform}}{{end}}{{if eq .ID $.Data.Credential}} <span class="dm-meta">{{t "this browser"}}</span>{{end}}</span>
+        <span class="dm-meta">{{if eq .Kind "passkey"}}{{t "passkey"}}{{else if eq .Kind "device_key"}}{{.Platform}}{{end}}{{if .LastUsedAt}}, {{t "seen %s" (ago .LastUsedAt)}}{{end}}</span>
+        <form method="post" action="{{$base}}/family/devices/{{.ID}}/revoke"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-quiet-link" type="submit" aria-label="{{t "Revoke %s" .Label}}">{{t "Revoke"}}</button></form>
       </li>
       {{end}}
     </ul>

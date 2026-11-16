@@ -816,6 +816,38 @@ func TestWebClientHistoryAndItems(t *testing.T) {
 	}
 }
 
+// The family's pages speak the browser's language: Dutch and Slovak beside
+// English, the rows and what the service refuses included.
+func TestWebClientSpeaksTheBrowsersLanguage(t *testing.T) {
+	s := newSuite(t)
+	b, csrf := signInByPhone(t, s, s.a.owner)
+	list := "/app/h/" + s.a.id + "/l/" + s.a.list
+	b.htmx(list+"/add", csrf, url.Values{"text": {"melk"}})
+	in := func(lang, path string) string {
+		_, body := b.do(http.MethodGet, path, nil, map[string]string{"Accept-Language": lang})
+		return body
+	}
+	if body := in("nl-NL,nl;q=0.9,en;q=0.8", list); !strings.Contains(body, `<html lang="nl">`) || !strings.Contains(body, "Lijsten") || !strings.Contains(body, "1 te halen") || !strings.Contains(body, "Niet nodig") {
+		t.Errorf("the list in Dutch: %s", body)
+	}
+	if body := in("sk", list+"/rows"); !strings.Contains(body, "Netreba") || strings.Contains(body, "Not needed") {
+		t.Errorf("the rows in Slovak: %s", body)
+	}
+	if body := in("de,fr", list); !strings.Contains(body, `<html lang="en">`) || !strings.Contains(body, "1 to get") {
+		t.Errorf("a language doma does not speak is not English: %s", body)
+	}
+	// what the service refuses is said in the language too
+	res, body := b.do(http.MethodPost, list+"/rename", strings.NewReader(url.Values{"_csrf": {csrf}, "name": {""}}.Encode()), map[string]string{"Content-Type": "application/x-www-form-urlencoded", "Accept-Language": "nl"})
+	if res.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(body, "geef de lijst een naam") {
+		t.Errorf("a refused rename in Dutch: %d %s", res.StatusCode, body)
+	}
+	// the sign-in page, before anyone is known
+	fresh := newBrowser(t, s.srv.URL)
+	if _, body := fresh.do(http.MethodGet, "/app", nil, map[string]string{"Accept-Language": "sk"}); !strings.Contains(body, "Prihlásenie") {
+		t.Errorf("the sign-in page in Slovak: %s", body)
+	}
+}
+
 func TestVouchPageOpensTheApp(t *testing.T) {
 	s := newSuite(t)
 	b := newBrowser(t, s.srv.URL)

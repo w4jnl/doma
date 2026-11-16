@@ -93,6 +93,12 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   latest add that names one decides), `StapleOrder` in `Store/HomeQueries.swift` (the order,
   the screen's rows with headers, the sorts a move writes) and the section actions in
   `Store/HomeActions.swift`; a section is only the name its staples carry.
+  The web client is the computer's doma since the Mac app went: one shell for member and admin
+  pages (`templates/layout.html`, `_side.html`), `/` opens `/app`; a list with matches, Edit,
+  Recent and live changes over `/app/h/{household}/events` (`bus.Watch`, `static/doma.js`);
+  `internal/service/webmanage.go` (lists, homes, spots, sections) and `webhistory.go` (History,
+  All items, tidying) with `app3.go`; pages in English, Dutch and Slovak by the browser's
+  `Accept-Language` (`lang.go`, `words.go`, every template phrase through `t`).
   Check `git log` and `ls` before assuming otherwise.
 - The fold's one design choice beyond the spec: it is order-independent, not only deterministic
   in seq order. The catalog and each (list, item) key are replayed from the log in hlc order;

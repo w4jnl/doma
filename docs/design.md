@@ -462,7 +462,7 @@ Admin pages never read family content: no list entries, no item names, no photos
 
 **Web client for members** (`/app`)
 
-Server-rendered htmx pages on the same service layer, for a member at a laptop or on a phone without the app; since the Mac app was dropped they are how a computer uses doma, and are laid out for one: a sidebar with the household's lists, Homes, Trip, History and Family, and the page beside it (the design system's Web pages has the frame). No offline support; the sync endpoint stays the apps' path. It needed the `credentials` table and the service layer as designed and nothing else in the schema.
+Server-rendered htmx pages on the same service layer, for a member at a laptop or on a phone without the app; since the Mac app was dropped they are how a computer uses doma, and are laid out for one: a sidebar with the household's lists, Homes, Trip, History and Family, and the page beside it (the design system's Web pages has the frame). The family's pages, the sign-in, the invite page and the guest view speak the app's three languages; which one is the browser's own first choice among English, Dutch and Slovak (`Accept-Language`), English otherwise, with no setting and no cookie. The phrases live in `internal/http/web/words.go`, keyed by the English the templates carry and spelled as the app's catalogue spells the ones both have; a test fails on a phrase a template says and the catalogue lacks. The admin pages are the operator's and stay English. No offline support; the sync endpoint stays the apps' path. It needed the `credentials` table and the service layer as designed and nothing else in the schema.
 
 | Route | Content |
 | --- | --- |

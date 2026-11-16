@@ -1,17 +1,17 @@
 {{define "content"}}
 <div class="dm-app">
   <h1>{{.Data.View.Home.Name}}</h1>
-  {{if .Data.Error}}<p class="dm-error">{{.Data.Error}}</p>{{end}}
+  {{if .Data.Error}}<p class="dm-error">{{t .Data.Error}}</p>{{end}}
   {{$page := .Data.Page}}{{$csrf := .CSRF}}
   <div class="dm-cols">
   <div>
   <section>
-    <h2>Staples</h2>
+    <h2>{{t "Staples"}}</h2>
     <form method="post" action="{{$page}}/staples" class="dm-add">
       <input type="hidden" name="_csrf" value="{{$csrf}}">
-      <input class="dm-input" name="text" placeholder="Add a staple" required maxlength="200" autocomplete="off">
-      {{if .Data.Sections}}<select class="dm-input dm-select" name="section" aria-label="Section"><option value="">No section</option>{{range .Data.Sections}}<option>{{.}}</option>{{end}}</select>{{end}}
-      <button class="dm-button" type="submit">Add</button>
+      <input class="dm-input" name="text" placeholder="{{t "Add a staple"}}" required maxlength="200" autocomplete="off">
+      {{if .Data.Sections}}<select class="dm-input dm-select" name="section" aria-label="{{t "Section"}}"><option value="">{{t "No section"}}</option>{{range .Data.Sections}}<option>{{.}}</option>{{end}}</select>{{end}}
+      <button class="dm-button" type="submit">{{t "Add"}}</button>
     </form>
     {{if .Data.View.Staples}}
     {{range .Data.View.Groups}}
@@ -19,15 +19,15 @@
     {{if eq .Name $.Data.Section}}
     <form method="post" action="{{$page}}/section" class="dm-add dm-section-form">
       <input type="hidden" name="_csrf" value="{{$csrf}}"><input type="hidden" name="old" value="{{.Name}}">
-      <input class="dm-input" name="name" value="{{.Name}}" required maxlength="40" autocomplete="off" autofocus aria-label="The section's name">
-      <button class="dm-button" type="submit">Save</button>
-      <a class="dm-quiet-link" href="{{$page}}">Cancel</a>
+      <input class="dm-input" name="name" value="{{.Name}}" required maxlength="40" autocomplete="off" autofocus aria-label="{{t "The section's name"}}">
+      <button class="dm-button" type="submit">{{t "Save"}}</button>
+      <a class="dm-quiet-link" href="{{$page}}">{{t "Cancel"}}</a>
     </form>
     {{else}}
     <div class="dm-section-head">
       <h3>{{.Name}}</h3>
-      <a class="dm-quiet-link" href="{{$page}}?section={{.Name}}">Rename</a>
-      <form method="post" action="{{$page}}/section"><input type="hidden" name="_csrf" value="{{$csrf}}"><input type="hidden" name="old" value="{{.Name}}"><input type="hidden" name="name" value=""><button class="dm-quiet-link" type="submit" aria-label="Remove the section {{.Name}}; its staples stay">Remove</button></form>
+      <a class="dm-quiet-link" href="{{$page}}?section={{.Name}}">{{t "Rename"}}</a>
+      <form method="post" action="{{$page}}/section"><input type="hidden" name="_csrf" value="{{$csrf}}"><input type="hidden" name="old" value="{{.Name}}"><input type="hidden" name="name" value=""><button class="dm-quiet-link" type="submit" aria-label="{{t "Remove the section %s; its staples stay" .Name}}">{{t "Remove"}}</button></form>
     </div>
     {{end}}
     {{end}}
@@ -36,12 +36,12 @@
     </ul>
     {{end}}
     {{else}}
-    <p class="dm-muted">What this home should always have. Type the first one above.</p>
+    <p class="dm-muted">{{t "What this home should always have. Type the first one above."}}</p>
     {{end}}
   </section>
   {{if .Data.View.Others}}
   <section>
-    <h2>Also here</h2>
+    <h2>{{t "Also here"}}</h2>
     <ul class="dm-rows">
       {{range .Data.View.Others}}{{template "flagrow" (dict "Page" $page "CSRF" $csrf "R" . "Staple" false)}}{{end}}
     </ul>
@@ -51,39 +51,39 @@
   <div>
   {{if .Data.View.Home.Spots}}
   <section>
-    <h2>Spots</h2>
+    <h2>{{t "Spots"}}</h2>
     <ul class="dm-rows">
       {{range .Data.View.Home.Spots}}
       <li>{{if .Thumb}}<img class="dm-thumb" src="{{.Thumb}}" alt="" width="48" height="48">{{else}}<span class="dm-thumb dm-thumb-empty" aria-hidden="true"></span>{{end}}
         {{if eq .ID $.Data.Spot}}
         <form method="post" action="{{$page}}/spots/{{.ID}}/rename" class="dm-add dm-grow">
           <input type="hidden" name="_csrf" value="{{$csrf}}">
-          <input class="dm-input" name="name" value="{{.Name}}" required maxlength="200" autocomplete="off" autofocus aria-label="The spot's name">
-          <button class="dm-button" type="submit">Save</button>
-          <a class="dm-quiet-link" href="{{$page}}">Cancel</a>
+          <input class="dm-input" name="name" value="{{.Name}}" required maxlength="200" autocomplete="off" autofocus aria-label="{{t "The spot's name"}}">
+          <button class="dm-button" type="submit">{{t "Save"}}</button>
+          <a class="dm-quiet-link" href="{{$page}}">{{t "Cancel"}}</a>
         </form>
         {{else}}
         <span class="dm-grow">{{.Name}}</span>
         {{if eq .ID $.Data.Arm}}
-        <form method="post" action="{{$page}}/spots/{{.ID}}/remove"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-button dm-button-danger" type="submit">Really remove?</button></form>
-        <a class="dm-quiet-link" href="{{$page}}">Keep it</a>
+        <form method="post" action="{{$page}}/spots/{{.ID}}/remove"><input type="hidden" name="_csrf" value="{{$csrf}}"><button class="dm-button dm-button-danger" type="submit">{{t "Really remove?"}}</button></form>
+        <a class="dm-quiet-link" href="{{$page}}">{{t "Keep it"}}</a>
         {{else}}
-        <a class="dm-quiet-link" href="{{$page}}?spot={{.ID}}">Rename</a>
-        <a class="dm-quiet-link" href="{{$page}}?arm={{.ID}}">Remove</a>
+        <a class="dm-quiet-link" href="{{$page}}?spot={{.ID}}">{{t "Rename"}}</a>
+        <a class="dm-quiet-link" href="{{$page}}?arm={{.ID}}">{{t "Remove"}}</a>
         {{end}}
         {{end}}
       </li>
       {{end}}
     </ul>
-    <p class="dm-muted">Pictures are taken with the phone.</p>
+    <p class="dm-muted">{{t "Pictures are taken with the phone."}}</p>
   </section>
   {{end}}
   {{if .Data.View.Trips}}
   <section>
-    <h2>Trips</h2>
+    <h2>{{t "Trips"}}</h2>
     <ul class="dm-rows">
       {{range .Data.View.Trips}}
-      <li><a class="dm-row-link" href="{{$.Data.Base}}/trip/{{.ID}}"><span class="dm-grow">{{.FromName}} to {{.ToName}}</span><span class="dm-meta">{{date .Date}}{{if .Arrived}}, arrived{{else if .Cancelled}}, cancelled{{end}}</span></a></li>
+      <li><a class="dm-row-link" href="{{$.Data.Base}}/trip/{{.ID}}"><span class="dm-grow">{{t "%s to %s" .FromName .ToName}}</span><span class="dm-meta">{{date .Date}}{{if .Arrived}}, {{t "arrived"}}{{else if .Cancelled}}, {{t "cancelled"}}{{end}}</span></a></li>
       {{end}}
     </ul>
   </section>
@@ -91,30 +91,30 @@
   </div>
   </div>
   <details class="dm-manage">
-    <summary>Rename this home</summary>
+    <summary>{{t "Rename this home"}}</summary>
     <form method="post" action="{{$page}}/rename" class="dm-add">
       <input type="hidden" name="_csrf" value="{{$csrf}}">
-      <input class="dm-input" name="name" value="{{.Data.View.Home.Name}}" required maxlength="200" autocomplete="off" aria-label="The home's name">
-      <button class="dm-button" type="submit">Save</button>
+      <input class="dm-input" name="name" value="{{.Data.View.Home.Name}}" required maxlength="200" autocomplete="off" aria-label="{{t "The home's name"}}">
+      <button class="dm-button" type="submit">{{t "Save"}}</button>
     </form>
   </details>
 </div>
 {{end}}
 {{define "flagrow"}}
 <li class="dm-flagrow">
-  <span class="dm-flag dm-flag-{{.R.State}}"><svg class="dm-glyph" aria-hidden="true"><use href="#i-{{.R.State}}"/></svg>{{.R.State}}</span>
+  <span class="dm-flag dm-flag-{{.R.State}}"><svg class="dm-glyph" aria-hidden="true"><use href="#i-{{.R.State}}"/></svg>{{t .R.State}}</span>
   <span class="dm-grow">{{.R.Name}}{{if .R.SetAt}} <span class="dm-meta">{{ago .R.SetAt}}</span>{{end}}</span>
   <form method="post" action="{{.Page}}/flag/{{.R.ItemID}}" class="dm-flagbar">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
-    <button class="dm-quiet-link{{if eq .R.State "have"}} dm-on{{end}}" name="state" value="have" type="submit">Have</button>
-    <button class="dm-quiet-link{{if eq .R.State "low"}} dm-on{{end}}" name="state" value="low" type="submit">Low</button>
-    <button class="dm-quiet-link{{if eq .R.State "out"}} dm-on{{end}}" name="state" value="out" type="submit">Out</button>
+    <button class="dm-quiet-link{{if eq .R.State "have"}} dm-on{{end}}" name="state" value="have" type="submit">{{t "Have"}}</button>
+    <button class="dm-quiet-link{{if eq .R.State "low"}} dm-on{{end}}" name="state" value="low" type="submit">{{t "Low"}}</button>
+    <button class="dm-quiet-link{{if eq .R.State "out"}} dm-on{{end}}" name="state" value="out" type="submit">{{t "Out"}}</button>
   </form>
   {{if .Staple}}
-  <a class="dm-quiet-link" href="{{.Page}}?move={{.R.ItemID}}" aria-label="Move {{.R.Name}} to a section">Move</a>
+  <a class="dm-quiet-link" href="{{.Page}}?move={{.R.ItemID}}" aria-label="{{t "Move %s to a section" .R.Name}}">{{t "Move"}}</a>
   <form method="post" action="{{.Page}}/staples/{{.R.ItemID}}/remove">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
-    <button class="dm-quiet-link" type="submit" aria-label="Remove {{.R.Name}} from the staples">Remove</button>
+    <button class="dm-quiet-link" type="submit" aria-label="{{t "Remove %s from the staples" .R.Name}}">{{t "Remove"}}</button>
   </form>
   {{end}}
 </li>
@@ -124,14 +124,14 @@
   <span class="dm-grow">{{.R.Name}}</span>
   <form method="post" action="{{.Page}}/staples/{{.R.ItemID}}/move" class="dm-flagbar">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
-    <button class="dm-chip{{if eq .R.Section ""}} dm-on{{end}}" name="section" value="" type="submit">None</button>
+    <button class="dm-chip{{if eq .R.Section ""}} dm-on{{end}}" name="section" value="" type="submit">{{t "None"}}</button>
     {{range .Sections}}<button class="dm-chip{{if eq . $.R.Section}} dm-on{{end}}" name="section" value="{{.}}" type="submit">{{.}}</button>{{end}}
   </form>
   <form method="post" action="{{.Page}}/staples/{{.R.ItemID}}/move" class="dm-add dm-newsection">
     <input type="hidden" name="_csrf" value="{{.CSRF}}">
-    <input class="dm-input" name="section" placeholder="New section" required maxlength="40" autocomplete="off" aria-label="A new section's name">
-    <button class="dm-button dm-button-quiet" type="submit">Move</button>
+    <input class="dm-input" name="section" placeholder="{{t "New section"}}" required maxlength="40" autocomplete="off" aria-label="{{t "A new section's name"}}">
+    <button class="dm-button dm-button-quiet" type="submit">{{t "Move"}}</button>
   </form>
-  <a class="dm-quiet-link" href="{{.Page}}">Cancel</a>
+  <a class="dm-quiet-link" href="{{.Page}}">{{t "Cancel"}}</a>
 </li>
 {{end}}

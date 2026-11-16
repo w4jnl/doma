@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The web pages speak Dutch and Slovak.** The family's pages, the sign-in, the invite page
+  and the guest view follow the browser's language: English, Dutch or Slovak, in the app's own
+  words. The admin pages stay English.
+
 - **History and All items in the browser.** History shows a month's purchases per item, per
   home and per shopper, stepped back and forth. All items lists every item with a search and
   Rename, Merge into and Retire on each row, so a tidy-up can be done at a keyboard.
