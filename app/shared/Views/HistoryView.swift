@@ -90,6 +90,21 @@ struct HistoryView: View {
                     }
                 }
             }
+            // every item, the never bought ones too, for a tidy-up no month can offer
+            Section {
+                NavigationLink {
+                    ItemsView()
+                } label: {
+                    Text("All items")
+                        .foregroundStyle(Tokens.ink)
+                        .frame(minHeight: ListView.rowHeight)
+                }
+                .padding(.top, Tokens.space5)
+                .accessibilityIdentifier("all-items")
+                .listRowBackground(Tokens.ground)
+                .listRowSeparatorTint(Tokens.line)
+                .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
+            }
         }
         .listStyle(.plain)
         .textCase(nil)

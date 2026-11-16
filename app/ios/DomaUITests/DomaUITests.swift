@@ -173,6 +173,20 @@ final class DomaUITests: XCTestCase {
         XCTAssertFalse(row.waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["entry-brood"].exists)
         XCTAssertTrue(app.buttons["Recent"].exists, "the cleared item is in Recent")
+        // a long-press on a match above the bar offers the same tidying; Rename is a field in the row
+        field.tap()
+        field.typeText("me")
+        let match = app.buttons["match-melk"]
+        XCTAssertTrue(match.waitForExistence(timeout: 5), "melk comes up")
+        match.press(forDuration: 1.2)
+        XCTAssertTrue(app.buttons["Retire"].waitForExistence(timeout: 3), "the menu is up")
+        app.buttons["Rename"].tap()
+        let matchField = app.textFields["rename-item"]
+        XCTAssertTrue(matchField.waitForExistence(timeout: 3), "the match is a field")
+        XCTAssertEqual(matchField.value as? String, "melk")
+        matchField.typeText("\n")
+        XCTAssertTrue(match.waitForExistence(timeout: 3), "and a match again")
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 2))
         // Recent opens, and a swipe on its row tidies the item as History does
         // the header answers on its word, not across the row
         let header = app.buttons["Recent"]
@@ -215,6 +229,20 @@ final class DomaUITests: XCTestCase {
         XCTAssertTrue(app.buttons["history-previous"].waitForExistence(timeout: 10), "the History screen is up")
         XCTAssertTrue(app.descendants(matching: .any)["history-melk"].firstMatch.waitForExistence(timeout: 5),
                       "the cleared melk is in the month")
+        // All items, at History's foot, has the never bought ones too; a swipe retires one
+        let allItems = app.descendants(matching: .any)["all-items"].firstMatch
+        for _ in 0..<4 where !allItems.waitForExistence(timeout: 1) { app.swipeUp() }
+        allItems.tap()
+        let brood = app.descendants(matching: .any)["item-brood"].firstMatch
+        XCTAssertTrue(brood.waitForExistence(timeout: 5), "brood, never bought, is in All items")
+        XCTAssertTrue(app.descendants(matching: .any)["item-melk"].firstMatch.exists)
+        brood.swipeLeft()
+        XCTAssertTrue(app.buttons["Retire"].waitForExistence(timeout: 3))
+        app.buttons["Retire"].tap()
+        let really = app.buttons["retire-brood"]
+        XCTAssertTrue(really.waitForExistence(timeout: 3), "Retire asks once more")
+        really.tap()
+        XCTAssertFalse(brood.waitForExistence(timeout: 3), "and the item is gone")
     }
 
     /// A tasks list is made from the overview, speaks of doing rather than getting, and strikes

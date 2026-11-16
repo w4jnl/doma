@@ -102,6 +102,25 @@ final class HistoryLogicTests: XCTestCase {
         XCTAssertEqual(again.map(\.itemID), [melk])
     }
 
+    /// All items lists what no month shows: an item never bought is there, by name, until it
+    /// is retired or merged away.
+    func testAllItemsShowsTheNeverBought() throws {
+        let s = try session()
+        let scope = try XCTUnwrap(s.scope)
+        func all() throws -> [CatalogItem] { try s.store.read(scope) { db, sc in try Queries.allItems(db, sc) } }
+        _ = try ListActions.add("melk", to: "L1", in: s)
+        try shop(s)
+        _ = try ListActions.add("mlek", to: "L1", in: s)
+        _ = try ListActions.add("zout", to: "L1", in: s)
+        XCTAssertEqual(try all().map(\.name), ["melk", "mlek", "zout"])
+        XCTAssertEqual(try all().map(\.times), [1, 0, 0], "only the melk was bought")
+        XCTAssertNotNil(try all()[0].lastAt)
+        let id = Dictionary(uniqueKeysWithValues: try all().map { ($0.name, $0.itemID) })
+        try HomeActions.mergeItem(id["mlek"]!, into: id["melk"]!, in: s)
+        try HomeActions.retireItem(id["zout"]!, in: s)
+        XCTAssertEqual(try all().map(\.name), ["melk"])
+    }
+
     /// Retire from History: the item leaves autocomplete and the usual items, keeps its month,
     /// and typing its name again in full brings it back.
     func testRetireLeavesTypingAndKeepsTheMonth() throws {

@@ -29,6 +29,15 @@ struct PurchasedItem: Identifiable, Hashable, Sendable {
     var lastAt: Int64
 }
 
+/// One item of the household's, for All items: how often it was cleared from a list and when last.
+struct CatalogItem: Identifiable, Hashable, Sendable {
+    var id: String { itemID }
+    var itemID: String
+    var name: String
+    var times: Int
+    var lastAt: Int64?
+}
+
 /// A home or a person with how many purchases were theirs in the month.
 struct PurchaseCount: Identifiable, Hashable, Sendable {
     var id: String
@@ -52,6 +61,21 @@ extension Queries {
     /// A retired item, or the item a merged one reads through to, is out of sight here; its
     /// rows stay for the export and come back with it. Needs the i and o joins.
     static let notRetired = "(CASE WHEN o.id IS NULL THEN i.archived_at ELSE o.archived_at END) IS NULL"
+
+    /// Every item the family has that is not retired or merged away, by name: the ones never
+    /// bought too, which no month shows.
+    static func allItems(_ db: Database, _ s: Scope) throws -> [CatalogItem] {
+        try Row.fetchAll(db, sql: """
+            SELECT i.id, i.name,
+              (SELECT COUNT(*) FROM entries e WHERE e.server_id = i.server_id AND e.household_id = i.household_id AND e.item_id = i.id AND e.cleared_hlc IS NOT NULL) AS times,
+              (SELECT MAX(CAST(substr(e.cleared_hlc, 1, 13) AS INTEGER)) FROM entries e WHERE e.server_id = i.server_id AND e.household_id = i.household_id AND e.item_id = i.id AND e.cleared_hlc IS NOT NULL) AS last_at
+            FROM items i
+            WHERE i.server_id = ? AND i.household_id = ? AND i.merged_into IS NULL AND i.archived_at IS NULL
+            ORDER BY i.norm_name, i.name, i.id
+            """, arguments: [s.serverID, s.householdID]).map { r in
+            CatalogItem(itemID: r["id"], name: r["name"], times: r["times"], lastAt: r["last_at"])
+        }
+    }
 
     /// Every month with a purchase, newest first.
     static func purchaseMonths(_ db: Database, _ s: Scope) throws -> [PurchaseMonth] {

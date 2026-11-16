@@ -6,9 +6,12 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
-- **Tidy items from a list's Recent.** A swipe on a row under Recent (the row's menu on the
-  Mac) offers Rename, Merge into and Retire, as History does: fix a typo, fold a double into
-  the right item, or stop an item coming up, without leaving the list.
+- **Tidy items where you see them.** Rename, Merge into and Retire were only in History. A
+  swipe on a row under a list's Recent (the row's menu on the Mac) now offers them too, and so
+  does a long-press on a suggestion above the add bar: fix a typo, fold a double into the
+  right item, or stop an item coming up, without leaving the list.
+- **All items.** A row at the foot of History opens every item the family has, the never
+  bought ones too, by name with a search field and the same three actions on a swipe.
 
 ## 0.8.0 (2026-11-13)
 

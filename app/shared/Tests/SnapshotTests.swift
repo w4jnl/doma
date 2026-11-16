@@ -184,6 +184,10 @@ final class SnapshotTests: XCTestCase {
         try await check("history") { NavigationStack { HistoryView() } }
     }
 
+    func testItems() async throws {
+        try await check("items") { NavigationStack { ItemsView() } }
+    }
+
     func testCards() async throws {
         try await check("cards") { NavigationStack { CardsView() } }
     }

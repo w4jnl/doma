@@ -785,6 +785,22 @@
         }
       }
     },
+    "All items": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle artikelen"
+          }
+        },
+        "sk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Všetky položky"
+          }
+        }
+      }
+    },
     "All there": {
       "localizations": {
         "nl": {
