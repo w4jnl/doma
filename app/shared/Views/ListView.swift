@@ -36,6 +36,11 @@ struct ListView: View {
     /// is not taken for a remote one.
     @State private var justAdded: String?
     @State private var showRecent = false
+    /// Where the rows are on screen, and the names in flight from an old place to a new one.
+    @State private var frames = RowFrames()
+    @State private var flights: [Flight] = []
+    /// The Recent row just tapped and where it was: its name flies from there to its new row.
+    @State private var fromRecent: (itemID: String, at: CGPoint)?
     /// The match whose row above the bar is a field for its name, and the name as typed.
     @State private var renamingMatch: String?
     @State private var matchText = ""
@@ -87,7 +92,10 @@ struct ListView: View {
         let ids = open.map(\.id) + ["|"] + struck.map(\.id)
         ScrollViewReader { proxy in
             list(all: all, open: open, struck: struck, openCount: openCount)
-                .onChange(of: ids) { before, now in arrived(before: before, now: now, rows: all, proxy: proxy) }
+                .onChange(of: ids) { before, now in
+                    moved(before: before, now: now, rows: all)
+                    arrived(before: before, now: now, rows: all, proxy: proxy)
+                }
         }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -103,6 +111,19 @@ struct ListView: View {
                     addBar
                         .transition(Motion.arrive(reduceMotion, from: .bottom))
                 }
+            }
+            // a name in flight from where a row was to where it is now
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frames.bounds = $0 }
+            .overlay(alignment: .topLeading) {
+                ZStack(alignment: .topLeading) {
+                    ForEach(flights) { f in
+                        FlightChip(name: f.name)
+                            .offset(x: f.at.x - frames.bounds.minX - Tokens.space3, y: f.at.y - frames.bounds.minY - FlightChip.height / 2)
+                            .opacity(f.fading ? 0 : 1)
+                    }
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
             }
             // a strike and a restore are felt as hard as the engine goes, so a blind tap is noticed
             .sensoryFeedback(.impact(weight: .heavy, intensity: 1), trigger: strikes)
@@ -245,7 +266,10 @@ struct ListView: View {
         }
         if let recent = recent?.value, !recent.isEmpty {
             // a tap in Recent adds without calling the keyboard up over the new row
-            RecentSection(recent: recent, shown: $showRecent) { add(itemID: $0, keyboard: false) }
+            RecentSection(recent: recent, shown: $showRecent, place: { frames.at["recent:" + $0] = $1 }) { itemID in
+                if let r = frames.at["recent:" + itemID] { fromRecent = (itemID, CGPoint(x: r.minX, y: r.midY)) }
+                add(itemID: itemID, keyboard: false)
+            }
                 .transition(.opacity.animation(.easeOut(duration: Tokens.motionBase).delay(Tokens.motionQuick)))
         }
     }
@@ -259,7 +283,11 @@ struct ListView: View {
         if let item = justAdded, let mine = rows.first(where: { $0.itemID == item && fresh.contains($0.id) }) {
             remote.remove(mine.id)
             justAdded = nil
-            if reduceMotion {
+            if let source = fromRecent, source.itemID == item {
+                // from Recent: the screen stays where it is and the name flies to its row
+                fromRecent = nil
+                fly(mine.name, from: source.at, to: "entry:" + mine.id, up: true)
+            } else if reduceMotion {
                 proxy.scrollTo(mine.id, anchor: .bottom)
             } else {
                 withAnimation(.snappy(duration: Tokens.motionSettle)) { proxy.scrollTo(mine.id, anchor: .bottom) }
@@ -270,6 +298,61 @@ struct ListView: View {
             // not on the first load, which arrives whole
             flash(remote, for: Tokens.motionBase + Tokens.motionSettle)
         }
+    }
+
+    /// Rows that changed sides of the divider, got or put back, here or on another phone: each
+    /// name flies from where its row was to where it is now. More than three at once would be
+    /// a cascade, so those just move.
+    private func moved(before: [String], now: [String], rows: [EntryRow]) {
+        func sides(_ ids: [String]) -> [String: Bool] {
+            var open = true
+            var out: [String: Bool] = [:]
+            for id in ids {
+                if id == "|" { open = false } else { out[id] = open }
+            }
+            return out
+        }
+        let was = sides(before)
+        let changed = sides(now).filter { was[$0.key] != nil && was[$0.key] != $0.value }
+        guard !changed.isEmpty, changed.count <= 3 else { return }
+        for (id, open) in changed {
+            guard let row = rows.first(where: { $0.id == id }), let r = frames.at["entry:" + id] else { continue }
+            fly(row.name, from: CGPoint(x: r.minX + Self.nameInset, y: r.midY), to: "entry:" + id, up: open)
+        }
+    }
+
+    /// Where a row's name starts, from the row's leading edge: after the symbol column.
+    private static let nameInset = Tokens.space5 + Tokens.space3
+
+    /// One name in flight to the row `key` names, once the list has laid that row out. A row
+    /// out of sight is flown towards, up or down, and the name fades on the way.
+    private func fly(_ name: String, from: CGPoint, to key: String, up: Bool) {
+        guard !reduceMotion else { return }
+        let flight = Flight(name: name, at: from)
+        let before = frames.at[key]
+        flights.append(flight)
+        Task {
+            try? await Task.sleep(for: .milliseconds(60))
+            let bounds = frames.bounds
+            var target = CGPoint(x: from.x, y: up ? bounds.minY + Tokens.space7 * 2 : bounds.maxY - Tokens.space7 * 3)
+            var inSight = false
+            if let r = frames.at[key], r != before, r.midY > bounds.minY, r.midY < bounds.maxY {
+                target = CGPoint(x: r.minX + Self.nameInset, y: r.midY)
+                inSight = true
+            }
+            withAnimation(.snappy(duration: Tokens.motionSettle)) {
+                update(flight.id) { $0.at = target; if !inSight { $0.fading = true } }
+            }
+            try? await Task.sleep(for: .seconds(Tokens.motionSettle))
+            withAnimation(.easeOut(duration: Tokens.motionQuick)) { update(flight.id) { $0.fading = true } }
+            try? await Task.sleep(for: .seconds(Tokens.motionQuick))
+            flights.removeAll { $0.id == flight.id }
+        }
+    }
+
+    private func update(_ id: UUID, _ change: (inout Flight) -> Void) {
+        guard let i = flights.firstIndex(where: { $0.id == id }) else { return }
+        change(&flights[i])
     }
 
     /// A visit begins: what others added after the last visit's mark is new for this one.
@@ -647,11 +730,13 @@ struct ListView: View {
             if let row = (rows?.value ?? []).first(where: { $0.itemID == itemID }) {
                 // a struck row restored by the add is there already
                 justAdded = nil
+                fromRecent = nil
                 flash([row.id], for: Tokens.motionBase + Tokens.motionSettle)
             }
         case .alreadyOpen(let entryID):
             // it was there: a harder tap than an add, and the row shows itself longer
             repeats += 1
+            fromRecent = nil
             flash([entryID], for: 0.9)
         case .nothingTyped:
             break
@@ -710,6 +795,7 @@ struct ListView: View {
                 EntryRowView(row: row, checked: checked, gotBy: gotBy, isNew: fresh, held: held[row.id] != nil)
             }
             .buttonStyle(.plain)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frames.at["entry:" + row.id] = $0 }
             .accessibilityIdentifier("entry-" + row.name)
             .listRowBackground(flashed.contains(row.id) ? Tokens.accentSoft : Tokens.ground)
             .listRowSeparatorTint(Tokens.line)
@@ -938,5 +1024,38 @@ struct StrikeGuard: Equatable {
         case 1: "1 second"
         default: "2 seconds"
         }
+    }
+}
+
+/// Where the list's rows are on screen, in the screen's coordinates, kept outside the view's
+/// state so a scroll redraws nothing. A row that left keeps its last place, which is where
+/// its name's flight starts.
+@MainActor
+final class RowFrames {
+    var at: [String: CGRect] = [:]
+    var bounds = CGRect.zero
+}
+
+/// A name on its way from where a row was to where it is now.
+struct Flight: Identifiable {
+    let id = UUID()
+    var name: String
+    var at: CGPoint
+    var fading = false
+}
+
+/// The name in flight: the item's name on `accent-soft`, as a row that just arrived is.
+struct FlightChip: View {
+    static let height = Tokens.chipH + Tokens.space2
+    let name: String
+
+    var body: some View {
+        Text(name)
+            .foregroundStyle(Tokens.ink)
+            .lineLimit(1)
+            .padding(.horizontal, Tokens.space3)
+            .frame(height: Self.height)
+            .background(Tokens.accentSoft, in: Capsule())
+            .overlay(Capsule().strokeBorder(Tokens.line))
     }
 }

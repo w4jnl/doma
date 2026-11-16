@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **A row that moves shows where it went.** When an item is got, put back, or added again from
+  Recent, its name flies from where the row was to where it is now. Adding from Recent no
+  longer scrolls the list.
+
 - **The keyboard keeps out of the way.** A tap on an item under Recent adds it without
   bringing the keyboard up over the new row. While the keyboard is up, the add bar of a list
   and of a home shows a keyboard-down button before the mic that puts it away.

@@ -8,6 +8,8 @@ struct RecentSection: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let recent: [RecentRow]
     @Binding var shown: Bool
+    /// Told where each row is on screen, so a tapped item's name can fly from there.
+    var place: (String, CGRect) -> Void = { _, _ in }
     let add: (String) -> Void
 
     var body: some View {
@@ -28,6 +30,7 @@ struct RecentSection: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { place(r.itemID, $0) }
                         .accessibilityHint(Text("Adds it again"))
                         .accessibilityIdentifier("recent-" + r.name)
                     }
