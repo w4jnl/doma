@@ -30,6 +30,7 @@
       {{template "sidelists" (dict "Lists" .Lists "Household" .Household "Current" .Current "OOB" false)}}
       <a href="/app/h/{{.Household}}/homes"{{if eq .Nav "homes"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-home"/></svg>Homes</a>
       <a href="/app/h/{{.Household}}/trips"{{if eq .Nav "trips"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-trip"/></svg>Trip</a>
+      <a href="/app/h/{{.Household}}/history"{{if eq .Nav "history"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-basket"/></svg>History</a>
       <a href="/app/h/{{.Household}}/family"{{if eq .Nav "family"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-family"/></svg>Family</a>
     </nav>
     <div class="dm-side-foot">

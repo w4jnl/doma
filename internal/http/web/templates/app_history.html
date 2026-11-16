@@ -1,0 +1,43 @@
+{{define "content"}}
+<div class="dm-app">
+  <h1>History</h1>
+  {{$base := .Data.Base}}{{$v := .Data.View}}
+  <nav class="dm-months" aria-label="Month">
+    <a class="dm-button dm-button-quiet" href="{{$base}}/history?month={{$v.Prev}}" aria-label="The month before">&larr;</a>
+    <span class="dm-month">{{$v.Title}}</span>
+    {{if $v.Next}}<a class="dm-button dm-button-quiet" href="{{$base}}/history?month={{$v.Next}}" aria-label="The month after">&rarr;</a>{{else}}<span class="dm-button dm-button-quiet dm-off" aria-hidden="true">&rarr;</span>{{end}}
+    <span class="dm-muted dm-grow">{{if $v.Total}}{{$v.Total}} bought{{else}}Nothing bought this month.{{end}}</span>
+    <a class="dm-button dm-button-quiet" href="{{$base}}/items">All items</a>
+  </nav>
+  {{if $v.Total}}
+  <div class="dm-cols">
+    <section>
+      <h2>Items</h2>
+      <ul class="dm-rows">
+        {{range $v.Items}}
+        <li>
+          <a class="dm-grow dm-item-link" href="{{$base}}/items?q={{.Name}}">{{.Name}}</a>
+          <span class="dm-meta">{{if eq .Times 1}}once{{else}}{{.Times}} times{{end}}, {{if ne .Times 1}}last {{end}}{{ago .LastAt}}</span>
+          <span class="dm-mono dm-meta dm-totals">{{.Totals}}</span>
+        </li>
+        {{end}}
+      </ul>
+    </section>
+    <div>
+      {{if $v.Homes}}
+      <section>
+        <h2>Homes</h2>
+        <ul class="dm-rows">{{range $v.Homes}}<li><span class="dm-grow">{{.Name}}</span><span class="dm-mono dm-meta">{{.Times}}</span></li>{{end}}</ul>
+      </section>
+      {{end}}
+      {{if $v.People}}
+      <section>
+        <h2>Who shopped</h2>
+        <ul class="dm-rows">{{range $v.People}}<li><span class="dm-grow">{{.Name}}</span><span class="dm-mono dm-meta">{{.Times}}</span></li>{{end}}</ul>
+      </section>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

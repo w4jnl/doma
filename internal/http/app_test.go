@@ -724,6 +724,98 @@ func TestWebClientManagesListsHomesAndSections(t *testing.T) {
 	}
 }
 
+// History and All items in a browser: the month's purchases, never another
+// person's own list's, and the three ways to tidy an item.
+func TestWebClientHistoryAndItems(t *testing.T) {
+	s := newSuite(t)
+	b, csrf := signInByPhone(t, s, s.a.owner)
+	base := "/app/h/" + s.a.id
+	list := base + "/l/" + s.a.list
+	post := func(br *browser, token, path string, v url.Values) reply {
+		v.Set("_csrf", token)
+		res, _ := br.form(path, v)
+		return res
+	}
+	buy := func(br *browser, token, list string, lines ...string) {
+		for _, line := range lines {
+			post(br, token, list+"/add", url.Values{"text": {line}})
+		}
+		_, body := br.get(list)
+		for _, m := range regexp.MustCompile(`/check/([A-Za-z0-9]+)" hx-post`).FindAllStringSubmatch(body, -1) {
+			post(br, token, list+"/check/"+m[1], url.Values{})
+		}
+		post(br, token, list+"/clear", url.Values{})
+	}
+	// two shops: a merge replays both names as one item, and two of it open at once are one entry
+	buy(b, csrf, list, "melk 2")
+	buy(b, csrf, list, "mlek")
+	post(b, csrf, list+"/add", url.Values{"text": {"brood"}})
+	// another member's own list is theirs: its purchases are not in the owner's month
+	other, otherCSRF := signInByPhone(t, s, s.a.member)
+	own := post(other, otherCSRF, base+"/lists", url.Values{"name": {"Mijn"}, "who": {"me"}, "what": {"shopping"}}).Header.Get("Location")
+	buy(other, otherCSRF, own, "geheim")
+
+	res, body := b.get(base + "/history")
+	if res.StatusCode != http.StatusOK || !strings.Contains(body, "2 bought") || !strings.Contains(body, ">melk<") || !strings.Contains(body, "2x") || !strings.Contains(body, ">mlek<") {
+		t.Fatalf("the month: %d %s", res.StatusCode, body)
+	}
+	if strings.Contains(body, "geheim") || strings.Contains(body, "brood") {
+		t.Errorf("the month shows another person's purchase or an open entry: %s", body)
+	}
+	if _, body := other.get(base + "/history"); !strings.Contains(body, "geheim") || !strings.Contains(body, "3 bought") {
+		t.Errorf("the member's own month: %s", body)
+	}
+	if _, body := b.get(base + "/history?month=2020-01"); !strings.Contains(body, "January 2020") || !strings.Contains(body, "Nothing bought this month.") || !strings.Contains(body, "month=2020-02") {
+		t.Errorf("an empty month: %s", body)
+	}
+	// All items has the never bought brood; the search narrows it
+	_, body = b.get(base + "/items")
+	if !strings.Contains(body, ">brood<") || !strings.Contains(body, ">melk<") {
+		t.Errorf("all items: %s", body)
+	}
+	id := func(name string) string {
+		_, body := b.get(base + "/items")
+		m := regexp.MustCompile(`rename=([A-Za-z0-9]+)" aria-label="Rename ` + name + `"`).FindStringSubmatch(body)
+		if m == nil {
+			t.Fatalf("%s is not among the items", name)
+		}
+		return m[1]
+	}
+	if _, body := b.get(base + "/items?q=ml"); !strings.Contains(body, ">mlek<") || strings.Contains(body, ">melk<") {
+		t.Errorf("the search: %s", body)
+	}
+	// merge the typo into the item to keep: one item, both purchases
+	mlek := id("mlek")
+	if _, body := b.get(base + "/items?merge=" + mlek); !strings.Contains(body, `<option value="melk">`) || strings.Contains(body, `<option value="mlek">`) {
+		t.Errorf("the merge field: %s", body)
+	}
+	if res := post(b, csrf, base+"/items/"+mlek+"/merge", url.Values{"into": {"nergens"}}); res.StatusCode != http.StatusUnprocessableEntity {
+		t.Errorf("merging into no item: %d, want 422", res.StatusCode)
+	}
+	if res := post(b, csrf, base+"/items/"+mlek+"/merge", url.Values{"into": {"Melk"}, "q": {"ml"}}); res.StatusCode != http.StatusSeeOther || !strings.HasSuffix(res.Header.Get("Location"), "/items?q=ml") {
+		t.Errorf("merge: %d to %q", res.StatusCode, res.Header.Get("Location"))
+	}
+	if _, body := b.get(base + "/history"); strings.Contains(body, ">mlek<") || !strings.Contains(body, "2 times") || !strings.Contains(body, "3x") {
+		t.Errorf("the month after the merge: %s", body)
+	}
+	// rename, then retire after the second word
+	brood := id("brood")
+	post(b, csrf, base+"/items/"+brood+"/rename", url.Values{"name": {"volkorenbrood"}})
+	if _, body := b.get(list); !strings.Contains(body, "volkorenbrood") {
+		t.Errorf("the list after the rename: %s", body)
+	}
+	if _, body := b.get(base + "/items?arm=" + brood); !strings.Contains(body, "Really retire?") {
+		t.Errorf("no second word for retire: %s", body)
+	}
+	post(b, csrf, base+"/items/"+brood+"/retire", url.Values{})
+	if _, body := b.get(base + "/items"); strings.Contains(body, "volkorenbrood") {
+		t.Errorf("the retired item is still among the items")
+	}
+	if res := post(b, csrf, "/app/h/"+s.b.id+"/items/"+brood+"/retire", url.Values{}); res.StatusCode != http.StatusNotFound {
+		t.Errorf("an item through another household: %d, want 404", res.StatusCode)
+	}
+}
+
 func TestVouchPageOpensTheApp(t *testing.T) {
 	s := newSuite(t)
 	b := newBrowser(t, s.srv.URL)

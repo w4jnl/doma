@@ -462,7 +462,7 @@ Admin pages never read family content: no list entries, no item names, no photos
 
 **Web client for members** (`/app`)
 
-Server-rendered htmx pages on the same service layer, for a member at a laptop or on a phone without the app; since the Mac app was dropped they are how a computer uses doma, and are laid out for one: a sidebar with the household's lists, Homes, Trip and Family, and the page beside it (the design system's Web pages has the frame). No offline support; the sync endpoint stays the apps' path. It needed the `credentials` table and the service layer as designed and nothing else in the schema.
+Server-rendered htmx pages on the same service layer, for a member at a laptop or on a phone without the app; since the Mac app was dropped they are how a computer uses doma, and are laid out for one: a sidebar with the household's lists, Homes, Trip, History and Family, and the page beside it (the design system's Web pages has the frame). No offline support; the sync endpoint stays the apps' path. It needed the `credentials` table and the service layer as designed and nothing else in the schema.
 
 | Route | Content |
 | --- | --- |
@@ -473,6 +473,8 @@ Server-rendered htmx pages on the same service layer, for a member at a laptop o
 | `/app/h/{household}/events` | server-sent events for an open page: one `changed` per change to the household and nothing about what changed; the page then asks for its rows again as the person it is, so a change from a phone shows within a second. A tab out of sight closes the stream and catches up when it is back |
 | `/app/h/{household}/homes`, `…/home/{home}` | one row per home with its out, low and unknown counts, and a new home; the home's staples under their sections with Have, Low and Out on the row, a staple typed into a bar with the section to add it to, *Move* (the row becomes the sections as chips, None, and a field for a new one), Remove, a section's header with Rename and Remove, which keeps its staples; the other flagged items; the spots with their newest picture, Rename and Remove, which asks once more; the trips through it; the home's own name behind *Rename this home*; pictures are taken with the phone |
 | `/app/h/{household}/trips`, `…/trip/{trip}` | upcoming trips, Plan a trip (from, to, day, list), past trips; a trip's Bring, Buy with *Add to list*, Check on arrival, *Arrived* and *Cancel the trip*, derived as on the phone |
+| `/app/h/{household}/history` | History as on the phone: one month at a time (`?month=YYYY-MM`, in the household's time zone), stepped back and forth, opening on the latest month with a purchase: per item the times, the totals of `qty` by `unit` and when last, per home, and who shopped. A purchase is a cleared entry of a shopping list the person may see, so never one from another person's own list |
+| `/app/h/{household}/items` | *All items*: every item that is not retired or merged away, by name, with a search, and on each row *Rename* (the row becomes a field), *Merge into* (a field that offers the other items' names; one way) and *Retire*, which asks once more; the same three events as the phone |
 | `/app/h/{household}/family` | the household's members with role and last seen, Remove for owners; Invite with its QR and link shown once; guest links made and revoked; the person's devices and passkeys with Revoke |
 | `/app/passkey/…` | the two WebAuthn ceremonies as JSON, driven by `static/passkey.js`, our own file under the page's CSP |
 

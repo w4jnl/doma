@@ -193,3 +193,14 @@ code, .dm-mono { font-family: var(--font-mono); font-size: 0.9375rem; }
 .dm-moverow .dm-newsection { margin: 0; flex: 1; min-width: 200px; }
 a.dm-quiet-link { text-decoration: none; }
 a.dm-button { text-decoration: none; }
+
+/* History: the month stepped back and forth, and All items with its three words per row */
+.dm-months { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap; }
+.dm-month { font-weight: 600; min-width: 10em; text-align: center; }
+.dm-off { opacity: 0.35; cursor: default; }
+.dm-item-link { color: var(--ink); text-decoration: none; }
+.dm-item-link:hover { text-decoration: underline; }
+.dm-totals { min-width: 6em; text-align: right; }
+.dm-items li.dm-edit { background: var(--surface); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); }
+.dm-items li.dm-edit form { margin: 0; align-items: center; }
+.dm-merge-what { white-space: nowrap; }

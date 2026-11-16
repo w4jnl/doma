@@ -1,0 +1,55 @@
+{{define "content"}}
+<div class="dm-app">
+  <h1>All items</h1>
+  {{$base := .Data.Base}}{{$csrf := .CSRF}}{{$q := .Data.Search}}
+  {{if .Data.Error}}<p class="dm-error">{{.Data.Error}}</p>{{end}}
+  <form method="get" action="{{$base}}/items" class="dm-add" role="search">
+    <input class="dm-input" type="search" name="q" value="{{$q}}" placeholder="Search" autocomplete="off" aria-label="Search the items"{{if not (or .Data.Rename .Data.Merge)}} autofocus{{end}}>
+    <button class="dm-button dm-button-quiet" type="submit">Search</button>
+    <a class="dm-quiet-link" href="{{$base}}/history">History</a>
+  </form>
+  {{if .Data.Items}}
+  <ul class="dm-rows dm-items">
+    {{range .Data.Items}}
+    {{if eq .ID $.Data.Rename}}
+    <li class="dm-edit">
+      <form method="post" action="{{$base}}/items/{{.ID}}/rename" class="dm-add dm-grow">
+        <input type="hidden" name="_csrf" value="{{$csrf}}"><input type="hidden" name="q" value="{{$q}}">
+        <input class="dm-input" name="name" value="{{.Name}}" required maxlength="200" autocomplete="off" autofocus aria-label="The item's name">
+        <button class="dm-button" type="submit">Save</button>
+        <a class="dm-quiet-link" href="{{$base}}/items{{if $q}}?q={{$q}}{{end}}">Cancel</a>
+      </form>
+    </li>
+    {{else if eq .ID $.Data.Merge}}
+    <li class="dm-edit">
+      <form method="post" action="{{$base}}/items/{{.ID}}/merge" class="dm-add dm-grow">
+        <input type="hidden" name="_csrf" value="{{$csrf}}"><input type="hidden" name="q" value="{{$q}}">
+        <span class="dm-merge-what">Merge <strong>{{.Name}}</strong> into</span>
+        <input class="dm-input" name="into" list="all-items" required maxlength="200" autocomplete="off" autofocus placeholder="The item to keep" aria-label="The item to keep">
+        <datalist id="all-items">{{range $.Data.All}}<option value="{{.}}">{{end}}</datalist>
+        <button class="dm-button dm-button-danger" type="submit">Merge</button>
+        <a class="dm-quiet-link" href="{{$base}}/items{{if $q}}?q={{$q}}{{end}}">Cancel</a>
+      </form>
+    </li>
+    {{else}}
+    <li>
+      <span class="dm-grow">{{.Name}}</span>
+      <span class="dm-meta">{{if .Times}}{{if eq .Times 1}}once{{else}}{{.Times}} times{{end}}, {{if ne .Times 1}}last {{end}}{{ago .LastAt}}{{end}}</span>
+      {{if eq .ID $.Data.Arm}}
+      <form method="post" action="{{$base}}/items/{{.ID}}/retire"><input type="hidden" name="_csrf" value="{{$csrf}}"><input type="hidden" name="q" value="{{$q}}"><button class="dm-button dm-button-danger" type="submit">Really retire?</button></form>
+      <a class="dm-quiet-link" href="{{$base}}/items{{if $q}}?q={{$q}}{{end}}">Keep it</a>
+      {{else}}
+      <a class="dm-quiet-link" href="{{$base}}/items?rename={{.ID}}{{if $q}}&amp;q={{$q}}{{end}}" aria-label="Rename {{.Name}}">Rename</a>
+      <a class="dm-quiet-link" href="{{$base}}/items?merge={{.ID}}{{if $q}}&amp;q={{$q}}{{end}}" aria-label="Merge {{.Name}} into another item">Merge into</a>
+      <a class="dm-quiet-link" href="{{$base}}/items?arm={{.ID}}{{if $q}}&amp;q={{$q}}{{end}}" aria-label="Retire {{.Name}}">Retire</a>
+      {{end}}
+    </li>
+    {{end}}
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="dm-muted">{{if $q}}No item is called that.{{else}}No items yet. They come with what the family puts on its lists.{{end}}</p>
+  {{end}}
+  <p class="dm-muted">Rename fixes the spelling everywhere. Merge into folds a double into the item to keep, and is one way. Retire stops an item coming up; its purchases stay, and typing its name in full brings it back.</p>
+</div>
+{{end}}
