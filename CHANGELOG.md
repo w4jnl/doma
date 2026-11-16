@@ -6,6 +6,11 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Lists, homes and sections are managed in the browser too.** A list can be renamed,
+  recoloured, shared with the family and archived from its page. On a home's page a staple
+  can be moved to a section or a new one, added straight into a section, and a section
+  renamed or removed; the home and its spots can be renamed, and a spot removed.
+
 - **A list in the browser works like one on the phone.** Suggestions appear under the add
   field as you type, with the arrow keys to pick one; Edit turns a row into a field for its
   quantity, note or name; Recent sits beside the list and a click adds an item again; and a

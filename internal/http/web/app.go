@@ -62,6 +62,9 @@ func (h *Web) mountApp(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/h/{household}/l/{list}/edit/{entry}", h.inHousehold(h.appEditForm))
 	mux.HandleFunc("POST /app/h/{household}/l/{list}/edit/{entry}", h.inHousehold(h.appEdit))
 	mux.HandleFunc("GET /app/h/{household}/events", h.inHousehold(h.appEvents))
+	mux.HandleFunc("POST /app/h/{household}/l/{list}/rename", h.inHousehold(h.appRenameList))
+	mux.HandleFunc("POST /app/h/{household}/l/{list}/share", h.inHousehold(h.appShareList))
+	mux.HandleFunc("POST /app/h/{household}/l/{list}/archive", h.inHousehold(h.appArchiveList))
 	h.mountApp2(mux)
 }
 
@@ -453,6 +456,11 @@ type listData struct {
 	// counts follow the list.
 	Lists     []service.WebList
 	Household string
+	// Colours are the six a list may wear; Arm says Archive was asked for
+	// and waits for its second word; Error is what a rename was refused for.
+	Colours []string
+	Arm     bool
+	Error   string
 }
 
 // suggestData is what the catalog offers for the typed text.
@@ -472,6 +480,10 @@ type editData struct {
 }
 
 func (h *Web) appList(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	h.renderListPage(w, r, sess, sc, http.StatusOK, "")
+}
+
+func (h *Web) renderListPage(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope, status int, problem string) {
 	view, err := h.svc.WebList(r.Context(), sc, r.PathValue("list"))
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
@@ -487,8 +499,8 @@ func (h *Web) appList(w http.ResponseWriter, r *http.Request, sess *auth.Session
 		return
 	}
 	p.Current = view.List.ID
-	p.Data = listData{Base: listBase(sc, r), View: view}
-	h.render(w, http.StatusOK, "app_list", p)
+	p.Data = listData{Base: listBase(sc, r), View: view, Colours: service.ListColours(), Arm: r.URL.Query().Get("arm") == "archive", Error: problem}
+	h.render(w, status, "app_list", p)
 }
 
 func listBase(sc domain.Scope, r *http.Request) string {
@@ -576,6 +588,32 @@ func (h *Web) appClear(w http.ResponseWriter, r *http.Request, sess *auth.Sessio
 		return
 	}
 	h.appAfter(w, r, sess, sc, "_app_rows")
+}
+
+// a list's own settings: its name and colour, sharing it, archiving it
+
+func (h *Web) appRenameList(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	err := h.svc.WebRenameList(r.Context(), sc, sess.Credential, r.PathValue("list"), r.PostFormValue("name"), r.PostFormValue("colour"))
+	if h.problem(w, r, err, func(msg string) { h.renderListPage(w, r, sess, sc, http.StatusUnprocessableEntity, msg) }) {
+		return
+	}
+	http.Redirect(w, r, listBase(sc, r), http.StatusSeeOther) //nolint:gosec // G710: the list's own path, in the scope's household
+}
+
+func (h *Web) appShareList(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	id, err := h.svc.WebShareList(r.Context(), sc, sess.Credential, r.PathValue("list"))
+	if h.problem(w, r, err, func(msg string) { h.renderListPage(w, r, sess, sc, http.StatusUnprocessableEntity, msg) }) {
+		return
+	}
+	http.Redirect(w, r, "/app/h/"+sc.HouseholdID+"/l/"+id, http.StatusSeeOther) //nolint:gosec // G710: the list just made, in the scope's household
+}
+
+func (h *Web) appArchiveList(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	err := h.svc.WebArchiveList(r.Context(), sc, sess.Credential, r.PathValue("list"))
+	if h.problem(w, r, err, func(msg string) { h.renderListPage(w, r, sess, sc, http.StatusUnprocessableEntity, msg) }) {
+		return
+	}
+	http.Redirect(w, r, "/app/h/"+sc.HouseholdID+"/lists", http.StatusSeeOther)
 }
 
 // appSuggest is the catalog's matches for what is being typed, as rows under
