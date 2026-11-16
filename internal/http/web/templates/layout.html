@@ -8,7 +8,9 @@
 <link rel="stylesheet" href="/static/tokens.css">
 <link rel="stylesheet" href="/static/doma.css">
 {{if .CSRF}}<meta name="csrf" content="{{.CSRF}}">{{end}}
-{{if .Live}}<script src="/static/htmx.min.js" defer></script>{{end}}
+{{if .Live}}<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false}'>
+<script src="/static/htmx.min.js" defer></script>
+<script src="/static/doma.js" defer></script>{{end}}
 {{if .Passkeys}}<script src="/static/passkey.js" defer></script>{{end}}
 </head>
 <body>
@@ -19,15 +21,13 @@
   {{template "content" .}}
 </main>
 {{else if .Member}}
-<div class="dm-shell" hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}'>
+<div class="dm-shell" hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}' data-live="/app/h/{{.Household}}/events">
   <aside class="dm-side">
     <a class="dm-wordmark" href="/app">{{mark}} doma</a>
     {{if gt (len .Households) 1}}<nav class="dm-switch" aria-label="Household">{{range .Households}}<a href="/app/h/{{.ID}}/lists"{{if eq .ID $.Household}} aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}
     <nav class="dm-nav" aria-label="doma">
       <a href="/app/h/{{.Household}}/lists"{{if and (eq .Nav "lists") (not .Current)}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-list"/></svg>Lists</a>
-      {{if .Lists}}<ul class="dm-side-lists">
-        {{range .Lists}}<li><a href="/app/h/{{$.Household}}/l/{{.ID}}"{{if eq .ID $.Current}} aria-current="page"{{end}}><span class="dm-dot dm-dot-{{.Colour}}" aria-hidden="true"></span><span class="dm-grow">{{.Name}}</span>{{if .Open}}<span class="dm-meta dm-mono">{{.Open}}</span>{{end}}</a></li>{{end}}
-      </ul>{{end}}
+      {{template "sidelists" (dict "Lists" .Lists "Household" .Household "Current" .Current "OOB" false)}}
       <a href="/app/h/{{.Household}}/homes"{{if eq .Nav "homes"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-home"/></svg>Homes</a>
       <a href="/app/h/{{.Household}}/trips"{{if eq .Nav "trips"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-trip"/></svg>Trip</a>
       <a href="/app/h/{{.Household}}/family"{{if eq .Nav "family"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-family"/></svg>Family</a>

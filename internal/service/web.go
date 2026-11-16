@@ -7,6 +7,8 @@ import (
 	"errors"
 	"net/http"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -135,6 +137,229 @@ type WebListView struct {
 	AnyChecked bool
 	Checked    int
 	Open       int
+	// Recent is what was cleared from this list last and is not on it now,
+	// newest first, for adding again.
+	Recent []WebRecent
+}
+
+// WebRecent is one item cleared from a list, and when.
+type WebRecent struct {
+	ItemID string
+	Name   string
+	At     int64
+}
+
+// WebMatch is one item the catalog offers for what is being typed.
+type WebMatch struct {
+	ItemID string
+	Name   string
+	// Last is when it was last cleared from a list of this kind, 0 for never.
+	Last int64
+}
+
+// recentLimit and matchLimit are the phone's: thirty under Recent, five matches.
+const (
+	recentLimit = 30
+	matchLimit  = 5
+)
+
+// recentOf is what the list cleared last, an item once, without what is on
+// the list now and without retired or merged items.
+func recentOf(tables fold.Tables, listID string) []WebRecent {
+	live := map[string]fold.Item{}
+	for _, it := range tables.Items {
+		if it.ArchivedAt == nil && it.MergedInto == nil {
+			live[it.ID] = it
+		}
+	}
+	open := map[string]bool{}
+	last := map[string]int64{}
+	for _, e := range tables.Entries {
+		if e.ListID != listID {
+			continue
+		}
+		if e.ClearedHLC == nil {
+			open[e.ItemID] = true
+		} else if e.CheckedHLC != nil && e.ClearedHLC.Wall > last[e.ItemID] {
+			last[e.ItemID] = e.ClearedHLC.Wall
+		}
+	}
+	var out []WebRecent
+	for id, at := range last {
+		if it, ok := live[id]; ok && !open[id] {
+			out = append(out, WebRecent{ItemID: id, Name: it.Name, At: at})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].At != out[j].At {
+			return out[i].At > out[j].At
+		}
+		return out[i].Name < out[j].Name
+	})
+	if len(out) > recentLimit {
+		out = out[:recentLimit]
+	}
+	return out
+}
+
+// WebSuggest is the catalog's answer to what is being typed on a list: the
+// items whose name or alias has a word starting with it, the most used first,
+// from the items used on lists of the same kind, as the phone's matches are.
+func (s *Service) WebSuggest(ctx context.Context, sc domain.Scope, listID, text string) ([]WebMatch, bool, error) {
+	if sc.IsGuest() {
+		return nil, false, domain.ErrForbidden
+	}
+	typed := domain.NormName(domain.ParseEntry(text).Name)
+	if typed == "" {
+		return nil, false, nil
+	}
+	var out []WebMatch
+	tasks := false
+	err := s.db.ReadTx(ctx, func(q *db.Queries) error {
+		l, err := s.webList(ctx, q, sc, listID)
+		if err != nil {
+			return err
+		}
+		tasks = l.Kind == "tasks"
+		tables, err := foldsql.New(ctx, q, sc.HouseholdID).Tables()
+		if err != nil {
+			return err
+		}
+		kinds := map[string]string{}
+		for _, x := range tables.Lists {
+			kinds[x.ID] = x.Kind
+		}
+		used := map[string]bool{}
+		last := map[string]int64{}
+		for _, e := range tables.Entries {
+			if kinds[e.ListID] != l.Kind {
+				continue
+			}
+			used[e.ItemID] = true
+			if e.ClearedHLC != nil && e.CheckedHLC != nil && e.ClearedHLC.Wall > last[e.ItemID] {
+				last[e.ItemID] = e.ClearedHLC.Wall
+			}
+		}
+		starts := func(norm string) bool {
+			return strings.HasPrefix(norm, typed) || strings.Contains(norm, " "+typed)
+		}
+		aliased := map[string]bool{}
+		for _, a := range tables.Aliases {
+			if starts(a.NormName) {
+				aliased[a.ItemID] = true
+			}
+		}
+		var found []fold.Item
+		for _, it := range tables.Items {
+			if it.ArchivedAt != nil || it.MergedInto != nil || !used[it.ID] {
+				continue
+			}
+			if (it.NormName != nil && starts(*it.NormName)) || aliased[it.ID] {
+				found = append(found, it)
+			}
+		}
+		sort.Slice(found, func(i, j int) bool {
+			a, b := found[i], found[j]
+			if a.UseCount != b.UseCount {
+				return a.UseCount > b.UseCount
+			}
+			var la, lb int64
+			if a.LastUsedAt != nil {
+				la = *a.LastUsedAt
+			}
+			if b.LastUsedAt != nil {
+				lb = *b.LastUsedAt
+			}
+			if la != lb {
+				return la > lb
+			}
+			return a.Name < b.Name
+		})
+		if len(found) > matchLimit {
+			found = found[:matchLimit]
+		}
+		for _, it := range found {
+			out = append(out, WebMatch{ItemID: it.ID, Name: it.Name, Last: last[it.ID]})
+		}
+		return nil
+	})
+	return out, tasks, err
+}
+
+// Watch says when the household changed, for a page that shows it; the
+// function ends the watch.
+func (s *Service) Watch(householdID string) (<-chan struct{}, func()) {
+	if s.bus == nil {
+		return make(chan struct{}), func() {}
+	}
+	return s.bus.Watch(householdID)
+}
+
+// EntryLine is an entry as it would be typed: the name, the quantity with its
+// unit, the note in brackets. It is what the edit field starts with.
+func EntryLine(e GuestEntry) string {
+	line := e.ItemName
+	if e.Qty != nil {
+		line += " " + strconv.FormatFloat(*e.Qty, 'f', -1, 64)
+		if e.Unit != "" && e.Unit != "x" {
+			line += " " + e.Unit
+		}
+	}
+	if e.Note != "" {
+		line += " (" + e.Note + ")"
+	}
+	return line
+}
+
+// WebEdit replaces an open entry with the line as typed: the quantity, unit
+// and note are the entry's, and a changed name renames the item, as the
+// phone's Edit does.
+func (s *Service) WebEdit(ctx context.Context, sc domain.Scope, credentialID, listID, entryID, text string) error {
+	if sc.IsGuest() {
+		return domain.ErrForbidden
+	}
+	parsed := domain.ParseEntry(text)
+	if parsed.Name == "" || len(parsed.Name) > 200 {
+		return domain.Invalid("text", "type what to get")
+	}
+	var last int64
+	err := s.db.Tx(ctx, func(q *db.Queries) error {
+		if _, err := s.webList(ctx, q, sc, listID); err != nil {
+			return err
+		}
+		rows, err := foldsql.New(ctx, q, sc.HouseholdID).Entries(listID, nil)
+		if err != nil {
+			return err
+		}
+		for _, e := range rows {
+			if e.ID != entryID || e.ClearedHLC != nil {
+				continue
+			}
+			var evs []fold.Event
+			it, err := q.GetItem(ctx, db.GetItemParams{HouseholdID: sc.HouseholdID, ID: e.ItemID})
+			if err != nil {
+				return notFound(err)
+			}
+			if it.Name != parsed.Name {
+				evs = append(evs, s.guestEvent(sc, "item.renamed", map[string]any{"item_id": e.ItemID, "name": parsed.Name}))
+			}
+			payload := map[string]any{"list_id": listID, "item_id": e.ItemID, "note": parsed.Note, "qty": nil, "unit": nil}
+			if parsed.Qty != nil {
+				payload["qty"] = *parsed.Qty
+				payload["unit"] = parsed.Unit
+			}
+			evs = append(evs, s.guestEvent(sc, "entry.edited", payload))
+			seq, err := s.appendEvents(ctx, q, sc.HouseholdID, credentialID, evs)
+			last = seq
+			return err
+		}
+		return domain.ErrNotFound
+	})
+	if err != nil {
+		return err
+	}
+	s.changed(sc.HouseholdID, last)
+	return nil
 }
 
 // WebList reads one list with its rows; another person's list is ErrNotFound.
@@ -172,6 +397,7 @@ func (s *Service) WebList(ctx context.Context, sc domain.Scope, listID string) (
 		}
 		v.AnyChecked = v.Checked > 0
 		v.List.Open = v.Open
+		v.Recent = recentOf(tables, listID)
 		return nil
 	})
 	if err != nil {

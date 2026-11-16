@@ -1,0 +1,8 @@
+<li class="dm-edit" data-editing>
+  <form method="post" action="{{.Data.Base}}/edit/{{.Data.ID}}" hx-post="{{.Data.Base}}/edit/{{.Data.ID}}" hx-target="#rows" hx-swap="outerHTML">
+    <input type="hidden" name="_csrf" value="{{.CSRF}}">
+    <input class="dm-input" name="text" value="{{.Data.Line}}" required maxlength="300" autocomplete="off" autofocus aria-label="The entry as typed">
+    <button class="dm-button" type="submit">Save</button>
+    <button class="dm-button dm-button-quiet" type="button" hx-get="{{.Data.Base}}/rows" hx-target="#rows" hx-swap="outerHTML">Cancel</button>
+  </form>
+</li>

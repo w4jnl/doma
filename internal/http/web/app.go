@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -57,6 +58,10 @@ func (h *Web) mountApp(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/h/{household}/l/{list}/check/{entry}", h.inHousehold(h.appCheck))
 	mux.HandleFunc("POST /app/h/{household}/l/{list}/remove/{entry}", h.inHousehold(h.appRemove))
 	mux.HandleFunc("POST /app/h/{household}/l/{list}/clear", h.inHousehold(h.appClear))
+	mux.HandleFunc("GET /app/h/{household}/l/{list}/suggest", h.inHousehold(h.appSuggest))
+	mux.HandleFunc("GET /app/h/{household}/l/{list}/edit/{entry}", h.inHousehold(h.appEditForm))
+	mux.HandleFunc("POST /app/h/{household}/l/{list}/edit/{entry}", h.inHousehold(h.appEdit))
+	mux.HandleFunc("GET /app/h/{household}/events", h.inHousehold(h.appEvents))
 	h.mountApp2(mux)
 }
 
@@ -444,6 +449,26 @@ type listData struct {
 	// Base is the list's path, which its forms post under.
 	Base string
 	View *service.WebListView
+	// Lists and Household are the sidebar's, sent along with the rows so its
+	// counts follow the list.
+	Lists     []service.WebList
+	Household string
+}
+
+// suggestData is what the catalog offers for the typed text.
+type suggestData struct {
+	Base    string
+	Matches []service.WebMatch
+	// Tasks says the list is of things to do, whose matches were last done, not bought.
+	Tasks bool
+}
+
+// editData is one row as a field holding its line.
+type editData struct {
+	Base  string
+	ID    string
+	Line  string
+	Error string
 }
 
 func (h *Web) appList(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
@@ -485,7 +510,12 @@ func (h *Web) appFragment(w http.ResponseWriter, r *http.Request, sess *auth.Ses
 		h.fail(w, r, err)
 		return
 	}
-	body, err := h.renderBytes(name, page{Member: true, CSRF: sess.CSRF, Data: listData{Base: listBase(sc, r), View: view}})
+	lists, err := h.svc.WebLists(r.Context(), sc)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	body, err := h.renderBytes(name, page{Member: true, CSRF: sess.CSRF, Data: listData{Base: listBase(sc, r), View: view, Lists: lists, Household: sc.HouseholdID}})
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -546,6 +576,95 @@ func (h *Web) appClear(w http.ResponseWriter, r *http.Request, sess *auth.Sessio
 		return
 	}
 	h.appAfter(w, r, sess, sc, "_app_rows")
+}
+
+// appSuggest is the catalog's matches for what is being typed, as rows under
+// the add field; nothing typed, nothing shown.
+func (h *Web) appSuggest(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	matches, tasks, err := h.svc.WebSuggest(r.Context(), sc, r.PathValue("list"), r.URL.Query().Get("text"))
+	if err != nil {
+		h.appProblem(w, r, err)
+		return
+	}
+	h.fragment(w, r, "_app_suggest", page{Member: true, CSRF: sess.CSRF, Data: suggestData{Base: listBase(sc, r), Matches: matches, Tasks: tasks}})
+}
+
+// appEditForm turns one row into a field holding the line as it would be typed.
+func (h *Web) appEditForm(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	view, err := h.svc.WebList(r.Context(), sc, r.PathValue("list"))
+	if err != nil {
+		h.appProblem(w, r, err)
+		return
+	}
+	for _, e := range view.Entries {
+		if e.ID == r.PathValue("entry") && !e.Checked {
+			h.fragment(w, r, "_app_edit", page{Member: true, CSRF: sess.CSRF, Data: editData{Base: listBase(sc, r), ID: e.ID, Line: service.EntryLine(e)}})
+			return
+		}
+	}
+	http.NotFound(w, r)
+}
+
+func (h *Web) appEdit(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
+	text := strings.TrimSpace(r.PostFormValue("text"))
+	if err := h.svc.WebEdit(r.Context(), sc, sess.Credential, r.PathValue("list"), r.PathValue("entry"), text); err != nil {
+		var ve domain.ErrValidation
+		if !errors.As(err, &ve) && !errors.Is(err, domain.ErrNotFound) {
+			h.appProblem(w, r, err)
+			return
+		}
+	}
+	h.appAfter(w, r, sess, sc, "_app_rows")
+}
+
+func (h *Web) fragment(w http.ResponseWriter, r *http.Request, name string, p page) {
+	body, err := h.renderBytes(name, p)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write(body)
+}
+
+// appEvents tells an open page that its household changed, as server-sent
+// events: one "changed" per change, nothing about what changed, so the page
+// asks for its rows again as the person it is signed in as. A comment every
+// 25 s keeps a proxy from closing a quiet stream.
+func (h *Web) appEvents(w http.ResponseWriter, r *http.Request, _ *auth.Session, sc domain.Scope) {
+	rc := http.NewResponseController(w)
+	if err := rc.SetWriteDeadline(time.Time{}); err != nil {
+		http.Error(w, "no stream", http.StatusNotImplemented)
+		return
+	}
+	changes, done := h.svc.Watch(sc.HouseholdID)
+	defer done()
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+	_, _ = io.WriteString(w, "retry: 3000\n\n")
+	_ = rc.Flush()
+	beat := time.NewTicker(25 * time.Second)
+	defer beat.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-changes:
+			if _, err := io.WriteString(w, "event: changed\ndata: 1\n\n"); err != nil {
+				return
+			}
+		case <-beat.C:
+			if _, err := io.WriteString(w, ": still here\n\n"); err != nil {
+				return
+			}
+		}
+		if err := rc.Flush(); err != nil {
+			return
+		}
+	}
 }
 
 func (h *Web) appProblem(w http.ResponseWriter, r *http.Request, err error) {

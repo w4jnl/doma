@@ -1,0 +1,3 @@
+{{define "sidelists"}}<ul class="dm-side-lists" id="side-lists"{{if .OOB}} hx-swap-oob="true"{{end}}>
+  {{range .Lists}}<li><a href="/app/h/{{$.Household}}/l/{{.ID}}"{{if eq .ID $.Current}} aria-current="page"{{end}}><span class="dm-dot dm-dot-{{.Colour}}" aria-hidden="true"></span><span class="dm-grow">{{.Name}}</span>{{if .Open}}<span class="dm-meta dm-mono">{{.Open}}</span>{{end}}</a></li>{{end}}
+</ul>{{end}}

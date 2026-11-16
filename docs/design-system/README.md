@@ -266,7 +266,8 @@ CSS, no framework, no inline styles.
   (a member's role, a family's lists) are counts and metadata only.
 - **Setup page.** One card on `ground` with the mark above it, three fields, one button. It never
   renders again.
-- Live parts poll only while the tab is visible (the guest list every 10 s) and use `ETag`.
+- **A list at a computer.** The add field with *Add*, the matches as rows under it on `surface`, the one under the keys or the pointer on `accent-soft`; rows with *Edit* and *Not needed* as quiet words at their end; the divider with the got count and *Clear*; *Recent* as a second column with a `+` before each name.
+- Live parts: a member's page hears the household change through one stream and reads its rows again; the guest list polls every 10 s. Both use `ETag`. htmx runs without `eval` and without its own inline style, as the page's policy demands.
 
 ## Pictograms
 
