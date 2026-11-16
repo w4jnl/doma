@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **Tidy items from a list's Recent.** A swipe on a row under Recent (the row's menu on the
+  Mac) offers Rename, Merge into and Retire, as History does: fix a typo, fold a double into
+  the right item, or stop an item coming up, without leaving the list.
+
 ## 0.8.0 (2026-11-13)
 
 - **Sections for a home's staples.** A home's staples can be split under headers: Fridge,

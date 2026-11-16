@@ -173,6 +173,25 @@ final class DomaUITests: XCTestCase {
         XCTAssertFalse(row.waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["entry-brood"].exists)
         XCTAssertTrue(app.buttons["Recent"].exists, "the cleared item is in Recent")
+        // Recent opens, and a swipe on its row tidies the item as History does
+        // the header answers on its word, not across the row
+        let header = app.buttons["Recent"]
+        app.staticTexts["Recent"].tap()
+        sleep(1)
+        XCTAssertEqual(header.value as? String, "open", "Recent opens")
+        let recent = app.descendants(matching: .any)["recent-melk"].firstMatch
+        for _ in 0..<3 where !recent.waitForExistence(timeout: 2) { app.swipeUp() }
+        XCTAssertTrue(recent.exists, "Recent shows the melk")
+        recent.swipeLeft()
+        XCTAssertTrue(app.buttons["Retire"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Merge into…"].exists)
+        app.buttons["Rename"].tap()
+        let rename = app.textFields["rename-item"]
+        XCTAssertTrue(rename.waitForExistence(timeout: 3), "the row is a field")
+        XCTAssertEqual(rename.value as? String, "melk")
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(recent.waitForExistence(timeout: 3), "and a row again")
+        app.staticTexts["Recent"].tap()
         // Lists at the top left opens the overview; picking the list comes back
         app.buttons["all-lists"].tap()
         XCTAssertTrue(app.buttons["New list"].waitForExistence(timeout: 10), "the overview is up")
