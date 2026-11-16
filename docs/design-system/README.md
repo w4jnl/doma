@@ -150,7 +150,7 @@ row, not a new screen.
 - **A list.** Entry rows `row-h-list` (52pt) with hairlines in `line`; no cards, no zebra. On
   the phone the add bar is a glass capsule floating at the bottom over the tab bar, the one
   glass in the app: an `accent` disc with a `+` in `on-accent` at its left, the field with no
-  box, the mic at its end with the language code (EN, NL, SK) in mono under it: `accent` at
+  box, a keyboard-down glyph in `ink-muted` before the mic while the keyboard is up, which puts it away (a scroll of the list does too), the mic at its end with the language code (EN, NL, SK) in mono under it: `accent` at
   rest, `mic.fill` pulsing in `out` while it listens, a small spinner while the model is fetched
   once; a tap of it is a light impact, then the start haptic when it listens and the stop one
   when it stops; the match rows and the usual chips stack above it in the same glass. Match rows are at most five, the best nearest the bar

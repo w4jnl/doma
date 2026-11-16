@@ -282,3 +282,22 @@ struct ColourDots: View {
         }
     }
 }
+
+/// The way to put the keyboard down from an add bar, there while the bar's field has it up.
+struct KeyboardDownButton: View {
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "keyboard.chevron.compact.down")
+                .font(.body)
+                .foregroundStyle(Tokens.inkMuted)
+                .frame(minWidth: Tokens.space6, minHeight: Tokens.space7)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Hide the keyboard"))
+        .accessibilityIdentifier("keyboard-down")
+        .transition(.opacity)
+    }
+}

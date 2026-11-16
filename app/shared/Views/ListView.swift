@@ -244,7 +244,8 @@ struct ListView: View {
             }
         }
         if let recent = recent?.value, !recent.isEmpty {
-            RecentSection(recent: recent, shown: $showRecent) { add(itemID: $0) }
+            // a tap in Recent adds without calling the keyboard up over the new row
+            RecentSection(recent: recent, shown: $showRecent) { add(itemID: $0, keyboard: false) }
                 .transition(.opacity.animation(.easeOut(duration: Tokens.motionBase).delay(Tokens.motionQuick)))
         }
     }
@@ -396,6 +397,7 @@ struct ListView: View {
                 .autocorrectionDisabled()
                 .accessibilityLabel(Text("Add an item"))
                 .overlay(alignment: .leading) { hearing }
+            if fieldFocused { KeyboardDownButton { fieldFocused = false } }
             MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
         }
     }
@@ -625,16 +627,17 @@ struct ListView: View {
         after(outcome)
     }
 
-    private func add(itemID: String) {
+    private func add(itemID: String, keyboard: Bool = true) {
         guard let outcome = try? ListActions.add(itemID: itemID, to: listID, in: session) else { return }
-        after(outcome)
+        after(outcome, keyboard: keyboard)
     }
 
-    private func after(_ outcome: AddOutcome) {
+    private func after(_ outcome: AddOutcome, keyboard: Bool = true) {
         text = ""
         matches = []
-        // the keyboard stays for the next tap; a spoken add does not call it up
-        if !session.dictation.busy { fieldFocused = true }
+        // the keyboard stays for the next tap; a spoken add does not call it up, nor one
+        // from Recent, where it would cover the row that just arrived
+        if keyboard, !session.dictation.busy { fieldFocused = true }
         switch outcome {
         case .added(let itemID):
             // the row arrives through the store's observation; `arrived` scrolls to it and

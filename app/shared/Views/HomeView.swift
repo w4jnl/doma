@@ -307,6 +307,7 @@ struct HomeView: View {
                 .autocorrectionDisabled()
                 .overlay(alignment: .leading) { hearing }
             targetChip
+            if fieldFocused { KeyboardDownButton { fieldFocused = false } }
             MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
         }
     }
