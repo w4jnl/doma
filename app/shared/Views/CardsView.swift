@@ -7,9 +7,7 @@
 import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
-#if os(iOS)
 import UIKit
-#endif
 
 /// The route a list's card glyph and the Lists overview push.
 struct CardsRoute: Hashable {}
@@ -45,9 +43,7 @@ struct CardsView: View {
         .background(Tokens.ground)
         .environment(\.defaultMinListRowHeight, ListView.rowHeight)
         .navigationTitle("Cards")
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
-        #endif
         .navigationDestination(for: CardRoute.self) { r in CardView(cardID: r.id) }
         .navigationDestination(isPresented: $adding) { AddCardView(editing: nil) }
         .navigationDestination(item: $editing) { c in AddCardView(editing: c.id) }
@@ -125,15 +121,6 @@ struct CardsView: View {
             Button("Edit") { editing = c }
                 .tint(Tokens.accent)
         }
-        #if os(macOS)
-        .contextMenu {
-            Button("Edit") { editing = c }
-            if c.isPersonal {
-                Button("Share with the family") { _ = try? CardActions.share(c, in: session) }
-            }
-            Button("Remove", role: .destructive) { arm(c.id) }
-        }
-        #endif
     }
 
     private func arm(_ id: String) {
@@ -214,9 +201,7 @@ struct CardView: View {
     var cardID: String
     @Environment(Session.self) private var session
     @State private var card: Live<CardRow?>?
-    #if os(iOS)
     @State private var brightnessBefore: CGFloat?
-    #endif
 
     var body: some View {
         let c = card?.value ?? nil
@@ -270,30 +255,24 @@ struct CardView: View {
             }
         }
         .navigationTitle("")
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        #endif
         .toolbar {
             ToolbarItem(placement: .automatic) { OfflineBadge() }
         }
         .onAppear {
             observe()
             CardsShown.touch(cardID, session: session)
-            #if os(iOS)
             UIApplication.shared.isIdleTimerDisabled = true
             if let screen = Self.screen, !UITestHooks.testing {
                 brightnessBefore = screen.brightness
                 screen.brightness = 1
             }
-            #endif
         }
         .onDisappear {
-            #if os(iOS)
             UIApplication.shared.isIdleTimerDisabled = false
             if let before = brightnessBefore, let screen = Self.screen {
                 screen.brightness = before
             }
-            #endif
         }
         .onChange(of: session.scope) { observe() }
     }
@@ -304,11 +283,9 @@ struct CardView: View {
         card = Live(session.store, initial: nil) { db in try Queries.card(db, scope, id: id) }
     }
 
-    #if os(iOS)
     private static var screen: UIScreen? {
         UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first?.screen
     }
-    #endif
 }
 
 // MARK: - Add a card
@@ -368,9 +345,7 @@ struct AddCardView: View {
                         .font(Tokens.mono(.body))
                         .focused($focus, equals: .number)
                         .autocorrectionDisabled()
-                        #if os(iOS)
                         .textInputAutocapitalization(.characters)
-                        #endif
                         .submitLabel(.next)
                         .onSubmit { focus = .shop }
                         .accessibilityIdentifier("card-value")
@@ -438,18 +413,12 @@ struct AddCardView: View {
                 SectionHeader("Shop")
             }
         }
-        #if os(iOS)
         .listStyle(.insetGrouped)
-        #else
-        .listStyle(.plain)
-        #endif
         .textCase(nil)
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
         .navigationTitle(editing == nil ? "Add a card" : "Edit card")
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        #endif
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(editing == nil ? "Add" : "Save", action: save)

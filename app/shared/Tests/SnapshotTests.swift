@@ -8,31 +8,17 @@
 import SwiftUI
 import XCTest
 @testable import Doma
-#if canImport(UIKit)
 import UIKit
-#else
-import AppKit
-#endif
 
 @MainActor
 final class SnapshotTests: XCTestCase {
-    #if os(iOS)
     nonisolated static let platform = "ios"
     static let size = CGSize(width: 393, height: 852)
-    #else
-    nonisolated static let platform = "macos"
-    static let size = CGSize(width: 900, height: 600)
-    #endif
     nonisolated static let dir = Fixture.root.appendingPathComponent("app/shared/Tests/Snapshots/" + platform)
     static let recording = FileManager.default.fileExists(atPath: Fixture.root.appendingPathComponent("tmp/record-snapshots").path)
-    /// Where a recording lands: the repository on the simulator; on the Mac the sandboxed app
-    /// cannot write there, so its temp folder, from where make snapshots copies the files.
+    /// Where a recording lands: the repository, which the simulator can write to.
     static var recordDir: URL {
-        #if os(iOS)
         dir
-        #else
-        URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("doma-snapshots", isDirectory: true)
-        #endif
     }
     nonisolated static let now = Date(timeIntervalSince1970: 1_793_500_000) // 2026-11-01
     static let tolerance = 0.01
@@ -235,15 +221,9 @@ final class SnapshotTests: XCTestCase {
         try await check("invite") { NavigationStack { InviteSheet(invite: inv) } }
     }
 
-    #if os(macOS)
-    func testMacMain() async throws {
-        try await check("main") { MacMainView() }
-    }
-    #else
     func testTabs() async throws {
         try await check("main") { MainView() }
     }
-    #endif
 
     // MARK: The harness
 
@@ -259,14 +239,7 @@ final class SnapshotTests: XCTestCase {
             for (sizeName, size) in [("L", DynamicTypeSize.large), ("XXXL", DynamicTypeSize.xxxLarge)] {
                 let full = "\(name)-\(dark ? "dark" : "light")-\(sizeName)"
                 let shown = view().environment(session)
-                #if os(macOS)
-                // no window toolbar in a picture: a screen with toolbar items gets one a moment
-                // after its first layout, and the content moves by half a point when it comes;
-                // without a title bar to take it, it is drawn as a strip inside the content
-                let withNav = AnyView(shown.environment(MacNav()).toolbar(.hidden, for: .windowToolbar))
-                #else
                 let withNav = AnyView(shown)
-                #endif
                 let content = AnyView(withNav
                     .environment(\.dynamicTypeSize, size)
                     .environment(\.locale, Locale(identifier: "en"))
@@ -343,7 +316,6 @@ final class SnapshotTests: XCTestCase {
         return last
     }
 
-    #if os(iOS)
     func render(_ content: AnyView, dark: Bool) async throws -> Data {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let window = UIWindow(windowScene: scene)
@@ -365,73 +337,4 @@ final class SnapshotTests: XCTestCase {
         window.isHidden = true
         return png
     }
-    #else
-    /// A window that always draws as the key window of an active app: whether the test host
-    /// may activate depends on what else is on the screen, and a default button or a selected
-    /// row looks different in an inactive window.
-    final class KeyWindow: NSWindow {
-        override var isKeyWindow: Bool { true }
-        override var isMainWindow: Bool { true }
-        override var canBecomeKey: Bool { true }
-        override var canBecomeMain: Bool { true }
-    }
-
-    /// Every layer under view, with its animations removed, so it draws at its model values;
-    /// and every scroll view at its top, under its inset, where a screen opens.
-    static func finishAnimations(_ view: NSView) {
-        func walk(_ layer: CALayer) {
-            layer.removeAllAnimations()
-            layer.sublayers?.forEach(walk)
-        }
-        if let layer = view.layer { walk(layer) }
-        if let scroll = view as? NSScrollView {
-            let top = NSPoint(x: 0, y: -scroll.contentInsets.top)
-            if scroll.contentView.bounds.origin != top {
-                scroll.contentView.scroll(to: top)
-                scroll.reflectScrolledClipView(scroll.contentView)
-            }
-        }
-        view.subviews.forEach(finishAnimations)
-    }
-
-    func render(_ content: AnyView, dark: Bool) async throws -> Data {
-        // on the sharpest screen there is, from the start: a window made on a 1x display and
-        // moved to a Retina one rasterises what it laid out before the move at the old scale,
-        // so text and a QR code land a half pixel off in some pictures and not in others
-        let sharp = NSScreen.screens.max(by: { $0.backingScaleFactor < $1.backingScaleFactor })
-        let origin = sharp.map { NSPoint(x: $0.visibleFrame.origin.x.rounded(), y: $0.visibleFrame.origin.y.rounded()) } ?? .zero
-        let window = KeyWindow(contentRect: NSRect(origin: origin, size: Self.size), styleMask: [.titled], backing: .buffered, defer: false, screen: sharp)
-        window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-        // unseen: the pictures are drawn into a bitmap, not read off the screen, so the window
-        // need not show, and a run of them is not a run of windows over the person's work
-        window.alphaValue = 0
-        window.ignoresMouseEvents = true
-        let hosting = NSHostingView(rootView: content)
-        hosting.frame = NSRect(origin: .zero, size: Self.size)
-        window.contentView = hosting
-        window.orderFront(nil)
-        hosting.layoutSubtreeIfNeeded()
-        try await Task.sleep(for: .milliseconds(500))
-        let png = try await settled {
-            // the model, not a frame: on a display the system is not driving, an animation can
-            // stand still part way, and a list's scroll to its inset is one; its layers are
-            // snapped to where they are going before the bitmap is drawn
-            Self.finishAnimations(hosting)
-            let rep = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
-            hosting.cacheDisplay(in: hosting.bounds, to: rep)
-            // at 1x: the pictures are for the eye and the diff, not for the shop window; a view
-            // smaller than the canvas (the Settings window) sits top left at its own size
-            let w = Int(Self.size.width), h = Int(Self.size.height)
-            let small = try XCTUnwrap(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w, pixelsHigh: h, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
-            NSGraphicsContext.saveGraphicsState()
-            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: small)
-            let vw = min(hosting.bounds.width, CGFloat(w)), vh = min(hosting.bounds.height, CGFloat(h))
-            rep.draw(in: NSRect(x: 0, y: CGFloat(h) - vh, width: vw, height: vh))
-            NSGraphicsContext.restoreGraphicsState()
-            return try XCTUnwrap(small.representation(using: .png, properties: [:]))
-        }
-        window.orderOut(nil)
-        return png
-    }
-    #endif
 }

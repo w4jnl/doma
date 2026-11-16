@@ -1,4 +1,4 @@
-// doma for iPhone (docs/design.md, "iPhone and Mac apps"). The apps' phase 0 lands in steps:
+// doma for iPhone (docs/design.md, "iPhone app"). The apps' phase 0 lands in steps:
 // step 1 was the project and the design system, this is step 2, the store, the fold, sync and
 // identity behind the screens that come in step 3.
 import SwiftUI

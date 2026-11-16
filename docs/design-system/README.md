@@ -1,6 +1,6 @@
 doma is the family's household app: shared and personal shopping lists, what is at each home,
-and what to bring from one home to the other, as one Go server with an event log and native
-iPhone and Mac apps. It lives at `github.com/w4jnl/doma` beside flok, vink and nt and shares
+and what to bring from one home to the other, as one Go server with an event log, a native
+iPhone app and a web client. It lives at `github.com/w4jnl/doma` beside flok, vink and nt and shares
 their bracket, weights, ground and type. Someone who knows the siblings should recognise doma as
 one of them at a glance, and a family member who knows none of them should never notice there is
 a system. The name is Slovak: *doma* is "at home", as in "čo máme doma?", what do we have at home.
@@ -20,8 +20,8 @@ a system. The name is Slovak: *doma* is "at home", as in "čo máme doma?", what
   Confirmations repeat the verb: "Really remove?".
 - Errors say what is wrong and how to fix it, next to the thing: "That invite was used already.
   Ask for a new one." No apologies, no codes.
-- Times are relative first ("3 wk ago", "yesterday", "in 2 days"), with the absolute time on hover
-  on the Mac and in the detail on the phone.
+- Times are relative first ("3 wk ago", "yesterday", "in 2 days"), with the absolute time in the
+  detail on the phone.
 - Strings ship in English, Dutch and Slovak from the first build, in one catalogue; a screen is
   not done until it reads well in all three. Sentence case everywhere; no uppercase labels.
 
@@ -126,24 +126,22 @@ shapes, so a person who has seen one of them reads the others.
 - On the web pages (guest view, admin) the same split: `font-sans` for UI words, `font-mono` for
   data, one `title` per page, sentence case, no uppercase labels.
 
-## iPhone and Mac apps
+## iPhone app
 
 The simplicity budget: five tabs, at most one list and one detail per screen, no screen with more
 than one text field apart from Scan. Anything that does not fit is a long-press item or a Settings
 row, not a new screen.
 
-- **Tabs.** Lists, Homes, Trip, Family, in that order, with SF Symbols (see Pictograms). On the
-  Mac the same four are sidebar sections. The Lists tab opens into the last-used list, with a
+- **Tabs.** Lists, Homes, Trip, Family, in that order, with SF Symbols (see Pictograms). The Lists tab opens into the last-used list, with a
   *Lists* button at its top left for the overview; a second tap on the tab does the same. The
   icon's badge counts what this device has not seen (entries others added since each list was
-  last in front); the overview and the sidebar put an 8pt `accent` dot before a list's count
+  last in front); the overview puts an 8pt `accent` dot before a list's count
   while it holds unseen entries, and a list dots the symbol of each new row for that visit. The
   household name is
   the Family screen's subtitle and a switcher over households takes the title's place only when
   the person is in more than one. Section words are subheadline in `ink-muted`, never capitals.
   The list itself is a plain list on `ground`; the Lists overview, Family and Settings are the
-  phone's grouped inset lists, rows on `surface`, help lines as section footers, and plain
-  lists on the Mac. The accent belongs to what makes something: Add, New list, Invite, the
+  phone's grouped inset lists, rows on `surface`, help lines as section footers. The accent belongs to what makes something: Add, New list, Invite, the
   selected tab; one prominent button per screen at most (Invite on Family), everything else a
   plain toolbar item. Remove and Revoke live behind a swipe and the long-press menu and arm in
   the row (*Really remove?* on `out`); Leave is a row, an `ink-muted` word until armed. On the
@@ -155,8 +153,7 @@ row, not a new screen.
   box, the mic at its end with the language code (EN, NL, SK) in mono under it: `accent` at
   rest, `mic.fill` pulsing in `out` while it listens, a small spinner while the model is fetched
   once; a tap of it is a light impact, then the start haptic when it listens and the stop one
-  when it stops; the match rows and the usual chips stack above it in the same glass. On the Mac the bar
-  is pinned under a hairline on `ground`. Match rows are at most five, the best nearest the bar
+  when it stops; the match rows and the usual chips stack above it in the same glass. Match rows are at most five, the best nearest the bar
   on `accent-soft`; with the field empty, one row of chips with the usual items. The divider
   between open and struck rows is a row, never a pinned header.
   An entry row is the custom `open` or `done` symbol in a 24pt column in `ink-muted` (never the
@@ -199,7 +196,7 @@ row, not a new screen.
   packed.
 - **Family.** Members as rows with name, role word and last seen; invites and guest links as
   rows with their expiry; *Invite* prominent and *Guest link* plain in the toolbar. An invite
-  opens one level down on the phone and a sheet on the Mac, with the QR on `surface-sunk` at
+  opens one level down, with the QR on `surface-sunk` at
   `radius-md`, the share button under it, and the link in mono on one line.
 - **Scan.** The first screen before any household: the camera full-bleed, the mark above it, one
   line of help, *Paste a link* as a text button. It is also Family → Add.
@@ -208,7 +205,7 @@ row, not a new screen.
   one when the item was on the list already, a light impact for a strike, a selection tick for
   a put back, a warning when a destructive button arms and a medium impact when it fires, a
   success on a clear; nothing on scroll, drag or navigation, and nothing for what another
-  device did. The Mac has no haptics; the symbol, the rolling count and the flash carry it. A
+  device did. A
   row that arrives, yours or another phone's, shows on `accent-soft` for a breath; yours also
   scrolls into view. A struck row names who got it, in caption `ink-faint` after the item, when
   it was someone else and the household has more than one member; never who is shopping now.
@@ -235,30 +232,9 @@ row, not a new screen.
   arrives from below and leaves by fading; a struck row fades out where it is and in under the
   divider, never flying; Clear fades the struck group, then Recent or the empty state follows
   after a quick delay; the match stack grows and shrinks from the bar; the Recent chevron turns.
-  Not animated: tab switches and pushes beyond the system's, the Mac pane on a sidebar click, the
+  Not animated: tab switches and pushes beyond the system's, the
   1.5 s hold (no countdown), scrolling, polling, the glyphs' shapes, reorder beyond the system's
   lift, and never a cascade: the list arrives whole.
-- **The Mac.** The sidebar lists the household's lists, then *Just me* when there are any, then
-  Family, selection in `accent` (the app's accent colour is the token, in the asset catalogue, so
-  the system draws it), the open count as the system's badge in mono; *New list* at the
-  sidebar's foot is a plain accent button whose menu offers *Just me*; it opens one field in the
-  sidebar, return creates, escape cancels. A right-click on a list offers *Rename* (in the row),
-  *Colour* (the six names), *Share with the family* on a personal list, and *Archive*, armed in
-  place. The pane hangs off the left at
-  `content-max`: the list's name in title weight with the dot and count under it, rows at
-  `row-h-compact` (32pt) with hairlines from the text column, a hovered row on `surface`, the
-  selected row on `accent-soft`. A click selects a row, the symbol strikes it (and turns
-  `accent` under the pointer), a double click or return edits it in the row, escape leaves a
-  field for the list. The add row is the last row of the open items, the plus in the symbol
-  column and the field after it; matches drop down under it, best first; the field is live only
-  on an empty list, and typing with the list in front starts an entry. A right-click on a row
-  offers *Got it* or *Put back*, then *Edit* and *Not needed*. Settings is the Settings window (`⌘,`); the Family
-  toolbar has no gear on the Mac, and an invite or a guest link opens as a popover from its
-  button. Tooltips say what a symbol does. Mono sizes follow the platform's text styles: the
-  Mac's body is 13pt, subheadline 11, footnote 10.
-- **Keyboard on the Mac.** `⌘N` new list, return adds or edits the selected row, escape leaves a
-  field for the list, space or `⌫` strikes the selected row, `⌘E` edits, `⌘⌫` clears, `⌘1`–`⌘4`
-  the sections, `⌘,` Settings. Every shortcut is in the menu bar. Nothing else.
 - **Accessibility.** Dynamic Type on every row, VoiceOver labels that say glyph and word
   ("out, olive oil, since Tuesday"), 44pt targets. Reduce Motion removes displacement and scale
   and keeps opacity and haptics: nothing slides, sinks, grows or pops; what remains is a
@@ -312,7 +288,7 @@ Custom symbols are exported from the 16-grid files as SF Symbol templates in two
 
 - `favicon.svg` is the teal tile with the white mark; `favicon-alert.svg` the `out` tile with the
   white alert mark, for the guest view while a staple at that home is out.
-- `doma-appicon.svg` is the Mac and phone app icon: flok's recipe, the cyan mark on a dark
+- `doma-appicon.svg` is the phone app icon: flok's recipe, the cyan mark on a dark
   gradient tile with a heavier frame and house. The App Store wants it flattened without an alpha
   channel; `render.py` writes that PNG. The icon is deliberately the family's, not a cartoon
   house: on a phone full of bright icons it is the quiet dark one.

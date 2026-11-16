@@ -6,6 +6,11 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **The Mac app is dropped.** doma is the iPhone app and the web client from here on: on a Mac,
+  open your doma's address in a browser and sign in with the code the phone scans, then a
+  passkey. The Mac app up to 0.8.0 keeps working against the server but gets no more
+  updates, and releases no longer carry a DMG.
+
 - **Tidy items where you see them.** Rename, Merge into and Retire were only in History. A
   swipe on a row under a list's Recent (the row's menu on the Mac) now offers them too, and so
   does a long-press on a suggestion above the add bar: fix a typo, fold a double into the

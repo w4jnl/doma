@@ -155,7 +155,7 @@ final class FamilyModel {
         }
     }
 
-    /// An invite for a second device of this person: a Mac, a new phone. It is not among the
+    /// An invite for a second device of this person: a new phone. It is not among the
     /// household's invites and lives a day.
     func deviceInvite() async -> Invite? {
         guard let client = session.client, let base else { return nil }

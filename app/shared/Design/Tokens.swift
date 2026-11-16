@@ -3,11 +3,7 @@
 // a size; they ask Tokens. TokensTests reads tokens.json by path and fails when the two drift.
 import CoreText
 import SwiftUI
-#if os(macOS)
-import AppKit
-#else
 import UIKit
-#endif
 
 enum Tokens {
     /// The colour tokens: name to (dark, light), in tokens.json's order. shadow-drawer is the
@@ -130,27 +126,13 @@ enum Tokens {
 
     /// A colour that follows the system appearance: dark is the brand's home, light is complete.
     static func color(_ name: String) -> Color {
-        #if os(macOS)
-        Color(nsColor: nsColor(name))
-        #else
         Color(uiColor: uiColor(name))
-        #endif
     }
 
-    #if os(macOS)
-    static func nsColor(_ name: String) -> NSColor {
-        let t = colors[name] ?? (0xFF00_FF, 0xFF00_FF)
-        return NSColor(name: NSColor.Name("doma." + name)) { appearance in
-            let dark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            return NSColor(hex: dark ? t.dark : t.light)
-        }
-    }
-    #else
     static func uiColor(_ name: String) -> UIColor {
         let t = colors[name] ?? (0xFF00_FF, 0xFF00_FF)
         return UIColor { traits in UIColor(hex: traits.userInterfaceStyle == .dark ? t.dark : t.light) }
     }
-    #endif
 
     /// JetBrains Mono, bundled from docs/design-system/fonts, for what a person reads as data:
     /// quantities and units after an item, times and ages, the code under a QR. It follows
@@ -176,33 +158,12 @@ enum Tokens {
     }
 
     private static func hasFont(_ name: String) -> Bool {
-        #if os(macOS)
-        NSFont(name: name, size: 12) != nil
-        #else
         UIFont(name: name, size: 12) != nil
-        #endif
     }
 
     /// The default point size of a text style at the large (default) Dynamic Type size.
-    /// The platform's own text-style sizes, so mono sits level with the sans beside it: the
-    /// Mac's body is 13pt where the phone's is 17.
+    /// The platform's own text-style sizes, so mono sits level with the sans beside it.
     private static func baseSize(_ style: Font.TextStyle) -> CGFloat {
-        #if os(macOS)
-        switch style {
-        case .largeTitle: 26
-        case .title: 22
-        case .title2: 17
-        case .title3: 15
-        case .headline: 13
-        case .body: 13
-        case .callout: 12
-        case .subheadline: 11
-        case .footnote: 10
-        case .caption: 10
-        case .caption2: 10
-        @unknown default: 13
-        }
-        #else
         switch style {
         case .largeTitle: 34
         case .title: 28
@@ -217,7 +178,6 @@ enum Tokens {
         case .caption2: 11
         @unknown default: 17
         }
-        #endif
     }
 
     private static let fontsRegistered: Bool = {
@@ -230,16 +190,8 @@ enum Tokens {
     }()
 }
 
-#if os(macOS)
-extension NSColor {
-    convenience init(hex: UInt32) {
-        self.init(srgbRed: CGFloat(hex >> 16 & 0xFF) / 255, green: CGFloat(hex >> 8 & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
-    }
-}
-#else
 extension UIColor {
     convenience init(hex: UInt32) {
         self.init(red: CGFloat(hex >> 16 & 0xFF) / 255, green: CGFloat(hex >> 8 & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
     }
 }
-#endif

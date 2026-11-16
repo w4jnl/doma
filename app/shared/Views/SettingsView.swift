@@ -2,9 +2,7 @@
 // Revoke armed in place, and About with the server's name and the app's version.
 import GRDB
 import SwiftUI
-#if os(iOS)
 import UserNotifications
-#endif
 
 struct SettingsView: View {
     var model: FamilyModel?
@@ -20,13 +18,11 @@ struct SettingsView: View {
     @State private var homes: Live<[HomeRow]>?
     @State private var deviceInvite: Invite?
     @State private var makingDevice = false
-    #if os(iOS)
     @State private var notifications: UNAuthorizationStatus?
     @State private var lists: Live<[ListSummary]>?
     @AppStorage("lock.biometrics") private var lockWithBiometrics = false
     @AppStorage("lock.after") private var lockAfter = LockAfter.immediately.rawValue
     @AppStorage(StrikeGuard.key) private var guardSeconds = StrikeGuard.defaultSeconds
-    #endif
 
     private var isOwner: Bool { session.current?.isOwner ?? false }
     /// Phase 1 brings the Homes tab and with it the flags setting.
@@ -46,7 +42,6 @@ struct SettingsView: View {
             }
             .listRowBackground(FamilyView.rowGround)
             .listRowSeparatorTint(Tokens.line)
-            #if os(iOS)
             Section {
                 LabeledContent("Notifications") {
                     switch notifications {
@@ -145,7 +140,6 @@ struct SettingsView: View {
             }
             .listRowBackground(FamilyView.rowGround)
             .listRowSeparatorTint(Tokens.line)
-            #endif
             if Self.homesArrived, isOwner, !(homes?.value ?? []).isEmpty {
                 Section {
                     Stepper(value: $staleness, in: 14...365, step: 1) {
@@ -212,7 +206,7 @@ struct SettingsView: View {
                 } header: {
                     SectionHeader("Your devices")
                 } footer: {
-                    Text("Show the code to your Mac or your new phone; it joins as you.")
+                    Text("Show the code to your new phone; it joins as you.")
                         .font(.footnote)
                         .foregroundStyle(Tokens.inkMuted)
                 }
@@ -271,13 +265,7 @@ struct SettingsView: View {
             .listRowBackground(FamilyView.rowGround)
             .listRowSeparatorTint(Tokens.line)
         }
-        #if os(iOS)
         .listStyle(.insetGrouped)
-        #else
-        // the Settings window: the Mac's grouped form, 480 wide
-        .listStyle(.inset)
-        .frame(width: 480, height: 560)
-        #endif
         .textCase(nil)
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
@@ -291,19 +279,12 @@ struct SettingsView: View {
         }
         .onAppear {
             staleness = Double(session.current?.stalenessDays ?? Int64(Staleness.defaultDays))
-            #if os(iOS)
             Task { notifications = await PushDelegate.notificationsAllowed() }
-            #endif
-            #if os(macOS)
-            if let m = model, m.devices.isEmpty { Task { await m.load() } }
-            #endif
         }
         .task(id: session.context?.serverID) {
             if let scope = session.scope {
                 homes = Live(session.store, initial: []) { db in try Queries.homes(db, scope) }
-                #if os(iOS)
                 lists = Live(session.store, initial: []) { db in try Queries.lists(db, scope) }
-                #endif
             }
             guard let server = session.context?.serverID else { return }
             waiting = Live(session.store, initial: 0) { db in
@@ -313,7 +294,6 @@ struct SettingsView: View {
     }
 }
 
-#if os(iOS)
 extension SettingsView {
     /// The system's page for this app, where notifications are turned on or off.
     func openSystemSettings() {
@@ -322,4 +302,3 @@ extension SettingsView {
         }
     }
 }
-#endif

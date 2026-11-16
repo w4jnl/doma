@@ -5,11 +5,7 @@ import CoreImage.CIFilterBuiltins
 import CryptoKit
 import XCTest
 @testable import Doma
-#if canImport(UIKit)
 import UIKit
-#else
-import AppKit
-#endif
 
 final class ClientTests: XCTestCase {
     override func setUp() {
@@ -134,12 +130,7 @@ final class ClientTests: XCTestCase {
     func testQRRoundTripsThroughVision() throws {
         let text = "http://127.0.0.1:8097/i/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"
         let cg = try XCTUnwrap(QR.image(text))
-        #if canImport(UIKit)
         let png = try XCTUnwrap(UIImage(cgImage: cg).pngData())
-        #else
-        let rep = NSBitmapImageRep(cgImage: cg)
-        let png = try XCTUnwrap(rep.representation(using: .png, properties: [:]))
-        #endif
         XCTAssertEqual(UITestHooks.decodeQR(png: png), text)
         // and the picture the UI test makes, a CIImage written as PNG
         let filter = CIFilter.qrCodeGenerator()

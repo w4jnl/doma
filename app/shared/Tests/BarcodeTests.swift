@@ -31,10 +31,10 @@ final class BarcodeTests: XCTestCase {
             ("datamatrix", "DM-42", "DM-42", "datamatrix"),
             ("datamatrix", "1234567890123456789012345678901234567890", "1234567890123456789012345678901234567890", "datamatrix"),
         ]
-        // the simulator's Vision reads no barcode at all; the Mac's and a phone's do
+        // the simulator's Vision reads no barcode at all; a phone's does
         if let probe = Barcode.image("probe", format: "qr"), Barcode.read(probe) == nil {
             #if targetEnvironment(simulator)
-            throw XCTSkip("Vision reads no barcode in this simulator; make mac-test covers the round trip")
+            throw XCTSkip("Vision reads no barcode in this simulator; the round trip runs on a phone")
             #else
             XCTFail("Vision reads nothing here, not even a QR")
             #endif

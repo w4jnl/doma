@@ -1,5 +1,5 @@
-// MicButton is the mic at the end of the add field: a tap listens, or stops; held on the phone,
-// or right-clicked on the Mac, it chooses the language, whose code (EN, NL, SK) shows under it.
+// MicButton is the mic at the end of the add field: a tap listens, or stops; held,
+// it chooses the language, whose code (EN, NL, SK) shows under it.
 // While it listens the glyph is filled and pulses in `out`, the one colour the app already uses
 // for something that wants a look; while the model is fetched, once, it is a spinner.
 import SwiftUI
@@ -19,7 +19,6 @@ struct MicButton: View {
     }
 
     var body: some View {
-        #if os(iOS)
         Menu {
             picker
         } label: {
@@ -29,14 +28,6 @@ struct MicButton: View {
         }
         .accessibilityIdentifier("mic")
         .accessibilityLabel(label)
-        #else
-        Button(action: tap) { face }
-            .buttonStyle(.plain)
-            .contextMenu { picker }
-            .help(label)
-            .accessibilityIdentifier("mic")
-            .accessibilityLabel(label)
-        #endif
     }
 
     private var picker: some View {
@@ -73,12 +64,8 @@ struct MicButton: View {
         .contentShape(Rectangle())
     }
 
-    /// The bar's height on the phone; the compact row's on the Mac, so the add row keeps it.
+    /// The bar's height.
     private static var height: CGFloat {
-        #if os(macOS)
-        Tokens.rowHCompact
-        #else
         Tokens.rowH
-        #endif
     }
 }

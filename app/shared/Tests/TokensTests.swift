@@ -75,11 +75,9 @@ final class TokensTests: XCTestCase {
         XCTAssertEqual(Set(Tokens.glyphs.keys), seen)
     }
 
-    /// The Mac's sidebar selection and focus ring take the accent from the asset catalogue, not
-    /// from .tint, so each app ships an AccentColor set that must stay the accent token.
+    /// The app ships an AccentColor set in the asset catalogue that must stay the accent token.
     func testAccentAssetMatchesTheToken() throws {
         try assetMatches("ios", "AccentColor", token: "accent")
-        try assetMatches("macos", "AccentColor", token: "accent")
         // the phone's launch colour is the ground
         try assetMatches("ios", "LaunchBackground", token: "ground")
     }
@@ -118,11 +116,7 @@ final class TokensTests: XCTestCase {
 
     func testCustomSymbolsAreInTheBundle() {
         for s in Symbol.allCases {
-            #if canImport(UIKit)
             XCTAssertNotNil(UIImage(named: s.name), s.name)
-            #else
-            XCTAssertNotNil(NSImage(named: s.name), s.name)
-            #endif
         }
     }
 

@@ -113,20 +113,6 @@ struct HomeView: View {
                     for r in wanted where changed.contains(r.itemID) { setCollapsed(r.section, false) }
                     try? HomeActions.moveStaples(entries, from: from, to: to, hidden: hidden, home: homeID, in: session)
                 }
-                #if os(macOS)
-                if renaming == nil {
-                    addRowMac
-                    if let voiceProblem {
-                        ProblemLine(text: voiceProblem)
-                            .listRowBackground(Tokens.ground)
-                            .listRowSeparator(.hidden)
-                    }
-                    ForEach(matches.prefix(5)) { m in
-                        matchButton(m)
-                            .listRowBackground(Tokens.accentSoft)
-                    }
-                }
-                #endif
             } header: {
                 SectionHeader("Staples")
             } footer: {
@@ -181,7 +167,6 @@ struct HomeView: View {
         .background(Tokens.ground)
         .navigationTitle(card?.name ?? "")
         .navigationSubtitle(subtitle(card))
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // the bar steps aside while a row is a field, so one field is live
@@ -189,7 +174,6 @@ struct HomeView: View {
                 addBar
             }
         }
-        #endif
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 OfflineBadge()
@@ -265,7 +249,6 @@ struct HomeView: View {
 
     // MARK: Adding a staple
 
-    #if os(iOS)
     /// The bar at the bottom, as on a list: the matches in the same glass above the field.
     private var addBar: some View {
         GlassEffectContainer(spacing: Tokens.space2) {
@@ -327,32 +310,6 @@ struct HomeView: View {
             MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
         }
     }
-    #else
-    /// The Mac's add row, at the end of the staples as on a list.
-    private var addRowMac: some View {
-        HStack(spacing: Tokens.space3) {
-            Image(systemName: "plus")
-                .font(.title3)
-                .imageScale(.large)
-                .foregroundStyle(Tokens.accent)
-                .frame(width: Tokens.space5)
-                .accessibilityHidden(true)
-            TextField(addPrompt, text: $text, selection: $selection)
-                .accessibilityIdentifier("new-staple")
-                .textFieldStyle(.plain)
-                .focused($fieldFocused)
-                .onSubmit(addTyped)
-                .onExitCommand { fieldFocused = false; text = "" }
-                .autocorrectionDisabled()
-                .overlay(alignment: .leading) { hearing }
-            targetChip
-            MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
-        }
-        .frame(minHeight: Tokens.rowH)
-        .listRowBackground(Tokens.ground)
-        .listRowSeparator(.hidden)
-    }
-    #endif
 
     /// What the bar says it does: Add a staple, or Add to the section a header's + chose.
     private var addPrompt: LocalizedStringKey {
@@ -575,9 +532,6 @@ struct HomeView: View {
                 .foregroundStyle(Tokens.inkMuted)
         }
         .frame(minHeight: Tokens.rowH)
-        #if os(macOS)
-        .onExitCommand { spotField = nil }
-        #endif
         .listRowBackground(Tokens.surface)
     }
 
@@ -600,8 +554,7 @@ struct HomeView: View {
     // MARK: Rows
 
     /// A staple: the flag row with Rename, Move to and Remove on a swipe; a long press drags it
-    /// into place, as on a list, and past a header into that section. On the Mac the menu has
-    /// the three, the sections under Move to, and a double click renames.
+    /// into place, as on a list, and past a header into that section.
     private func stapleRow(_ row: FlagRow, sections: [String]) -> some View {
         flagRow(row)
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -612,23 +565,6 @@ struct HomeView: View {
                 Button("Rename") { startRename(row) }
                     .tint(Tokens.accent)
             }
-            #if os(macOS)
-            .contextMenu {
-                Button("Rename") { startRename(row) }
-                Menu("Move to") {
-                    Button("None") { move(row, to: "") }
-                        .disabled(row.section.isEmpty)
-                    ForEach(sections, id: \.self) { name in
-                        Button(name) { move(row, to: name) }
-                            .disabled(row.section == name)
-                    }
-                    Divider()
-                    Button("New section") { startSection(for: row) }
-                }
-                Button("Remove", role: .destructive) { arm(row.itemID) }
-            }
-            .onTapGesture(count: 2) { startRename(row) }
-            #endif
     }
 
     // MARK: Sections
@@ -719,9 +655,6 @@ struct HomeView: View {
         }
         .scrollIndicators(.hidden)
         .frame(minHeight: ListView.rowHeight)
-        #if os(macOS)
-        .onExitCommand { moving = nil }
-        #endif
         .listRowBackground(Tokens.surface)
         .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
     }
@@ -766,9 +699,6 @@ struct HomeView: View {
                 .foregroundStyle(Tokens.inkMuted)
         }
         .frame(minHeight: ListView.rowHeight)
-        #if os(macOS)
-        .onExitCommand { sectionField = nil }
-        #endif
         .listRowBackground(Tokens.surface)
         .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
     }
@@ -845,16 +775,11 @@ struct HomeView: View {
                 }
                 .accessibilityIdentifier("rename-staple")
                 .onAppear { renameFocused = true }
-            #if os(iOS)
             Button("Cancel") { renaming = nil }
                 .buttonStyle(.plain)
                 .foregroundStyle(Tokens.inkMuted)
-            #endif
         }
         .frame(minHeight: ListView.rowHeight)
-        #if os(macOS)
-        .onExitCommand { renaming = nil }
-        #endif
         .listRowBackground(Tokens.surface)
         .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
     }

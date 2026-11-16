@@ -2,8 +2,8 @@
 
 The family's household app: shared and personal shopping lists, what is at each home, and what
 to bring from one home to the other. One cgo-free Go binary (`doma serve`) with an append-only
-event log per household, server-rendered guest and admin pages, and a sync endpoint for the native
-iPhone and Mac apps under `app/`. Sibling of github.com/w4jnl/flok, github.com/w4jnl/vink and
+event log per household, server-rendered guest and admin pages, and a member web client, and a sync endpoint for the native
+iPhone app under `app/`. There is no Mac app: it was dropped after 0.8.0, a Mac uses the web client. Sibling of github.com/w4jnl/flok, github.com/w4jnl/vink and
 github.com/w4jnl/nt; vink is the structural baseline for the server and nt for the apps.
 
 ## Read first
@@ -38,18 +38,18 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   households, household and server pages (APNs key upload, back up now, log level, TOTP), the
   guest links and the guest view polled with vendored htmx 2.0.4; the cross-tenant and
   cross-person suite in `internal/http/crosstenant_test.go`, the e2e smoke under `scripts/e2e`
-  and the README. The apps under `app/` are through step 5 of prompt 1: the two XcodeGen projects
-  (`app/ios`, `app/macos`) over `app/shared`, GRDB pinned, `Design/Tokens.swift` with its drift
+  and the README. The apps under `app/` are through step 5 of prompt 1: the XcodeGen project
+  `app/ios` over `app/shared`, GRDB pinned, `Design/Tokens.swift` with its drift
   test, the custom symbols in `Design/Symbols.xcassets` written by `assets/icons/gen.py`, the
-  `mac-*` and `ios-*` make targets; DomaKit: `Model` (HLC, ULID, the name key, the typed line,
+  `ios-*` make targets; DomaKit: `Model` (HLC, ULID, the name key, the typed line,
   events and rows), `Fold` (the port, `MemStore`, tested against the fixture in every order),
   `Store` (GRDB schema, `SQLFoldStore`, `DomaStore` with log, outbox, cursor and snapshot import),
   `Identity` (`DeviceKey` in the Keychain, `InviteLink`, `Session` with one context per server
   and the household in front chosen across them), `Sync` (`SyncClient` with
   the signature, `Syncer` with the triggers, `Background` for the phone's refresh and push),
   `Voice` (speech to words on the device in English, Dutch and Slovak, nt's Listener, and the mic
-  in the add bar; `make voice` checks the three languages on the Mac);
-  the screens under `Views` (Scan, Lists, List, Family, Settings, the Mac split view) over
+  in the add bar; `make voice` checks the three languages on the development Mac);
+  the screens under `Views` (Scan, Lists, List, Family, Settings) over
   `Store/Queries.swift` (what they read, live through GRDB observation) and
   `Store/ListActions.swift` (what they write, as events), with one string catalogue in English,
   Dutch and Slovak; the UI tests in `app/ios/DomaUITests` against the throwaway server
@@ -67,7 +67,7 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   pending on disk until it goes up), `Store/TripActions.swift` (`TripPlan.derive`, Add to list,
   Arrived), `Sync/Photos.swift` (the uploads after each exchange, `PhotoLoader` for the screens),
   the screens `HomesView`, `HomeView`, `PhotoView` with `SweepView` and `Camera`, `TripView`, the
-  tabs and the Mac's sidebar sections, with their pictures, logic tests
+  tabs, with their pictures, logic tests
   (`Tests/HomeLogicTests.swift`) and UI tests (a flag, a picture, a trip). Trips are planned and
   shared: `trip.planned` and `trip.cancelled` in the fold (last-writer-wins plan, earliest cancel),
   `trips` with `list_id`, `updated_hlc`, nullable `arrived_at` and `cancelled_at`.
@@ -85,8 +85,8 @@ github.com/w4jnl/nt; vink is the structural baseline for the server and nt for t
   service glue in `internal/service/logos.go`, the download route in `internal/http/cards`); in
   the apps `Design/Barcode.swift` (the encoders and the Vision map), `Store/CardQueries.swift`
   and `Store/CardActions.swift`, the screens in `Views/CardsView.swift` (Cards, Card, Add a
-  card), the card glyph on `ListView`, the Cards tab (second of five) and the Mac sidebar
-  section, `Model/Shops.swift` over the bundled `Resources/shops.json` that `scripts/shops/gen.py`
+  card), the card glyph on `ListView`, the Cards tab (second of five),
+  `Model/Shops.swift` over the bundled `Resources/shops.json` that `scripts/shops/gen.py`
   writes from the Name Suggestion Index (BSD-3-Clause, `NOTICE`), and `QRScanner` widened to
   every barcode for Add a card.
   Sections for staples: `section` and `section_hlc` on `staples`, set by `staple.added` (the
@@ -140,10 +140,10 @@ the fold can rebuild from the log, and a test proves it.
   on a page a family member sees. Flags are shown as glyph and word, never colour alone.
 - Tests: table-driven, a temp SQLite file per test, no mocks of the DB. The cross-tenant and
   cross-person suites assert 404 across every boundary for sync, REST, photos and export.
-- Apps (`app/ios`, `app/macos`, `app/shared`, nt's layout): Swift 6 with complete strict
+- The app (`app/ios`, `app/shared`, nt's layout): Swift 6 with complete strict
   concurrency, SwiftUI, `@MainActor @Observable` state, Apple frameworks only; GRDB, pinned, is
-  the one third-party dependency; XcodeGen `project.yml` per platform, `#if os` where they
-  differ. Every screen reads the local GRDB store and writes the outbox; nothing waits on the
+  the one third-party dependency; XcodeGen `project.yml`, iOS only, no `#if os` branches
+  (`Voice/Listener.swift` keeps two, for `make voice`). Every screen reads the local GRDB store and writes the outbox; nothing waits on the
   network. The Swift fold under `app/shared/Fold` is a port of `internal/fold` and its test reads
   `docs/fixtures/fold.json` by path. Colours, glyphs and sizes come only from
   `app/shared/Design/Tokens.swift`; UI words in the system face through Dynamic Type, JetBrains
@@ -164,7 +164,7 @@ the fold can rebuild from the log, and a test proves it.
 - `main` takes pull requests only: work on a branch, open a PR, and CI must pass before it merges.
 - Before calling a task done: `gofmt -l ./cmd ./internal` is empty, `make vet`, `make lint` and
   `make test` pass, and `make e2e` passes after any change to the sync path or the fold; after a
-  change under `app/`, `make mac-test` and `make ios-test` pass and the snapshots are updated in
+  change under `app/`, `make ios-test` passes and the snapshots are updated in
   light and dark.
 
 ## Commands
@@ -180,15 +180,11 @@ the fold can rebuild from the log, and a test proves it.
 - `make brand`: regenerate `assets/brand` and `assets/icons` from their generators and `tokens.css`
   from `tokens.json`, and write the flattened app icon into `app/ios` (needs Python with fontTools,
   brotli, cairosvg and Playwright's Chromium).
-- `make mac-project`, `make mac-build`, `make mac-test`, `make mac-run`: the Mac app (Xcode 26+,
-  XcodeGen); `make ios-project`, `make ios-build`, `make ios-test`, `make ios-device`,
-  `make ios-testflight` (`V=0.3.0` stamps the version): the iOS app in the simulator, its tests, on
+- `make ios-project`, `make ios-build`, `make ios-test`, `make ios-device`,
+  `make ios-testflight` (`V=0.3.0` stamps the version): the iOS app (Xcode 26+, XcodeGen) in the simulator, its tests, on
   a connected iPhone, or uploaded for TestFlight. `make ui-test` runs the UI tests and the live test against a throwaway server;
   `make snapshots` records the screen pictures the test suites compare against, after a change
   to a screen.
-- `make mac-release V=<version>`: doma for Mac signed with the Developer ID, notarized and
-  stapled, as a DMG under `app/macos/build/release` (`scripts/mac-release.sh`).
 - `scripts/release.sh <version>`: tag a release; goreleaser builds the binaries and the image in
-  CI. Before the tag it builds the Mac app, after it adds the DMG to the GitHub release and
-  writes the cask `doma` in w4jnl/homebrew-tap (`scripts/cask.sh`); `DOMA_NO_APP=1` skips the
-  app. It needs a `## <version> (YYYY-MM-DD)` section in `CHANGELOG.md`.
+  CI. The iPhone app goes out with
+  `make ios-testflight V=<version>`. It needs a `## <version> (YYYY-MM-DD)` section in `CHANGELOG.md`.

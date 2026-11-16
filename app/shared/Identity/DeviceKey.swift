@@ -42,18 +42,11 @@ struct DeviceKey: Sendable, Equatable {
     /// no data protection keychain, keeps its key instead.
     private static func item(protected: Bool) -> [String: Any] {
         var q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
-        #if os(macOS)
-        q[kSecUseDataProtectionKeychain as String] = protected
-        #endif
         return q
     }
 
     private static var stores: [Bool] {
-        #if os(macOS)
-        [true, false]
-        #else
         [true]
-        #endif
     }
 
     /// The key in the Keychain; nil when this device has none yet. The Mac looks in both of its

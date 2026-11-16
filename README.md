@@ -3,8 +3,8 @@
 [![ci](https://github.com/w4jnl/doma/actions/workflows/ci.yml/badge.svg)](https://github.com/w4jnl/doma/actions/workflows/ci.yml)
 
 doma is the family's household app: shared and personal shopping lists, what is at each home,
-and what to bring from one home to the other. One Go binary with SQLite serves the iPhone and
-Mac apps and a guest page, and nothing leaves your network except a silent push through Apple
+and what to bring from one home to the other. One Go binary with SQLite serves the iPhone
+app, a web client for any browser and a guest page, and nothing leaves your network except a silent push through Apple
 and, if you turn it on, a picture to the vision model you choose; both off by default.
 
 A phone types "melk", taps the match, strikes it in the shop, clears the list; every other phone
@@ -14,7 +14,7 @@ other turns the flags into a bring list and a buy list.
 
 ## Setup
 
-Released: the server from the GitHub releases or `ghcr.io/w4jnl/doma`, the Mac app from the tap,
+Released: the server from the GitHub releases or `ghcr.io/w4jnl/doma`,
 the iPhone app from TestFlight. Linux on amd64 and arm64 for the server.
 
 1. Run it. With Docker, on a named volume for `/data`:
@@ -30,9 +30,8 @@ the iPhone app from TestFlight. Linux on amd64 and arm64 for the server.
 3. Create the household on the Households page: a name, a time zone, the first home. Open it
    and make the owner invite: a QR code, shown once.
 4. Scan the QR with the doma app. The phone is in, as owner. Owners invite the rest of the
-   family from the app's Family screen; the lists appear on each phone as it joins. A Mac joins
-   the same way: `brew install --cask w4jnl/tap/doma`, then an invite from Settings, Add a device.
-   A browser, on a laptop or an Android phone, opens `/app`: it shows a code, the member scans
+   family from the app's Family screen; the lists appear on each phone as it joins.
+   A browser, on a Mac, a laptop or an Android phone, opens `/app`: it shows a code, the member scans
    it with the app, and from then on a passkey signs that browser in.
 
 Put the server behind the reverse proxy you already run, terminating TLS. doma authenticates
@@ -113,7 +112,7 @@ What doma does about it:
 ## Scope and status
 
 doma is one family's app, published in the shape of its siblings. Phase 0, the server and the
-lists in the iPhone and Mac apps under `app/`, is in the family's hands; phase 1, homes, flags,
+lists in the iPhone app under `app/`, is in the family's hands; phase 1, homes, flags,
 photos and trips, is built and waits for its gate, one trip between two homes with nothing
 bought twice and nothing missing. Then a second family, from TestFlight; the App Store comes last. The roadmap and every design decision are in [`docs/design.md`](docs/design.md); the
 brand and UI rules in [`docs/design-system/`](docs/design-system/README.md).

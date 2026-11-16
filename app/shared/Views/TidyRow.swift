@@ -1,4 +1,4 @@
-// A row for one item that can be tidied where it is seen: a swipe (the row's menu on the Mac)
+// A row for one item that can be tidied where it is seen: a swipe
 // offers Rename and Merge into, in the row, and Retire, armed in place. Recent under a list
 // and All items use it; History has the same three in its own rows.
 
@@ -74,13 +74,6 @@ struct TidyRow<Content: View>: View {
             Button("Rename") { start(.rename, with: name) }
                 .tint(Tokens.accent)
         }
-        #if os(macOS)
-        .contextMenu {
-            Button("Rename") { start(.rename, with: name) }
-            Button("Merge into…") { start(.merge, with: "") }
-            Button("Retire", role: .destructive) { arm() }
-        }
-        #endif
     }
 
     private func arm() {
@@ -121,16 +114,11 @@ struct TidyRow<Content: View>: View {
                 .onSubmit(submit)
                 .onAppear { focused = true }
                 .accessibilityIdentifier(id)
-            #if os(iOS)
             Button("Cancel") { done() }
                 .buttonStyle(.plain)
                 .foregroundStyle(Tokens.inkMuted)
-            #endif
         }
         .frame(minHeight: ListView.rowHeight)
-        #if os(macOS)
-        .onExitCommand { done() }
-        #endif
         .listRowBackground(Tokens.surface)
         .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
     }

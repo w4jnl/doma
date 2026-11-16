@@ -79,11 +79,7 @@ struct ListsView: View {
                 .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
             }
         }
-        #if os(iOS)
         .listStyle(.insetGrouped)
-        #else
-        .listStyle(.plain)
-        #endif
         .animation(Motion.of(reduceMotion, Motion.base), value: adding)
         .textCase(nil)
         .scrollContentBackground(.hidden)
@@ -92,9 +88,7 @@ struct ListsView: View {
         .navigationSubtitle(open == 0 ? Text("Nothing to get") : Text("\(open) to get"))
         .navigationDestination(for: String.self) { id in ListView(listID: id) }
         .navigationDestination(for: HistoryRoute.self) { _ in HistoryView() }
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
-        #endif
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 OfflineBadge()
@@ -327,13 +321,9 @@ struct ListsView: View {
         }
     }
 
-    /// Rows sit on `surface` in the phone's grouped list and on `ground` in the Mac's plain one.
+    /// Rows sit on `surface` in the grouped list.
     static var rowGround: Color {
-        #if os(iOS)
         Tokens.surface
-        #else
-        Tokens.ground
-        #endif
     }
 
     private func create() {

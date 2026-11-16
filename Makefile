@@ -1,4 +1,4 @@
-# doma: build, test and release targets. mac-* and ios-* arrive with the apps.
+# doma: build, test and release targets for the server and the iPhone app.
 BIN        := $(CURDIR)/bin
 VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
@@ -19,7 +19,7 @@ GOLANGCI   := $(call tool,golangci-lint)
 GORELEASER := $(call tool,goreleaser)
 
 .PHONY: load build run test vet lint fmt generate generate-check migrate e2e check-tenancy check-egress release-check tools brand clean \
-	mac-project mac-build mac-test mac-run ios-project ios-build ios-test ios-device ios-testflight mac-release ui-test snapshots voice sim-boot
+	ios-project ios-build ios-test ios-device ios-testflight ui-test snapshots voice sim-boot
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN)/doma ./cmd/doma
@@ -87,33 +87,11 @@ tools:
 	GOBIN=$(BIN) go install github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION)
 	GOBIN=$(BIN) go install golang.org/x/vuln/cmd/govulncheck@latest
 
-# The apps: app/ios and app/macos over app/shared (docs/design.md, "iPhone and Mac apps"), as
-# nt's. XcodeGen writes the projects from project.yml; Local.xcconfig holds the team id for a
-# device build and stays empty for the simulator and for a Mac build that runs here. Simulator
+# The iPhone app: app/ios over app/shared (docs/design.md, "iPhone app"), as nt's. XcodeGen
+# writes the project from project.yml; Local.xcconfig holds the team id for a device build and
+# stays empty for the simulator. Simulator
 # builds are signed ad hoc, so the Keychain, which holds the device key, has the entitlement it
 # asks for. Xcode 26 or later; brew install xcodegen.
-MAC := app/macos
-MAC_XCODEBUILD = cd $(MAC) && xcodebuild -project Doma.xcodeproj -scheme Doma -configuration Debug -destination 'platform=macOS,arch=arm64' -derivedDataPath build/DerivedData
-
-mac-project:
-	@[ -f $(MAC)/Local.xcconfig ] || printf 'DOMA_TEAM_ID =\n' > $(MAC)/Local.xcconfig
-	cd $(MAC) && xcodegen generate --quiet
-
-mac-build: mac-project
-	$(MAC_XCODEBUILD) build -quiet
-
-mac-test: mac-project
-	$(MAC_XCODEBUILD) test -quiet
-
-mac-run: mac-build
-	open $(MAC)/build/DerivedData/Build/Products/Debug/doma.app
-
-# doma for Mac for a release, V=0.2.0: signed with the Developer ID, notarized, stapled, and the
-# DMG that carries it, in app/macos/build/release (scripts/mac-release.sh; release.sh runs it).
-mac-release:
-	@[ -n "$(V)" ] || { echo "make mac-release V=<version>, e.g. V=0.2.0" >&2; exit 2; }
-	scripts/mac-release.sh $(V)
-
 IOS := app/ios
 IOS_SIM_NAME ?= iPhone 17
 IOS_SIM ?= platform=iOS Simulator,name=$(IOS_SIM_NAME)
@@ -145,22 +123,18 @@ ios-test: ios-project sim-boot
 ui-test: ios-project sim-boot
 	scripts/ui-test.sh sh -c "$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' test -only-testing:DomaUITests -only-testing:DomaTests/LiveTests CODE_SIGN_IDENTITY=- -quiet"
 
-# Record the snapshots of every screen, light and dark at two Dynamic Type sizes, on both
-# platforms, into app/shared/Tests/Snapshots; make mac-test and make ios-test compare against them.
-snapshots: ios-project mac-project sim-boot
+# Record the snapshots of every screen, light and dark at two Dynamic Type sizes, into
+# app/shared/Tests/Snapshots; make ios-test compares against them.
+snapshots: ios-project sim-boot
 	@mkdir -p tmp && touch tmp/record-snapshots
-	@rm -rf "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots"
-	@$(MAC_XCODEBUILD) test -only-testing:DomaTests/SnapshotTests -quiet || { rm -f tmp/record-snapshots; exit 1; }
-	@mkdir -p app/shared/Tests/Snapshots/macos && cp "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots/"*.png "$(HOME)/Library/Containers/nl.w4j.doma.mac/Data/tmp/doma-snapshots/recorded.json" app/shared/Tests/Snapshots/macos/
 	@$(IOS_XCODEBUILD) -destination '$(IOS_SIM)' test -only-testing:DomaTests/SnapshotTests CODE_SIGN_IDENTITY=- -collect-test-diagnostics never -quiet || { rm -f tmp/record-snapshots; exit 1; }
 	@rm -f tmp/record-snapshots
 	@ls app/shared/Tests/Snapshots/*/ | wc -l | xargs echo "snapshots:"
 
-# Speech to words (app/shared/Voice) on the Mac, which has the speech models the simulator lacks:
-# a sentence each in English, Dutch and Slovak, spoken by say and played to the Listener as the
-# microphone would be (scripts/voice.swift). A model the Mac lacks is fetched by macOS, once.
-# make mac-test then runs the same three through the app's Listener, while the sound is there.
-VOICE := $(MAC)/build/voice
+# Speech to words (app/shared/Voice) on this Mac, which has the speech models the simulator
+# lacks: a sentence each in English, Dutch and Slovak, spoken by say and played to the Listener
+# as the microphone would be (scripts/voice.swift). A model the Mac lacks is fetched by macOS, once.
+VOICE := tmp/voice
 voice:
 	@mkdir -p $(VOICE)
 	say -v Samantha -o $(VOICE)/en.aiff "Two litres of milk and a loaf of bread."
@@ -183,7 +157,7 @@ ios-device: ios-project
 # TestFlight: a Release archive, exported for App Store Connect and uploaded (ExportOptions.plist;
 # Xcode raises the build number when the one in project.yml is taken). The app's record for
 # nl.w4j.doma must exist in App Store Connect. V=0.3.0 stamps the release's version on the
-# build, as the Mac release does; without it project.yml's version stands.
+# build; without it project.yml's version stands.
 ios-testflight: ios-project
 	@echo "ios-testflight: archiving and uploading $(IOS)$(if $(V), as $(V)) (the key's ids stay out of the log)"
 	@cd $(IOS) && rm -rf build/Doma.xcarchive build/export && \

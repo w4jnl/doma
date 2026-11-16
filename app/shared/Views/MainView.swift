@@ -5,9 +5,7 @@
 // this device has not seen yet: entries others added since each list was last in front. The badge on the icon is the open
 // count across the shared lists and the person's own.
 import SwiftUI
-#if os(iOS)
 import UserNotifications
-#endif
 
 struct MainView: View {
     @Environment(Session.self) private var session
@@ -54,9 +52,7 @@ struct MainView: View {
                 }
             }
         }
-        #if os(iOS)
         .tabBarMinimizeBehavior(.onScrollDown)
-        #endif
         .modifier(Badge())
     }
 }

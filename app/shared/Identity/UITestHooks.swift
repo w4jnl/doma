@@ -5,11 +5,7 @@
 import CoreImage
 import Foundation
 import Vision
-#if canImport(UIKit)
 import UIKit
-#else
-import AppKit
-#endif
 
 enum UITestHooks {
     nonisolated(unsafe) private static let env = ProcessInfo.processInfo.environment
@@ -39,11 +35,7 @@ enum UITestHooks {
     /// The one QR code in a picture, as text: Vision where it runs, CoreImage's detector where
     /// it does not (the simulator).
     static func decodeQR(png: Data) -> String? {
-        #if canImport(UIKit)
         guard let cg = UIImage(data: png)?.cgImage else { return nil }
-        #else
-        guard let image = NSImage(data: png), let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
-        #endif
         let request = VNDetectBarcodesRequest()
         request.symbologies = [.qr]
         let handler = VNImageRequestHandler(cgImage: cg)

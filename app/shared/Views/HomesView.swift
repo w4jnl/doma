@@ -4,8 +4,6 @@
 import SwiftUI
 
 struct HomesView: View {
-    /// Set on the Mac's sidebar flow: a tap picks the home instead of pushing it.
-    var pick: ((String) -> Void)?
     @Environment(Session.self) private var session
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var cards: Live<[HomeCard]>?
@@ -50,20 +48,14 @@ struct HomesView: View {
                 }
             }
         }
-        #if os(iOS)
         .listStyle(.insetGrouped)
-        #else
-        .listStyle(.plain)
-        #endif
         .animation(Motion.of(reduceMotion, Motion.base), value: adding)
         .textCase(nil)
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
         .navigationTitle("Homes")
         .navigationDestination(for: String.self) { id in HomeView(homeID: id) }
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
-        #endif
         .toolbar {
             HouseholdTitle()
             ToolbarItem(placement: .automatic) {
@@ -119,13 +111,8 @@ struct HomesView: View {
             .listRowBackground(ListsView.rowGround)
         } else {
             Group {
-                if let pick {
-                    Button { pick(card.id) } label: { HomeCardRow(card: card, arming: arming == card.id, archive: { archive(card) }) }
-                        .buttonStyle(.plain)
-                } else {
-                    NavigationLink(value: card.id) {
-                        HomeCardRow(card: card, arming: arming == card.id, archive: { archive(card) })
-                    }
+                NavigationLink(value: card.id) {
+                    HomeCardRow(card: card, arming: arming == card.id, archive: { archive(card) })
                 }
             }
             .listRowBackground(ListsView.rowGround)
@@ -170,10 +157,9 @@ struct HomesView: View {
     }
 
     private func create() {
-        guard let id = try? HomeActions.createHome(named: newName, in: session) else { return }
+        guard (try? HomeActions.createHome(named: newName, in: session)) != nil else { return }
         newName = ""
         adding = false
-        pick?(id)
     }
 }
 

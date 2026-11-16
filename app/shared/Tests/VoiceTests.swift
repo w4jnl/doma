@@ -1,7 +1,5 @@
-// Voice: where a pause ends what was said, a spoken line as a list item, and speech in English,
-// Dutch and Slovak turned into words by the model the device has for each, from sound macOS
-// spoke (make voice writes it with say into app/macos/build/voice). The simulator has no speech
-// models, so that part runs on the Mac, and only while the sound is there.
+// Voice: where a pause ends what was said and a spoken line as a list item. The simulator has
+// no speech models, so speech turned into words is checked by make voice, on the Mac.
 import CoreMedia
 import Speech
 import XCTest
@@ -92,35 +90,5 @@ final class VoiceTests: XCTestCase {
         for l in Language.allCases {
             XCTAssertEqual(l.locales.last?.language.languageCode?.identifier, l.rawValue)
         }
-    }
-
-    /// The three languages through the Listener, on a Mac after make voice; skipped elsewhere.
-    @MainActor
-    func testSpeechBecomesWords() async throws {
-        #if targetEnvironment(simulator)
-        throw XCTSkip("the simulator has no speech models: make voice")
-        #else
-        let dir = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-            .appending(path: "macos/build/voice")
-        try XCTSkipUnless(FileManager.default.fileExists(atPath: dir.appending(path: "en.aiff").path), "make voice writes the sound")
-        let cases: [(Language, [String])] = [
-            (.english, ["milk", "bread"]),
-            (.dutch, ["melk", "brood"]),
-            (.slovak, ["mlieka", "chlieb"]),
-        ]
-        for (language, expected) in cases {
-            let module = await Listener.module(language)
-            try XCTSkipUnless(module != nil, "no model for \(language.name) on this Mac")
-            let listener = Listener()
-            var words: [String] = []
-            listener.words = { words.append($0) }
-            await listener.play(dir.appending(path: "\(language.rawValue).aiff"), language)
-            if case .failed(let why) = listener.state { XCTFail("\(language.name): \(why)") }
-            let text = words.joined(separator: " ").lowercased()
-            for w in expected {
-                XCTAssertTrue(text.contains(w), "\(language.name): \(text)")
-            }
-        }
-        #endif
     }
 }
