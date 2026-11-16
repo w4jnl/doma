@@ -39,7 +39,7 @@ func (h *Web) guest(fn func(http.ResponseWriter, *http.Request, domain.Scope, st
 		sc, credentialID, err := h.svc.GuestScope(r.Context(), token)
 		if err != nil {
 			if errors.Is(err, domain.ErrNotFound) {
-				h.render(w, http.StatusNotFound, "gone", page{Title: "Link", Bare: true, Data: map[string]string{"Reason": "Ask the family for a new link."}})
+				h.render(w, http.StatusNotFound, "gone", page{Lang: h.lang(r), Title: "Link", Bare: true, Data: map[string]string{"Reason": "Ask the family for a new link."}})
 				return
 			}
 			h.fail(w, r, err)
@@ -58,7 +58,7 @@ func (h *Web) guestPage(w http.ResponseWriter, r *http.Request, sc domain.Scope,
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, http.StatusOK, "guest", page{Title: view.HomeName, Guest: true, Live: true, Alert: view.AnyOut, Data: guestData{Link: token, View: view, AnyChecked: anyChecked(view)}})
+	h.render(w, http.StatusOK, "guest", page{Lang: h.lang(r), Title: view.HomeName, Guest: true, Live: true, Alert: view.AnyOut, Data: guestData{Link: token, View: view, AnyChecked: anyChecked(view)}})
 }
 
 // guestList is the polled fragment, with an ETag so a quiet list costs a 304.
@@ -79,7 +79,7 @@ func (h *Web) renderFragment(w http.ResponseWriter, r *http.Request, sc domain.S
 		return
 	}
 	data := guestData{Link: token, View: view, AnyChecked: anyChecked(view)}
-	body, err := h.renderBytes(name, page{Guest: true, Data: data})
+	body, err := h.renderBytes(name, page{Lang: h.lang(r), Guest: true, Data: data})
 	if err != nil {
 		h.fail(w, r, err)
 		return

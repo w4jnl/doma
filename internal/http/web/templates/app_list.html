@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="dm-app">
   <h1>{{.Data.View.List.Name}}</h1>
-  {{if .Data.Error}}<p class="dm-error">{{.Data.Error}}</p>{{end}}
+  {{if .Data.Error}}<p class="dm-error">{{t .Data.Error}}</p>{{end}}
   {{template "listcount" (dict "View" .Data.View "OOB" false)}}
   <div class="dm-cols">
     <div>{{template "apppanel" .}}</div>
@@ -9,29 +9,29 @@
   </div>
   {{$l := .Data.View.List}}
   <details class="dm-manage"{{if or .Data.Arm .Data.Error}} open{{end}}>
-    <summary>{{if $l.Default}}Rename and colour{{else if $l.Personal}}Rename, share, archive{{else}}Rename, colour, archive{{end}}</summary>
+    <summary>{{if $l.Default}}{{t "Rename and colour"}}{{else if $l.Personal}}{{t "Rename, share, archive"}}{{else}}{{t "Rename, colour, archive"}}{{end}}</summary>
     <form method="post" action="{{.Data.Base}}/rename" class="dm-manage-form">
       <input type="hidden" name="_csrf" value="{{.CSRF}}">
-      <label class="dm-field"><span>Name</span><input class="dm-input" name="name" value="{{$l.Name}}" required maxlength="200" autocomplete="off"></label>
-      <fieldset class="dm-choice"><legend>Colour</legend>
+      <label class="dm-field"><span>{{t "Name"}}</span><input class="dm-input" name="name" value="{{$l.Name}}" required maxlength="200" autocomplete="off"></label>
+      <fieldset class="dm-choice"><legend>{{t "Colour"}}</legend>
         {{range .Data.Colours}}<label class="dm-colour"><input type="radio" name="colour" value="{{.}}"{{if eq . $l.Colour}} checked{{end}}><span class="dm-dot dm-dot-{{.}}" aria-hidden="true"></span><span class="dm-sr">{{.}}</span></label>{{end}}
       </fieldset>
-      <button class="dm-button" type="submit">Save</button>
+      <button class="dm-button" type="submit">{{t "Save"}}</button>
     </form>
     <div class="dm-row-actions">
       {{if $l.Personal}}
-      <form method="post" action="{{.Data.Base}}/share"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">Share with the family</button></form>
+      <form method="post" action="{{.Data.Base}}/share"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-quiet" type="submit">{{t "Share with the family"}}</button></form>
       {{end}}
       {{if not $l.Default}}
       {{if .Data.Arm}}
-      <form method="post" action="{{.Data.Base}}/archive"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-danger" type="submit">Really archive?</button></form>
-      <a class="dm-quiet-link" href="{{.Data.Base}}">Keep it</a>
+      <form method="post" action="{{.Data.Base}}/archive"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-button dm-button-danger" type="submit">{{t "Really archive?"}}</button></form>
+      <a class="dm-quiet-link" href="{{.Data.Base}}">{{t "Keep it"}}</a>
       {{else}}
-      <a class="dm-button dm-button-quiet" href="{{.Data.Base}}?arm=archive">Archive</a>
+      <a class="dm-button dm-button-quiet" href="{{.Data.Base}}?arm=archive">{{t "Archive"}}</a>
       {{end}}
       {{end}}
     </div>
-    {{if $l.Personal}}<p class="dm-muted">Sharing makes a household list of the same name with what is still open, and archives this one.</p>{{end}}
+    {{if $l.Personal}}<p class="dm-muted">{{t "Sharing makes a household list of the same name with what is still open, and archives this one."}}</p>{{end}}
   </details>
 </div>
 {{end}}

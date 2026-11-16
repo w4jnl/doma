@@ -77,76 +77,84 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 		return nil, err
 	}
 	w := &Web{}
-	funcs := template.FuncMap{
-		"mark":   func() template.HTML { return mark },
-		"sprite": func() template.HTML { return sprite },
-		"ago":    func(ms int64) string { return ago(ms, w.now()) },
-		"date":   func(ms int64) string { return domain.FromMillis(ms).Format("2 Jan 2006") },
-		"qty": func(q *float64) string {
-			if q == nil {
-				return ""
-			}
-			return strconv.FormatFloat(*q, 'f', -1, 64)
-		},
-		// dict passes more than one value into a defined template
-		"dict": func(kv ...any) map[string]any {
-			m := map[string]any{}
-			for i := 0; i+1 < len(kv); i += 2 {
-				if k, ok := kv[i].(string); ok {
-					m[k] = kv[i+1]
+	// every page once per language: a template's functions are fixed when it is parsed
+	for _, lang := range langs {
+		funcs := template.FuncMap{
+			"mark":   func() template.HTML { return mark },
+			"sprite": func() template.HTML { return sprite },
+			"ago":    func(ms int64) string { return agoIn(lang, ms, w.now()) },
+			"date":   func(ms int64) string { return dateIn(lang, ms) },
+			// t is a phrase in the page's language, with what it names filled in; lang is
+			// that language's code and month a "2006-01" spelled out in it
+			"t":     func(phrase string, args ...any) string { return translate(lang, phrase, args...) },
+			"lang":  func() string { return lang },
+			"month": func(m string) string { return monthIn(lang, m) },
+			"qty": func(q *float64) string {
+				if q == nil {
+					return ""
 				}
+				return strconv.FormatFloat(*q, 'f', -1, 64)
+			},
+			// dict passes more than one value into a defined template
+			"dict": func(kv ...any) map[string]any {
+				m := map[string]any{}
+				for i := 0; i+1 < len(kv); i += 2 {
+					if k, ok := kv[i].(string); ok {
+						m[k] = kv[i+1]
+					}
+				}
+				return m
+			},
+		}
+		for _, name := range names {
+			base := strings.TrimPrefix(name, "templates/")
+			if base == "layout.html" || strings.HasPrefix(base, "_") {
+				continue
 			}
-			return m
-		},
-	}
-	for _, name := range names {
-		base := strings.TrimPrefix(name, "templates/")
-		if base == "layout.html" || strings.HasPrefix(base, "_") {
-			continue
+			files := []string{"templates/layout.html", "templates/_side.html", name}
+			if strings.HasPrefix(base, "guest") || base == "_guest_fragment.html" {
+				files = append(files, "templates/_guest_list.html", "templates/_guest_panel.html")
+			}
+			if base == "app_list.html" {
+				files = append(files, "templates/_app_rows.html", "templates/_app_panel.html")
+			}
+			t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, files...)
+			if err != nil {
+				return nil, fmt.Errorf("template %s: %w", name, err)
+			}
+			pages[lang+"/"+strings.TrimSuffix(base, ".html")] = t
 		}
-		files := []string{"templates/layout.html", "templates/_side.html", name}
-		if strings.HasPrefix(base, "guest") || base == "_guest_fragment.html" {
-			files = append(files, "templates/_guest_list.html", "templates/_guest_panel.html")
-		}
-		if base == "app_list.html" {
-			files = append(files, "templates/_app_rows.html", "templates/_app_panel.html")
-		}
-		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, files...)
+		// the polled fragment: the list alone, no layout; and the panel, the form with the list,
+		// which an add swaps in whole so the field comes back empty without a line of script
+		frag, err := template.New("_guest_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_guest_fragment.html", "templates/_guest_list.html")
 		if err != nil {
-			return nil, fmt.Errorf("template %s: %w", name, err)
+			return nil, fmt.Errorf("guest fragment: %w", err)
 		}
-		pages[strings.TrimSuffix(base, ".html")] = t
-	}
-	// the polled fragment: the list alone, no layout; and the panel, the form with the list,
-	// which an add swaps in whole so the field comes back empty without a line of script
-	frag, err := template.New("_guest_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_guest_fragment.html", "templates/_guest_list.html")
-	if err != nil {
-		return nil, fmt.Errorf("guest fragment: %w", err)
-	}
-	pages["_guest_fragment"] = frag
-	panel, err := template.New("_guest_panel_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_guest_panel_fragment.html", "templates/_guest_panel.html", "templates/_guest_list.html")
-	if err != nil {
-		return nil, fmt.Errorf("guest panel: %w", err)
-	}
-	pages["_guest_panel"] = panel
-	// the web client's polled rows and its panel after an add
-	rows, err := template.New("_app_rows_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_rows_fragment.html", "templates/_app_rows.html", "templates/_side.html")
-	if err != nil {
-		return nil, fmt.Errorf("app rows: %w", err)
-	}
-	pages["_app_rows"] = rows
-	apanel, err := template.New("_app_panel_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_panel_fragment.html", "templates/_app_panel.html", "templates/_app_rows.html", "templates/_side.html")
-	if err != nil {
-		return nil, fmt.Errorf("app panel: %w", err)
-	}
-	pages["_app_panel"] = apanel
-	// the matches under the add field and a row as a field: each a file of its own
-	for _, name := range []string{"_app_suggest", "_app_edit"} {
-		t, err := template.New(name+".html").Funcs(funcs).ParseFS(templateFS, "templates/"+name+".html")
+		pages[lang+"/"+"_guest_fragment"] = frag
+		panel, err := template.New("_guest_panel_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_guest_panel_fragment.html", "templates/_guest_panel.html", "templates/_guest_list.html")
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", name, err)
+			return nil, fmt.Errorf("guest panel: %w", err)
 		}
-		pages[name] = t
+		pages[lang+"/"+"_guest_panel"] = panel
+		// the web client's polled rows and its panel after an add
+		rows, err := template.New("_app_rows_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_rows_fragment.html", "templates/_app_rows.html", "templates/_side.html")
+		if err != nil {
+			return nil, fmt.Errorf("app rows: %w", err)
+		}
+		pages[lang+"/"+"_app_rows"] = rows
+		apanel, err := template.New("_app_panel_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_panel_fragment.html", "templates/_app_panel.html", "templates/_app_rows.html", "templates/_side.html")
+		if err != nil {
+			return nil, fmt.Errorf("app panel: %w", err)
+		}
+		pages[lang+"/"+"_app_panel"] = apanel
+		// the matches under the add field and a row as a field: each a file of its own
+		for _, name := range []string{"_app_suggest", "_app_edit"} {
+			t, err := template.New(name+".html").Funcs(funcs).ParseFS(templateFS, "templates/"+name+".html")
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", name, err)
+			}
+			pages[lang+"/"+name] = t
+		}
 	}
 	*w = Web{svc: svc, log: log, sessions: auth.NewSessions(secure), logins: ratelimit.New(LoginsPerMinute, LoginsPerMinute), pages: pages, now: func() time.Time { return time.Now().UTC() }, secure: secure, challenges: map[string]time.Time{}, InviteDays: 7, members: auth.NewMemberSessions(secure), ceremonies: map[string]ceremony{}}
 	return w, nil
@@ -269,10 +277,17 @@ type page struct {
 	// Current is the list in front, when a list is.
 	Lists   []service.WebList
 	Current string
+	// Lang is the language the page is written in: "en", "nl" or "sk", English
+	// when empty. The family's pages take the browser's; the admin's are English.
+	Lang string
 }
 
 func (h *Web) renderBytes(name string, p page) ([]byte, error) {
-	t, ok := h.pages[name]
+	lang := p.Lang
+	if lang == "" {
+		lang = "en"
+	}
+	t, ok := h.pages[lang+"/"+name]
 	if !ok {
 		return nil, fmt.Errorf("no template %s", name)
 	}
@@ -591,13 +606,13 @@ func (h *Web) invitePage(w http.ResponseWriter, r *http.Request) {
 			h.fail(w, r, err)
 			return
 		}
-		h.render(w, http.StatusNotFound, "gone", page{Title: "Invite", Bare: true, Data: map[string]string{"Reason": reason}})
+		h.render(w, http.StatusNotFound, "gone", page{Lang: h.lang(r), Title: "Invite", Bare: true, Data: map[string]string{"Reason": reason}})
 		return
 	}
 	// the token travels in the fragment, which never reaches a log
-	h.render(w, http.StatusOK, "invite", page{Title: "Invite", Bare: true, Data: inviteData{
+	h.render(w, http.StatusOK, "invite", page{Lang: h.lang(r), Title: "Invite", Bare: true, Data: inviteData{
 		Household: inv.Household.Name, Role: string(inv.Role), AppLink: template.URL("doma://invite#" + token), //nolint:gosec // G203: see inviteData
-		Until: domain.FromMillis(inv.ExpiresAt).Format("2 January"), Person: inv.ForPerson,
+		Until: dateIn(h.lang(r), inv.ExpiresAt), Person: inv.ForPerson,
 	}})
 }
 

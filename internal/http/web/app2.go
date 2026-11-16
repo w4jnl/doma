@@ -411,7 +411,7 @@ func (h *Web) showLink(w http.ResponseWriter, r *http.Request, sc domain.Scope, 
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, http.StatusOK, "app_link", page{Title: title, Member: true, Nav: "family", CSRF: h.members.From(r).CSRF, Household: sc.HouseholdID, Data: linkData{Title: title, What: what, URL: link, QR: template.HTML(svg), Back: "/app/h/" + sc.HouseholdID + "/family"}}) //nolint:gosec // G203: our own QR
+	h.render(w, http.StatusOK, "app_link", page{Lang: h.lang(r), Title: title, Member: true, Nav: "family", CSRF: h.members.From(r).CSRF, Household: sc.HouseholdID, Data: linkData{Title: title, What: what, URL: link, QR: template.HTML(svg), Back: "/app/h/" + sc.HouseholdID + "/family"}}) //nolint:gosec // G203: our own QR
 }
 
 func (h *Web) appInvite(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
@@ -423,7 +423,8 @@ func (h *Web) appInvite(w http.ResponseWriter, r *http.Request, sess *auth.Sessi
 	if h.problem(w, r, err, func(msg string) { h.renderFamily(w, r, sess, sc, http.StatusUnprocessableEntity, msg) }) {
 		return
 	}
-	h.showLink(w, r, sc, "Invite", "Show this to the new member, or send them the link. It works once, as "+string(role)+", for "+strconv.Itoa(h.InviteDays)+" days.", inv.URL)
+	l := h.lang(r)
+	h.showLink(w, r, sc, "Invite", translate(l, "Show this to the new member, or send them the link. It works once, as %s, for %d days.", translate(l, string(role)), h.InviteDays), inv.URL)
 }
 
 func (h *Web) appRevokeInvite(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {
@@ -439,7 +440,8 @@ func (h *Web) appGuestLink(w http.ResponseWriter, r *http.Request, sess *auth.Se
 	if h.problem(w, r, err, func(msg string) { h.renderFamily(w, r, sess, sc, http.StatusUnprocessableEntity, msg) }) {
 		return
 	}
-	h.showLink(w, r, sc, "Guest link", "Send this to "+g.Link.Label+". It opens one home and one list until "+domain.FromMillis(g.Link.ExpiresAt).Format("2 Jan 2006")+".", g.URL)
+	l := h.lang(r)
+	h.showLink(w, r, sc, "Guest link", translate(l, "Send this to %s. It opens one home and one list until %s.", g.Link.Label, dateIn(l, g.Link.ExpiresAt)), g.URL)
 }
 
 func (h *Web) appRevokeGuest(w http.ResponseWriter, r *http.Request, sess *auth.Session, sc domain.Scope) {

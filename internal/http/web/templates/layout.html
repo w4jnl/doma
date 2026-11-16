@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{lang}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{.Title}} · doma</title>
+<title>{{t .Title}} · doma</title>
 <link rel="icon" href="{{if .Alert}}/static/favicon-alert.svg{{else}}/static/favicon.svg{{end}}" type="image/svg+xml">
 <link rel="stylesheet" href="/static/tokens.css">
 <link rel="stylesheet" href="/static/doma.css">
@@ -24,18 +24,18 @@
 <div class="dm-shell" hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}' data-live="/app/h/{{.Household}}/events">
   <aside class="dm-side">
     <a class="dm-wordmark" href="/app">{{mark}} doma</a>
-    {{if gt (len .Households) 1}}<nav class="dm-switch" aria-label="Household">{{range .Households}}<a href="/app/h/{{.ID}}/lists"{{if eq .ID $.Household}} aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}
+    {{if gt (len .Households) 1}}<nav class="dm-switch" aria-label="{{t "Household"}}">{{range .Households}}<a href="/app/h/{{.ID}}/lists"{{if eq .ID $.Household}} aria-current="true"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}
     <nav class="dm-nav" aria-label="doma">
-      <a href="/app/h/{{.Household}}/lists"{{if and (eq .Nav "lists") (not .Current)}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-list"/></svg>Lists</a>
+      <a href="/app/h/{{.Household}}/lists"{{if and (eq .Nav "lists") (not .Current)}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-list"/></svg>{{t "Lists"}}</a>
       {{template "sidelists" (dict "Lists" .Lists "Household" .Household "Current" .Current "OOB" false)}}
-      <a href="/app/h/{{.Household}}/homes"{{if eq .Nav "homes"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-home"/></svg>Homes</a>
-      <a href="/app/h/{{.Household}}/trips"{{if eq .Nav "trips"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-trip"/></svg>Trip</a>
-      <a href="/app/h/{{.Household}}/history"{{if eq .Nav "history"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-basket"/></svg>History</a>
-      <a href="/app/h/{{.Household}}/family"{{if eq .Nav "family"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-family"/></svg>Family</a>
+      <a href="/app/h/{{.Household}}/homes"{{if eq .Nav "homes"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-home"/></svg>{{t "Homes"}}</a>
+      <a href="/app/h/{{.Household}}/trips"{{if eq .Nav "trips"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-trip"/></svg>{{t "Trip"}}</a>
+      <a href="/app/h/{{.Household}}/history"{{if eq .Nav "history"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-basket"/></svg>{{t "History"}}</a>
+      <a href="/app/h/{{.Household}}/family"{{if eq .Nav "family"}} aria-current="page"{{end}}><svg class="dm-glyph" aria-hidden="true"><use href="#i-family"/></svg>{{t "Family"}}</a>
     </nav>
     <div class="dm-side-foot">
-      <a class="dm-quiet-link" href="/admin">Admin</a>
-      <form method="post" action="/app/signout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-quiet-link" type="submit">Sign out</button></form>
+      <a class="dm-quiet-link" href="/admin">{{t "Admin"}}</a>
+      <form method="post" action="/app/signout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="dm-quiet-link" type="submit">{{t "Sign out"}}</button></form>
     </div>
   </aside>
   <main class="dm-main">

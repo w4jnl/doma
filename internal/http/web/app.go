@@ -127,7 +127,7 @@ func (h *Web) appRoot(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(hs) == 0 {
-			h.render(w, http.StatusOK, "app_none", page{Title: "doma", Bare: true})
+			h.render(w, http.StatusOK, "app_none", page{Lang: h.lang(r), Title: "doma", Bare: true})
 			return
 		}
 		pick := hs[0].ID
@@ -152,7 +152,7 @@ func (h *Web) appRoot(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, http.StatusOK, "app_signin", page{Title: "Sign in", Bare: true, Live: true, Passkeys: h.svc.PasskeysEnabled(), Data: signInData{QR: template.HTML(svg), Link: link, Token: token}}) //nolint:gosec // G203: our own QR
+	h.render(w, http.StatusOK, "app_signin", page{Lang: h.lang(r), Title: "Sign in", Bare: true, Live: true, Passkeys: h.svc.PasskeysEnabled(), Data: signInData{QR: template.HTML(svg), Link: link, Token: token}}) //nolint:gosec // G203: our own QR
 }
 
 // appWait is what the sign-in page polls: nothing yet, the session once the
@@ -203,7 +203,7 @@ func (h *Web) appVouchPage(w http.ResponseWriter, r *http.Request) {
 	if u, err := url.Parse(h.svc.BaseURL()); err == nil {
 		host = u.Host
 	}
-	h.render(w, http.StatusOK, "app_vouch", page{Title: "Sign in", Bare: true, Data: vouchData{
+	h.render(w, http.StatusOK, "app_vouch", page{Lang: h.lang(r), Title: "Sign in", Bare: true, Data: vouchData{
 		Link:    h.svc.BaseURL() + "/app/v/" + token,
 		AppLink: template.URL("doma://vouch/" + host + "#" + token), //nolint:gosec // G203: see vouchData
 	}})
@@ -391,7 +391,7 @@ func (h *Web) memberPage(r *http.Request, sess *auth.Session, sc domain.Scope, t
 	if err != nil {
 		return page{}, err
 	}
-	return page{Title: title, Member: true, Nav: nav, CSRF: sess.CSRF, Households: hs, Household: sc.HouseholdID, Live: true, Lists: lists}, nil
+	return page{Lang: h.lang(r), Title: title, Member: true, Nav: nav, CSRF: sess.CSRF, Households: hs, Household: sc.HouseholdID, Live: true, Lists: lists}, nil
 }
 
 func (h *Web) offerPasskey(r *http.Request, sess *auth.Session) bool {
@@ -528,7 +528,7 @@ func (h *Web) appFragment(w http.ResponseWriter, r *http.Request, sess *auth.Ses
 		h.fail(w, r, err)
 		return
 	}
-	body, err := h.renderBytes(name, page{Member: true, CSRF: sess.CSRF, Data: listData{Base: listBase(sc, r), View: view, Lists: lists, Household: sc.HouseholdID}})
+	body, err := h.renderBytes(name, page{Lang: h.lang(r), Member: true, CSRF: sess.CSRF, Data: listData{Base: listBase(sc, r), View: view, Lists: lists, Household: sc.HouseholdID}})
 	if err != nil {
 		h.fail(w, r, err)
 		return
@@ -625,7 +625,7 @@ func (h *Web) appSuggest(w http.ResponseWriter, r *http.Request, sess *auth.Sess
 		h.appProblem(w, r, err)
 		return
 	}
-	h.fragment(w, r, "_app_suggest", page{Member: true, CSRF: sess.CSRF, Data: suggestData{Base: listBase(sc, r), Matches: matches, Tasks: tasks}})
+	h.fragment(w, r, "_app_suggest", page{Lang: h.lang(r), Member: true, CSRF: sess.CSRF, Data: suggestData{Base: listBase(sc, r), Matches: matches, Tasks: tasks}})
 }
 
 // appEditForm turns one row into a field holding the line as it would be typed.
@@ -637,7 +637,7 @@ func (h *Web) appEditForm(w http.ResponseWriter, r *http.Request, sess *auth.Ses
 	}
 	for _, e := range view.Entries {
 		if e.ID == r.PathValue("entry") && !e.Checked {
-			h.fragment(w, r, "_app_edit", page{Member: true, CSRF: sess.CSRF, Data: editData{Base: listBase(sc, r), ID: e.ID, Line: service.EntryLine(e)}})
+			h.fragment(w, r, "_app_edit", page{Lang: h.lang(r), Member: true, CSRF: sess.CSRF, Data: editData{Base: listBase(sc, r), ID: e.ID, Line: service.EntryLine(e)}})
 			return
 		}
 	}

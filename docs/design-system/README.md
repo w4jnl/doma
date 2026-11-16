@@ -22,8 +22,9 @@ a system. The name is Slovak: *doma* is "at home", as in "čo máme doma?", what
   Ask for a new one." No apologies, no codes.
 - Times are relative first ("3 wk ago", "yesterday", "in 2 days"), with the absolute time in the
   detail on the phone.
-- Strings ship in English, Dutch and Slovak from the first build, in one catalogue; a screen is
-  not done until it reads well in all three. Sentence case everywhere; no uppercase labels.
+- Strings ship in English, Dutch and Slovak from the first build, in one catalogue for the app
+  and one for the web pages, which follows the app's wording; a screen is not done until it
+  reads well in all three. Sentence case everywhere; no uppercase labels.
 
 ## The mark
 

@@ -15,12 +15,12 @@
     {{end}}
   </ul>
   {{if .Data.AnyChecked}}
-  <form method="post" action="/g/{{.Data.Link}}/clear" hx-post="/g/{{.Data.Link}}/clear" hx-target="#list" hx-swap="outerHTML" hx-confirm="Really clear?">
-    <button class="dm-button dm-button-quiet" type="submit">Clear</button>
+  <form method="post" action="/g/{{.Data.Link}}/clear" hx-post="/g/{{.Data.Link}}/clear" hx-target="#list" hx-swap="outerHTML" hx-confirm="{{t "Really clear?"}}">
+    <button class="dm-button dm-button-quiet" type="submit">{{t "Clear"}}</button>
   </form>
   {{end}}
   {{else}}
-  <p class="dm-muted">Nothing on the list.</p>
+  <p class="dm-muted">{{t "Nothing on the list."}}</p>
   {{end}}
 </div>
 {{end}}

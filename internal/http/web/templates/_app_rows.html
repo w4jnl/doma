@@ -13,10 +13,10 @@
           <span class="dm-grow">{{.ItemName}}{{if .Qty}} <span class="dm-meta">{{qty .Qty}} {{.Unit}}</span>{{end}}{{if .Note}} <span class="dm-meta">{{.Note}}</span>{{end}}</span>
         </button>
       </form>
-      <button class="dm-quiet-link" type="button" hx-get="{{$base}}/edit/{{.ID}}" hx-target="closest li" hx-swap="outerHTML" aria-label="Edit {{.ItemName}}">Edit</button>
+      <button class="dm-quiet-link" type="button" hx-get="{{$base}}/edit/{{.ID}}" hx-target="closest li" hx-swap="outerHTML" aria-label="{{t "Edit %s" .ItemName}}">{{t "Edit"}}</button>
       <form method="post" action="{{$base}}/remove/{{.ID}}" hx-post="{{$base}}/remove/{{.ID}}" hx-target="#rows" hx-swap="outerHTML">
         <input type="hidden" name="_csrf" value="{{$csrf}}">
-        <button class="dm-quiet-link" type="submit" aria-label="{{.ItemName}} is not needed">Not needed</button>
+        <button class="dm-quiet-link" type="submit" aria-label="{{t "%s is not needed" .ItemName}}">{{t "Not needed"}}</button>
       </form>
     </li>
     {{end}}{{end}}
@@ -24,10 +24,10 @@
   {{end}}
   {{if .Data.View.AnyChecked}}
   <div class="dm-divider">
-    <span class="dm-mono dm-meta">{{.Data.View.Checked}} {{if $tasks}}done{{else}}got{{end}}</span>
-    <form method="post" action="{{$base}}/clear" hx-post="{{$base}}/clear" hx-target="#rows" hx-swap="outerHTML" hx-confirm="Really clear?">
+    <span class="dm-mono dm-meta">{{if $tasks}}{{t "%d done" .Data.View.Checked}}{{else}}{{t "%d got" .Data.View.Checked}}{{end}}</span>
+    <form method="post" action="{{$base}}/clear" hx-post="{{$base}}/clear" hx-target="#rows" hx-swap="outerHTML" hx-confirm="{{t "Really clear?"}}">
       <input type="hidden" name="_csrf" value="{{$csrf}}">
-      <button class="dm-button dm-button-quiet" type="submit">Clear</button>
+      <button class="dm-button dm-button-quiet" type="submit">{{t "Clear"}}</button>
     </form>
   </div>
   <ul class="dm-rows dm-list">
@@ -46,22 +46,22 @@
   </ul>
   {{end}}
   {{else}}
-  <p class="dm-muted">{{if $tasks}}Nothing to do. Type what needs doing.{{else}}Nothing on the list. Type what you need.{{end}}</p>
+  <p class="dm-muted">{{if $tasks}}{{t "Nothing to do. Type what needs doing."}}{{else}}{{t "Nothing on the list. Type what you need."}}{{end}}</p>
   {{end}}
 </div>
 {{end}}
-{{define "listcount"}}<p class="dm-muted dm-count" id="count"{{if .OOB}} hx-swap-oob="true"{{end}}><span class="dm-dot dm-dot-{{.View.List.Colour}}" aria-hidden="true"></span>{{if .View.List.IsTasks}}{{if .View.Open}}{{.View.Open}} to do{{else}}Nothing to do{{end}}{{else}}{{if .View.Open}}{{.View.Open}} to get{{else}}Nothing to get{{end}}{{end}}</p>{{end}}
+{{define "listcount"}}<p class="dm-muted dm-count" id="count"{{if .OOB}} hx-swap-oob="true"{{end}}><span class="dm-dot dm-dot-{{.View.List.Colour}}" aria-hidden="true"></span>{{if .View.List.IsTasks}}{{if .View.Open}}{{t "%d to do" .View.Open}}{{else}}{{t "Nothing to do"}}{{end}}{{else}}{{if .View.Open}}{{t "%d to get" .View.Open}}{{else}}{{t "Nothing to get"}}{{end}}{{end}}</p>{{end}}
 {{define "apprecent"}}
 <aside id="recent" class="dm-recent"{{if .OOB}} hx-swap-oob="true"{{end}}>
   {{if .View.Recent}}
-  <h2>Recent</h2>
+  <h2>{{t "Recent"}}</h2>
   <ul class="dm-rows dm-list">
     {{range .View.Recent}}
     <li>
       <form method="post" action="{{$.Base}}/add" hx-post="{{$.Base}}/add" hx-target="#panel" hx-swap="outerHTML">
         <input type="hidden" name="_csrf" value="{{$.CSRF}}">
         <input type="hidden" name="text" value="{{.Name}}">
-        <button class="dm-row-button" type="submit" aria-label="Add {{.Name}} again">
+        <button class="dm-row-button" type="submit" aria-label="{{t "Add %s again" .Name}}">
           <svg class="dm-glyph" aria-hidden="true"><use href="#i-add"/></svg>
           <span class="dm-grow">{{.Name}}</span>
           <span class="dm-meta">{{ago .At}}</span>
