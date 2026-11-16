@@ -6,6 +6,8 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+## 0.9.0 (2026-11-16)
+
 - **The iPhone says why it asks for the local network.** When your family's doma runs on your
   network at home, iOS asks once; the question now carries doma's reason, in three languages.
 - **A better looking web client.** Rows sit in cards, pages have a clear title, the add bar
