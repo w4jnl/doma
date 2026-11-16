@@ -6,6 +6,10 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **History and All items in the browser.** History shows a month's purchases per item, per
+  home and per shopper, stepped back and forth. All items lists every item with a search and
+  Rename, Merge into and Retire on each row, so a tidy-up can be done at a keyboard.
+
 - **Lists, homes and sections are managed in the browser too.** A list can be renamed,
   recoloured, shared with the family and archived from its page. On a home's page a staple
   can be moved to a section or a new one, added straight into a section, and a section

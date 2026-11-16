@@ -66,6 +66,7 @@ func (h *Web) mountApp(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/h/{household}/l/{list}/share", h.inHousehold(h.appShareList))
 	mux.HandleFunc("POST /app/h/{household}/l/{list}/archive", h.inHousehold(h.appArchiveList))
 	h.mountApp2(mux)
+	h.mountApp3(mux)
 }
 
 // member requires a signed-in browser; a POST must carry the session's CSRF

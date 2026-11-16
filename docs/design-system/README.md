@@ -250,7 +250,7 @@ CSS, no framework, no inline styles.
 
 - **The shell.** The family's pages and the admin's share one frame, made for a laptop: a
   sidebar on `surface` that stays (the mark, the household's lists by name with their dots and
-  open counts, then Homes, Trip and Family; at its foot Admin and Sign out), and the page beside
+  open counts, then Homes, Trip, History and Family; at its foot Admin and Sign out), and the page beside
   it on `ground`, up to one and a half times `content-max`, in two columns where a page has two
   things to say (a home's staples beside its spots and trips). The row in front is on
   `accent-soft`. Under 860px the sidebar folds into a bar across the top and the lists go behind
