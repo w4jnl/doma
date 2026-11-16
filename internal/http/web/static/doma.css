@@ -208,3 +208,120 @@ a.dm-button { text-decoration: none; }
 .dm-items li.dm-edit { background: var(--surface); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); }
 .dm-items li.dm-edit form { margin: 0; align-items: center; }
 .dm-merge-what { white-space: nowrap; }
+
+/* ---- the look: pages as cards on ground, a header that names the page, a calmer sidebar.
+   What is above lays the pages out; this is how they are dressed, and it wins by coming last. */
+
+/* the sidebar sits back on the darker ground; the row in front has an accent edge */
+.dm-side { background: var(--surface-sunk); padding: var(--space-5) var(--space-3) var(--space-4); gap: var(--space-5); }
+.dm-side .dm-wordmark { font-size: 1.125rem; min-height: var(--row-h-compact); }
+.dm-side .dm-mark { width: 26px; height: 26px; }
+.dm-side-home { margin: calc(var(--space-4) * -1) 0 0; padding: 0 var(--space-3); font-size: 0.8125rem; color: var(--ink-muted); }
+.dm-nav { gap: 2px; }
+.dm-nav a { min-height: 36px; padding: 0 var(--space-3); color: var(--ink-muted); font-weight: 500; transition: background var(--motion-quick), color var(--motion-quick); }
+.dm-nav a:hover { background: var(--surface); color: var(--ink); }
+.dm-nav a[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
+.dm-nav a[aria-current="page"] .dm-glyph { color: var(--accent); }
+.dm-side-lists { padding-left: var(--space-3); margin: 2px 0 var(--space-3); gap: 2px; }
+.dm-side-lists a { min-height: var(--row-h-compact); color: var(--ink); font-weight: 400; }
+.dm-side-lists .dm-meta { min-width: 22px; padding: 1px 6px; border-radius: 999px; background: var(--surface); text-align: center; font-size: 0.75rem; }
+.dm-side-lists a[aria-current="page"] .dm-meta { background: var(--accent-soft); color: var(--ink); }
+.dm-side-foot { flex-direction: row; justify-content: space-between; width: 100%; padding: var(--space-3) var(--space-2) 0; }
+
+/* the page: centred in what the sidebar leaves, with room to breathe */
+.dm-main { margin: 0 auto; max-width: calc(var(--content-max) * 1.6); padding: var(--space-7) var(--space-6) var(--space-7); }
+.dm-main h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: var(--space-5); }
+.dm-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); flex-wrap: wrap; }
+.dm-head h1 { margin: 0; }
+.dm-head > .dm-dot { width: 14px; height: 14px; }
+.dm-head .dm-count { margin: 0 0 0 var(--space-2); padding: 3px var(--space-3); border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-muted); font-family: var(--font-mono); font-size: 0.8125rem; }
+.dm-app h2 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-muted); margin: var(--space-6) 0 var(--space-2); }
+.dm-cols { gap: var(--space-5); }
+.dm-cols > * > section:first-child h2, .dm-recent h2 { margin-top: 0; }
+
+/* rows live in a card */
+.dm-main .dm-rows { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+.dm-main .dm-rows li { padding: var(--space-2) var(--space-4); min-height: var(--row-h-list); transition: background var(--motion-quick); }
+.dm-main .dm-rows li:hover { background: var(--surface-sunk); }
+.dm-main .dm-list li { padding: 0 var(--space-2) 0 0; }
+.dm-main .dm-list .dm-row-button { min-height: var(--row-h-list); padding: 0 var(--space-3) 0 var(--space-4); gap: var(--space-4); font-size: 1.0625rem; }
+.dm-row-button .dm-glyph { width: 20px; height: 20px; transition: color var(--motion-quick), transform var(--motion-quick); }
+.dm-row-button:hover .dm-glyph { transform: scale(1.12); }
+.dm-main .dm-rows .dm-row-link { min-height: calc(var(--row-h-list) - var(--space-4)); }
+.dm-main .dm-rows li.dm-moverow, .dm-main .dm-items li.dm-edit, .dm-main .dm-list li.dm-edit { background: var(--accent-soft); border-radius: 0; padding: var(--space-2) var(--space-4); }
+.dm-main .dm-list li.dm-edit:hover, .dm-main .dm-rows li.dm-moverow:hover { background: var(--accent-soft); }
+.dm-done .dm-row-button { color: var(--ink-faint); }
+
+/* the words at a row's end wait for the pointer; a finger sees them always */
+.dm-rows li > .dm-quiet-link, .dm-rows li > form > .dm-quiet-link { opacity: 0; transition: opacity var(--motion-quick), color var(--motion-quick), background var(--motion-quick); border-radius: var(--radius-sm); }
+.dm-rows li:hover .dm-quiet-link, .dm-rows li:focus-within .dm-quiet-link { opacity: 1; }
+.dm-rows li .dm-quiet-link:hover { background: var(--surface); color: var(--ink); }
+.dm-rows .dm-flagbar .dm-quiet-link, .dm-rows .dm-quiet-link.dm-on { opacity: 1; }
+@media (hover: none) { .dm-rows li > .dm-quiet-link, .dm-rows li > form > .dm-quiet-link { opacity: 1; } }
+
+/* the add bar: one field that looks like the place to type, its button inside the same frame */
+.dm-addbar { gap: 0; margin-bottom: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-1); transition: border-color var(--motion-quick), box-shadow var(--motion-quick); }
+.dm-addbar:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.dm-addbar .dm-input { height: calc(var(--row-h-list) - var(--space-2)); border: 0; background: transparent; font-size: 1.0625rem; padding: 0 var(--space-3); }
+.dm-addbar .dm-input:focus { outline: none; }
+.dm-addbar .dm-button { height: calc(var(--row-h-list) - var(--space-2)); border-radius: calc(var(--radius-md) - var(--space-1)); padding: 0 var(--space-5); }
+.dm-suggest { margin: calc(var(--space-3) * -1) 0 var(--space-4); border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--line); }
+.dm-suggest .dm-suggest-row, .dm-suggest form:first-child .dm-suggest-row, .dm-suggest form:last-child .dm-suggest-row, .dm-suggest form:only-child .dm-suggest-row { border: 0; border-radius: 0; border-top: 1px solid var(--line); min-height: var(--row-h); padding: 0 var(--space-4); }
+.dm-suggest form:first-child .dm-suggest-row { border-top: 0; }
+.dm-input { border-radius: var(--radius-sm); transition: border-color var(--motion-quick); }
+.dm-button { transition: filter var(--motion-quick), background var(--motion-quick); }
+.dm-button:hover { filter: brightness(1.08); }
+.dm-button-quiet:hover { background: var(--surface); filter: none; }
+
+/* the divider between what is open and what is got */
+.dm-divider { border-top: 0; padding: var(--space-4) var(--space-1) var(--space-2) var(--space-4); }
+.dm-divider .dm-button { height: var(--control-h); padding: 0 var(--space-3); font-size: 0.875rem; }
+
+/* Recent: names to tap, not another list */
+.dm-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.dm-chips form { margin: 0; }
+.dm-chip-add { gap: var(--space-1); height: var(--control-h); padding: 0 var(--space-3) 0 var(--space-2); background: var(--surface); transition: background var(--motion-quick), border-color var(--motion-quick); }
+.dm-chip-add .dm-glyph { width: 14px; height: 14px; color: var(--accent); }
+.dm-chip-add:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+/* settings behind a word, a card once opened */
+.dm-manage { border-top: 0; margin-top: var(--space-6); padding: 0; }
+.dm-manage summary { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); list-style: none; }
+.dm-manage summary::-webkit-details-marker { display: none; }
+.dm-manage summary::before { content: "⋯"; font-weight: 700; }
+.dm-manage summary:hover { background: var(--surface); }
+.dm-manage[open] { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-3) var(--space-5) var(--space-5); }
+.dm-manage[open] summary { margin: 0 0 var(--space-3) calc(var(--space-3) * -1); }
+.dm-panel { margin-top: var(--space-6); }
+.dm-panel h2 { margin-top: 0; }
+.dm-section-head { margin: var(--space-5) 0 var(--space-2); }
+.dm-section-head h3, .dm-app h3 { font-size: 0.9375rem; color: var(--ink); font-weight: 600; }
+.dm-months .dm-month { font-size: 1.125rem; }
+
+@media (max-width: 860px) {
+  .dm-side { padding: var(--space-2) var(--space-3); gap: var(--space-2); }
+  .dm-side-home { display: none; }
+  .dm-nav a[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--accent); }
+  .dm-side-foot { width: auto; }
+  .dm-main { padding: var(--space-5) var(--space-4) var(--space-7); }
+  .dm-main h1 { font-size: 1.625rem; }
+}
+
+/* have, low, out: one control of three, the one that holds wearing its flag's colour */
+.dm-flagbar { gap: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--ground); }
+.dm-rows .dm-flagbar .dm-quiet-link { padding: var(--space-1) var(--space-3); border-radius: 0; border-left: 1px solid var(--line); text-decoration: none; font-weight: 500; }
+.dm-rows .dm-flagbar .dm-quiet-link:first-of-type { border-left: 0; }
+.dm-rows .dm-flagbar .dm-quiet-link.dm-on { color: var(--ink); font-weight: 600; text-decoration: none; }
+.dm-rows .dm-flagbar .dm-quiet-link.dm-on[value="have"] { background: var(--have-soft); color: var(--have); }
+.dm-rows .dm-flagbar .dm-quiet-link.dm-on[value="low"] { background: var(--low-soft); color: var(--low); }
+.dm-rows .dm-flagbar .dm-quiet-link.dm-on[value="out"] { background: var(--out-soft); color: var(--out); }
+.dm-moverow .dm-flagbar { border: 0; background: none; overflow: visible; }
+.dm-flag { min-width: 96px; }
+.dm-flagrow .dm-grow { font-size: 1.0625rem; }
+.dm-addbar .dm-select { height: calc(var(--row-h-list) - var(--space-2)); border: 0; border-left: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--ink-muted); margin-right: var(--space-1); }
+.dm-addbar .dm-quiet-link { align-self: center; margin: 0 var(--space-2); }
+.dm-side { padding-bottom: var(--space-5); }
+input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); }
+.dm-newlist { max-width: 420px; }
+.dm-main .dm-panel .dm-rows { margin-top: var(--space-4); background: var(--ground); }
+.dm-main .dm-panel .dm-rows li:hover { background: var(--ground); }

@@ -50,26 +50,20 @@
   {{end}}
 </div>
 {{end}}
-{{define "listcount"}}<p class="dm-muted dm-count" id="count"{{if .OOB}} hx-swap-oob="true"{{end}}><span class="dm-dot dm-dot-{{.View.List.Colour}}" aria-hidden="true"></span>{{if .View.List.IsTasks}}{{if .View.Open}}{{t "%d to do" .View.Open}}{{else}}{{t "Nothing to do"}}{{end}}{{else}}{{if .View.Open}}{{t "%d to get" .View.Open}}{{else}}{{t "Nothing to get"}}{{end}}{{end}}</p>{{end}}
+{{define "listcount"}}<p class="dm-count" id="count"{{if .OOB}} hx-swap-oob="true"{{end}}>{{if .View.List.IsTasks}}{{if .View.Open}}{{t "%d to do" .View.Open}}{{else}}{{t "Nothing to do"}}{{end}}{{else}}{{if .View.Open}}{{t "%d to get" .View.Open}}{{else}}{{t "Nothing to get"}}{{end}}{{end}}</p>{{end}}
 {{define "apprecent"}}
 <aside id="recent" class="dm-recent"{{if .OOB}} hx-swap-oob="true"{{end}}>
   {{if .View.Recent}}
   <h2>{{t "Recent"}}</h2>
-  <ul class="dm-rows dm-list">
+  <div class="dm-chips">
     {{range .View.Recent}}
-    <li>
-      <form method="post" action="{{$.Base}}/add" hx-post="{{$.Base}}/add" hx-target="#panel" hx-swap="outerHTML">
-        <input type="hidden" name="_csrf" value="{{$.CSRF}}">
-        <input type="hidden" name="text" value="{{.Name}}">
-        <button class="dm-row-button" type="submit" aria-label="{{t "Add %s again" .Name}}">
-          <svg class="dm-glyph" aria-hidden="true"><use href="#i-add"/></svg>
-          <span class="dm-grow">{{.Name}}</span>
-          <span class="dm-meta">{{ago .At}}</span>
-        </button>
-      </form>
-    </li>
+    <form method="post" action="{{$.Base}}/add" hx-post="{{$.Base}}/add" hx-target="#panel" hx-swap="outerHTML">
+      <input type="hidden" name="_csrf" value="{{$.CSRF}}">
+      <input type="hidden" name="text" value="{{.Name}}">
+      <button class="dm-chip dm-chip-add" type="submit" aria-label="{{t "Add %s again" .Name}}" title="{{ago .At}}"><svg class="dm-glyph" aria-hidden="true"><use href="#i-add"/></svg>{{.Name}}</button>
+    </form>
     {{end}}
-  </ul>
+  </div>
   {{end}}
 </aside>
 {{end}}

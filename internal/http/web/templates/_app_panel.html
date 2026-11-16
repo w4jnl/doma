@@ -1,5 +1,5 @@
 {{define "appform"}}
-<form class="dm-add" method="post" action="{{.Data.Base}}/add" hx-post="{{.Data.Base}}/add" hx-target="#panel" hx-swap="outerHTML">
+<form class="dm-add dm-addbar" method="post" action="{{.Data.Base}}/add" hx-post="{{.Data.Base}}/add" hx-target="#panel" hx-swap="outerHTML">
   <input type="hidden" name="_csrf" value="{{.CSRF}}">
   <input class="dm-input" id="add" name="text" placeholder="{{t "Add"}}" autocomplete="off" autofocus required maxlength="300" aria-controls="suggest"
     hx-get="{{.Data.Base}}/suggest" hx-trigger="input changed delay:150ms" hx-target="#suggest" hx-swap="innerHTML">

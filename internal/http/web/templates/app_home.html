@@ -7,7 +7,7 @@
   <div>
   <section>
     <h2>{{t "Staples"}}</h2>
-    <form method="post" action="{{$page}}/staples" class="dm-add">
+    <form method="post" action="{{$page}}/staples" class="dm-add dm-addbar">
       <input type="hidden" name="_csrf" value="{{$csrf}}">
       <input class="dm-input" name="text" placeholder="{{t "Add a staple"}}" required maxlength="200" autocomplete="off">
       {{if .Data.Sections}}<select class="dm-input dm-select" name="section" aria-label="{{t "Section"}}"><option value="">{{t "No section"}}</option>{{range .Data.Sections}}<option>{{.}}</option>{{end}}</select>{{end}}
