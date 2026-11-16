@@ -54,8 +54,8 @@ func newProxyWebWith(t *testing.T, logoutURL string, passwordAdmin bool) http.Ha
 func TestProxyNeedsNoPasswordAdmin(t *testing.T) {
 	mux := newProxyWebWith(t, "", false)
 	rec := serve(mux, vouched(http.MethodGet, "/", "jaro"))
-	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/admin" {
-		t.Errorf("GET / without a password admin: %d %s, want 303 /admin", rec.Code, rec.Header().Get("Location"))
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/app" {
+		t.Errorf("GET / without a password admin: %d %s, want 303 /app", rec.Code, rec.Header().Get("Location"))
 	}
 	if rec := serve(mux, vouched(http.MethodGet, "/setup", "jaro")); rec.Code != http.StatusNotFound {
 		t.Errorf("GET /setup under proxy sign-in: %d, want 404", rec.Code)

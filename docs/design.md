@@ -448,7 +448,7 @@ The server renders three page sets with `html/template` and htmx on the same ser
 
 No household name beyond the list's title, no other homes, no members, no photos. The guest's events carry the guest person's id, so the family sees *added by guest (cleaner)* with the label the owner gave the link.
 
-**Admin pages** (`/admin`; the admin signs in with the password, TOTP optional, or through the proxy in front when `admin.auth = "proxy"`, in which case no password admin need exist: `/` goes to the admin pages and `/setup` is gone)
+**Admin pages** (`/admin`; the admin signs in with the password, TOTP optional, or through the proxy in front when `admin.auth = "proxy"`, in which case no password admin need exist and `/setup` is gone). `/` is the one front door: it opens the family's doma at `/app`, which signs a browser in when it has to; only a server nobody has set up goes to `/setup` first. The admin pages are a link at the foot of the family's sidebar and of the sign-in page, behind their own sign-in, and link back)
 
 | Page | Content |
 | --- | --- |
@@ -462,13 +462,13 @@ Admin pages never read family content: no list entries, no item names, no photos
 
 **Web client for members** (`/app`)
 
-Server-rendered htmx pages on the same service layer, for a member at a laptop or on a phone without the app. No offline support; the sync endpoint stays the apps' path. It needed the `credentials` table and the service layer as designed and nothing else in the schema.
+Server-rendered htmx pages on the same service layer, for a member at a laptop or on a phone without the app; since the Mac app was dropped they are how a computer uses doma, and are laid out for one: a sidebar with the household's lists, Homes, Trip and Family, and the page beside it (the design system's Web pages has the frame). No offline support; the sync endpoint stays the apps' path. It needed the `credentials` table and the service layer as designed and nothing else in the schema.
 
 | Route | Content |
 | --- | --- |
 | `/app` | signed in: the household last in front, else the first; not signed in: the sign-in page, a code to scan with the app and *Use a passkey* |
 | `/app/v/{code}` | what the code links to, for a camera that read it instead of doma: *Open in doma* (`doma://vouch/<host>#<code>`, which opens Scan on it), or scan again in the app, or paste the link there |
-| `/app/h/{household}/lists` | the household's lists and the person's own, with their counts; a new list, shared or *Just me*, shopping or tasks; a switcher in the top bar when the person is in more than one household |
+| `/app/h/{household}/lists` | the household's lists and the person's own, with their counts; a new list, shared or *Just me*, shopping or tasks; a switcher in the sidebar when the person is in more than one household |
 | `/app/h/{household}/l/{list}` | the list: add, strike, *Not needed*, Clear, in the family's words; the rows poll every 10 s like the guest view |
 | `/app/h/{household}/homes`, `…/home/{home}` | one row per home with its out, low and unknown counts, and a new home; the home's staples under their sections with Have, Low and Out on the row, a staple typed into a bar, Remove, the other flagged items, the spots with their newest picture, the trips through it; pictures are taken with the phone |
 | `/app/h/{household}/trips`, `…/trip/{trip}` | upcoming trips, Plan a trip (from, to, day, list), past trips; a trip's Bring, Buy with *Add to list*, Check on arrival, *Arrived* and *Cancel the trip*, derived as on the phone |

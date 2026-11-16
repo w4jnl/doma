@@ -257,6 +257,10 @@ type page struct {
 	Households []service.WebHousehold
 	Household  string
 	Passkeys   bool
+	// Lists are the household's lists and the person's own, for the sidebar;
+	// Current is the list in front, when a list is.
+	Lists   []service.WebList
+	Current string
 }
 
 func (h *Web) renderBytes(name string, p page) ([]byte, error) {
@@ -287,24 +291,22 @@ func (h *Web) render(w http.ResponseWriter, status int, name string, p page) {
 	_, _ = w.Write(body)
 }
 
-// root sends a browser to setup, to the admin pages or to the login. Under
-// proxy sign-in there is nothing to set up: the proxy is the login, and a
-// server that never had a password admin is as set up as it gets.
+// root is the one front door: the family's doma, which signs a browser in
+// when it has to and links to the admin pages. Only a server nobody has set
+// up yet goes to setup first; under proxy sign-in there is nothing to set up.
 func (h *Web) root(w http.ResponseWriter, r *http.Request) {
-	if h.proxy != nil {
-		http.Redirect(w, r, "/admin", http.StatusSeeOther)
-		return
+	if h.proxy == nil {
+		ok, err := h.svc.AdminExists(r.Context())
+		if err != nil {
+			h.fail(w, r, err)
+			return
+		}
+		if !ok {
+			http.Redirect(w, r, "/setup", http.StatusSeeOther)
+			return
+		}
 	}
-	ok, err := h.svc.AdminExists(r.Context())
-	if err != nil {
-		h.fail(w, r, err)
-		return
-	}
-	if !ok {
-		http.Redirect(w, r, "/setup", http.StatusSeeOther)
-		return
-	}
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	http.Redirect(w, r, "/app", http.StatusSeeOther)
 }
 
 func (h *Web) fail(w http.ResponseWriter, r *http.Request, err error) {
