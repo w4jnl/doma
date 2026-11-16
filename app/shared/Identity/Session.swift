@@ -5,10 +5,8 @@
 // until there is more than one.
 import Foundation
 import Observation
-#if os(iOS)
 import UIKit
 import UserNotifications
-#endif
 
 @MainActor @Observable
 final class Session {
@@ -325,9 +323,7 @@ final class Session {
         guard let scope, let h = currentHouseholdID else { return 0 }
         let marks = (try? store.db.read { db in try Queries.openMarks(db, scope) }) ?? []
         let n = unseen(household: h, in: marks).values.reduce(0, +)
-        #if os(iOS)
         UNUserNotificationCenter.current().setBadgeCount(n) { _ in }
-        #endif
         return n
     }
 
@@ -432,18 +428,10 @@ final class Session {
     }
 
     static var platform: String {
-        #if os(iOS)
         "ios"
-        #else
-        "macos"
-        #endif
     }
 
     static var deviceLabel: String {
-        #if os(iOS)
         UIDevice.current.name
-        #else
-        Host.current().localizedName ?? "Mac"
-        #endif
     }
 }

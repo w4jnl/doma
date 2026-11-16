@@ -1,5 +1,5 @@
 // Recent at the foot of a list: collapsed by default, the last cleared items, a tap adds one
-// again. A swipe on a row (the row's menu on the Mac) tidies the item as History does: Rename
+// again. A swipe on a row tidies the item as History does: Rename
 // and Merge into in the row, and Retire, armed in place, which stops it coming up.
 
 import SwiftUI

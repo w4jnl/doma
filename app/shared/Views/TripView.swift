@@ -81,20 +81,14 @@ struct TripsView: View {
                 }
             }
         }
-        #if os(iOS)
         .listStyle(.insetGrouped)
-        #else
-        .listStyle(.plain)
-        #endif
         .animation(Motion.of(reduceMotion, Motion.base), value: planning)
         .textCase(nil)
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
         .navigationTitle("Trip")
         .navigationDestination(for: String.self) { id in TripView(tripID: id) }
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
-        #endif
         .toolbar {
             HouseholdTitle()
             ToolbarItem(placement: .automatic) {
@@ -368,18 +362,12 @@ struct TripView: View {
                 checkSection(p, trip)
             }
         }
-        #if os(iOS)
         .listStyle(.insetGrouped)
-        #else
-        .listStyle(.plain)
-        #endif
         .textCase(nil)
         .scrollContentBackground(.hidden)
         .background(Tokens.ground)
         .navigationTitle(trip.map { Text(verbatim: $0.fromName + " → " + $0.toName) } ?? Text("Trip"))
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        #endif
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 OfflineBadge()

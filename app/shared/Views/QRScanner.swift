@@ -1,15 +1,10 @@
-// The camera that reads an invite's QR, on the phone and, through Continuity Camera or a built-in
-// one, on the Mac; Add a card asks it for every barcode a shop uses. AVFoundation only; the code
+// The camera that reads an invite's QR; Add a card asks it for every barcode a shop uses. AVFoundation only; the code
 // is handed back as text, with its type when asked, and the view does nothing else with the
 // picture.
 import AVFoundation
 import SwiftUI
 
-#if os(iOS)
 typealias PlatformViewRepresentable = UIViewRepresentable
-#else
-typealias PlatformViewRepresentable = NSViewRepresentable
-#endif
 
 struct QRScanner: PlatformViewRepresentable {
     var found: @MainActor (String) -> Void
@@ -29,21 +24,12 @@ struct QRScanner: PlatformViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(found: found, types: types, foundType: foundType) }
 
-    #if os(iOS)
     func makeUIView(context: Context) -> PreviewView { make(context) }
     func updateUIView(_ view: PreviewView, context: Context) {
         context.coordinator.found = found
         context.coordinator.foundType = foundType
     }
     static func dismantleUIView(_ view: PreviewView, coordinator: Coordinator) { coordinator.stop() }
-    #else
-    func makeNSView(context: Context) -> PreviewView { make(context) }
-    func updateNSView(_ view: PreviewView, context: Context) {
-        context.coordinator.found = found
-        context.coordinator.foundType = foundType
-    }
-    static func dismantleNSView(_ view: PreviewView, coordinator: Coordinator) { coordinator.stop() }
-    #endif
 
     private func make(_ context: Context) -> PreviewView {
         let view = PreviewView()
@@ -109,7 +95,6 @@ struct QRScanner: PlatformViewRepresentable {
     }
 }
 
-#if os(iOS)
 final class PreviewView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -133,23 +118,3 @@ final class PreviewView: UIView {
         previewLayer?.frame = bounds
     }
 }
-#else
-final class PreviewView: NSView {
-    var previewLayer: AVCaptureVideoPreviewLayer? {
-        didSet {
-            wantsLayer = true
-            layer?.backgroundColor = CGColor(gray: 0, alpha: 1)
-            oldValue?.removeFromSuperlayer()
-            if let previewLayer {
-                previewLayer.frame = bounds
-                layer?.addSublayer(previewLayer)
-            }
-        }
-    }
-
-    override func layout() {
-        super.layout()
-        previewLayer?.frame = bounds
-    }
-}
-#endif

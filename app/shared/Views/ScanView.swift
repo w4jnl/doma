@@ -1,7 +1,7 @@
 // Scan: the first screen before any household, and Family's Join another. The camera
 // full-bleed, the mark above it, one line of help, Paste a link as a text button; the display
 // name is asked on the first join, and once more for a first join to another family's doma,
-// filled in with the name used so far. On a Mac or without a camera, the link field is what
+// filled in with the name used so far. Without a camera, the link field is what
 // there is.
 import SwiftUI
 
@@ -66,10 +66,8 @@ struct ScanView: View {
                             .padding(Tokens.space3)
                             .background(Tokens.surfaceSunk, in: RoundedRectangle(cornerRadius: Tokens.radiusSM))
                             .autocorrectionDisabled()
-                            #if os(iOS)
                             .textInputAutocapitalization(.never)
                             .keyboardType(.URL)
-                            #endif
                             .onSubmit { if needsName { focus = .name } else { accept(link) } }
                         if needsName {
                             TextField("Your name, as the family sees it", text: $name)

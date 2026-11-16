@@ -4,7 +4,6 @@
 // list or cleared it: the system shows them while the app is away, and the app shows nothing
 // of its own while it is in front, it just syncs.
 import Foundation
-#if os(iOS)
 import BackgroundTasks
 import UIKit
 import UserNotifications
@@ -98,4 +97,3 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
         await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
     }
 }
-#endif

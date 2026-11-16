@@ -2,7 +2,7 @@
 # ios-project). Local.xcconfig (gitignored) holds your team id, DOMA_TEAM_ID, which a device
 # build needs; the simulator needs none.
 #
-# ../shared is DomaKit, compiled into this app and the Mac app (app/macos): the design tokens, the
+# ../shared is DomaKit, compiled into this app: the design tokens, the
 # store, the fold, sync, identity and the views, with #if os() where the platforms differ. GRDB,
 # pinned, is the one dependency. The fonts come from the design system. docs/design.md, "iPhone
 # and Mac apps", is the spec.

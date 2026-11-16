@@ -92,9 +92,7 @@ struct PhotoView: View {
         .animation(Motion.of(reduceMotion, Motion.quick), value: renaming)
         .animation(Motion.of(reduceMotion, Motion.quick), value: arming)
         .navigationTitle(name ?? spot.name)
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        #endif
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
@@ -143,9 +141,6 @@ struct PhotoView: View {
         .frame(minHeight: Tokens.rowH)
         .padding(.horizontal, Tokens.space4)
         .frame(maxWidth: Tokens.contentMax)
-        #if os(macOS)
-        .onExitCommand { renaming = false }
-        #endif
     }
 
     private func commitRename() {
@@ -246,10 +241,8 @@ struct SweepView: View {
             }
         }
         .navigationTitle(home.name.isEmpty ? Text("Take a picture") : Text("Take photos"))
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
-        #endif
     }
 
     private func take() {

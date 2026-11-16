@@ -3073,18 +3073,18 @@
         }
       }
     },
-    "Show the code to your Mac or your new phone; it joins as you.": {
+    "Show the code to your new phone; it joins as you.": {
       "localizations": {
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Laat de code aan je Mac of je nieuwe telefoon zien; die doet dan mee als jij."
+            "value": "Laat de code aan je nieuwe telefoon zien; die doet dan mee als jij."
           }
         },
         "sk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ukáž kód svojmu Macu alebo novému telefónu; pripojí sa ako ty."
+            "value": "Ukáž kód svojmu novému telefónu; pripojí sa ako ty."
           }
         }
       }

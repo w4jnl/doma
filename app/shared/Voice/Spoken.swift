@@ -1,5 +1,5 @@
-// Spoken splits one spoken line into the items it names (docs/design.md, "iPhone and Mac
-// apps", Voice). Words alone cannot say where one item ends and the next begins ("apples
+// Spoken splits one spoken line into the items it names (docs/design.md, "iPhone app",
+// Voice). Words alone cannot say where one item ends and the next begins ("apples
 // oranges" looks like "olive oil"), so two signals that can are used: the household's catalog,
 // whose names are peeled off longest first, so "halfvolle melk eieren" is two items and "salt
 // and pepper" one; and the separators a speaker puts between things, a comma or the language's

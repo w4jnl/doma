@@ -1,5 +1,4 @@
-// The camera that takes a spot's picture, on the phone and, through Continuity Camera or a
-// built-in one, on the Mac. AVFoundation only: a preview and one still per tap, handed back as
+// The camera that takes a spot's picture. AVFoundation only: a preview and one still per tap, handed back as
 // the bytes the camera made; nothing else is kept. Without a camera (the simulator, a test) the
 // shutter makes a plain picture with the spot's name on it, so the flow still runs.
 import AVFoundation
@@ -57,15 +56,9 @@ struct CameraView: PlatformViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
-    #if os(iOS)
     func makeUIView(context: Context) -> PreviewView { make(context) }
     func updateUIView(_ view: PreviewView, context: Context) {}
     static func dismantleUIView(_ view: PreviewView, coordinator: Coordinator) { coordinator.stop() }
-    #else
-    func makeNSView(context: Context) -> PreviewView { make(context) }
-    func updateNSView(_ view: PreviewView, context: Context) {}
-    static func dismantleNSView(_ view: PreviewView, coordinator: Coordinator) { coordinator.stop() }
-    #endif
 
     private func make(_ context: Context) -> PreviewView {
         let view = PreviewView()

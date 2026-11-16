@@ -1,6 +1,6 @@
-# The apps' tests on a Mac runner, only when something under app/ or what the apps read by path
+# The iPhone app's tests on a Mac runner, only when something under app/ or what the apps read by path
 # (the fold fixture, the design tokens) changes: macOS minutes count ten times on a private
-# repository, so server PRs do not pay for them. One job, both platforms in turn.
+# repository, so server PRs do not pay for them.
 name: apps
 
 on:
@@ -42,9 +42,6 @@ jobs:
       - name: xcode
         run: xcodebuild -version && xcrun simctl list devices available | grep -m1 'iPhone 17'
 
-      - name: mac-test
-        run: make mac-test
-
       - name: ios-test
         run: make ios-test
 
@@ -59,7 +56,7 @@ jobs:
       - name: failures
         if: failure()
         run: |
-          for r in app/ios/build/DerivedData/Logs/Test/*.xcresult app/macos/build/DerivedData/Logs/Test/*.xcresult; do
+          for r in app/ios/build/DerivedData/Logs/Test/*.xcresult; do
             [ -d "$r" ] || continue
             echo "== $r"
             xcrun xcresulttool get test-results tests --path "$r" 2>/dev/null | python3 -c '
@@ -81,8 +78,6 @@ jobs:
         if: failure()
         with:
           name: xcresults
-          path: |
-            app/ios/build/DerivedData/Logs/Test/*.xcresult
-            app/macos/build/DerivedData/Logs/Test/*.xcresult
+          path: app/ios/build/DerivedData/Logs/Test/*.xcresult
           if-no-files-found: ignore
           retention-days: 7

@@ -1,4 +1,4 @@
-// Listener turns speech into words on the device (docs/design.md, "iPhone and Mac apps", Voice),
+// Listener turns speech into words on the device (docs/design.md, "iPhone app", Voice),
 // as nt's does: Apple's SpeechAnalyzer, with SpeechTranscriber where it has the language and
 // DictationTranscriber, the keyboard's model, where it does not (Dutch and Slovak). Only the
 // words are kept: the sound goes from the microphone to the model and nowhere else, and the app

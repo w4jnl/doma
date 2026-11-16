@@ -1,5 +1,5 @@
 // All items, one level under History: every item the family has, the never bought ones too,
-// by name with a search field. A swipe on a row (the row's menu on the Mac) offers Rename,
+// by name with a search field. A swipe on a row offers Rename,
 // Merge into and Retire, as History's rows do, for a tidy-up no single month can offer.
 
 import SwiftUI
@@ -39,9 +39,7 @@ struct ItemsView: View {
         .environment(\.defaultMinListRowHeight, ListView.rowHeight)
         .searchable(text: $search)
         .navigationTitle("All items")
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
-        #endif
         .onAppear(perform: observe)
         .onChange(of: session.scope) { observe() }
     }

@@ -2,9 +2,9 @@
 // at a time, stepped back and forth under the title, the latest month with a purchase first.
 // Per item with how many times, the totals
 // of quantity by unit and when last; per home; who shopped. It reads the cleared entries and
-// makes no event, so it is the same on every phone and on the Mac.
-// It is also where the family tidies its items: a swipe on an item row (the row's menu on the
-// Mac) offers Rename and Merge into, which fix the past months too, since every month reads the
+// makes no event, so it is the same on every phone.
+// It is also where the family tidies its items: a swipe on an item row
+// offers Rename and Merge into, which fix the past months too, since every month reads the
 // item's current name and a merged item reads through to the one it was merged into, and
 // Retire, armed in place, which stops an item coming up while typing and leaves its months as
 // they are.
@@ -113,9 +113,7 @@ struct HistoryView: View {
         .environment(\.defaultMinListRowHeight, ListView.rowHeight)
         .navigationTitle("History")
         .navigationSubtitle(o.total == 0 ? Text("Nothing bought") : Text("\(o.total) bought"))
-        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
-        #endif
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 OfflineBadge()
@@ -222,14 +220,6 @@ struct HistoryView: View {
                 Button("Rename") { startRename(item) }
                     .tint(Tokens.accent)
             }
-            #if os(macOS)
-            .contextMenu {
-                Button("Rename") { startRename(item) }
-                Button("Merge into…") { startMerge(item) }
-                Button("Retire", role: .destructive) { arm(item.itemID) }
-            }
-            .onTapGesture(count: 2) { startRename(item) }
-            #endif
     }
 
     private func itemContent(_ item: PurchasedItem) -> some View {
@@ -327,16 +317,11 @@ struct HistoryView: View {
                     done()
                 }
                 .accessibilityIdentifier("rename-item")
-            #if os(iOS)
             Button("Cancel") { done() }
                 .buttonStyle(.plain)
                 .foregroundStyle(Tokens.inkMuted)
-            #endif
         }
         .frame(minHeight: ListView.rowHeight)
-        #if os(macOS)
-        .onExitCommand { done() }
-        #endif
         .listRowBackground(Tokens.surface)
         .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
     }
@@ -350,16 +335,11 @@ struct HistoryView: View {
                 .submitLabel(.done)
                 .onSubmit { if candidates.isEmpty { done() } }
                 .accessibilityIdentifier("merge-item")
-            #if os(iOS)
             Button("Cancel") { done() }
                 .buttonStyle(.plain)
                 .foregroundStyle(Tokens.inkMuted)
-            #endif
         }
         .frame(minHeight: ListView.rowHeight)
-        #if os(macOS)
-        .onExitCommand { done() }
-        #endif
         .listRowBackground(Tokens.surface)
         .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
     }

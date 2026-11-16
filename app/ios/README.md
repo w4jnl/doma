@@ -1,8 +1,8 @@
 # doma for iPhone
 
 The family's lists on the phone: a full copy of the household in a local store, every tap an
-event folded at once and sent when the network allows. The spec is `docs/design.md`, "iPhone and
-Mac apps"; the server is this repository's Go code. It ships through TestFlight during phases 0
+event folded at once and sent when the network allows. The spec is `docs/design.md`, "iPhone
+app"; the server is this repository's Go code. It ships through TestFlight during phases 0
 and 1 and from the App Store from phase 2.
 
 ## Build
@@ -54,7 +54,7 @@ on a sentence in each language that `say` speaks.
 
 ## What is where
 
-`app/shared` is DomaKit, compiled into this app and the Mac app: `Model` (stamps, ids, the
+`app/shared` is DomaKit, compiled into this app: `Model` (stamps, ids, the
 typed line, events and rows), `Fold` (the port of the server's fold, tested against the same
 fixture), `Store` (GRDB, what the screens read and write), `Identity` (the device key, invites,
 the session), `Sync` (the signed client, the syncer, background refresh and push), `Voice`

@@ -6,9 +6,7 @@
 // screen stays awake and syncs every 5 s while it is in front.
 import GRDB
 import SwiftUI
-#if os(iOS)
 import UIKit
-#endif
 
 struct ListView: View {
     let listID: String
@@ -20,10 +18,6 @@ struct ListView: View {
     @Environment(\.scenePhase) private var scenePhase
     /// On screen, between appear and disappear.
     @State private var visible = false
-    #if os(macOS)
-    @Environment(MacNav.self) private var nav
-    @State private var hovered: String?
-    #endif
     @State private var summary: Live<ListSummary?>?
     /// Things to do rather than to buy: the words change, homes and purchases do not apply.
     private var isTasks: Bool { summary?.value?.isTasks ?? false }
@@ -65,13 +59,9 @@ struct ListView: View {
     @State private var voiceProblem: String?
     @FocusState private var fieldFocused: Bool
     @FocusState private var editFocused: Bool
-    #if os(macOS)
-    @State private var selected: String?
-    #else
     /// When the list, or doma, last came to the front: a tap right after is no strike.
     @State private var front = Date.distantPast
     @AppStorage(StrikeGuard.key) private var guardSeconds = StrikeGuard.defaultSeconds
-    #endif
 
     /// A row just struck or restored keeps its place for a breath: the group it stays in and
     /// its order there.
@@ -84,11 +74,7 @@ struct ListView: View {
 
     /// Entry rows are `row-h-list` under a thumb and `row-h-compact` under a pointer.
     static var rowHeight: CGFloat {
-        #if os(macOS)
-        Tokens.rowHCompact
-        #else
         Tokens.rowHList
-        #endif
     }
 
     var body: some View {
@@ -110,18 +96,14 @@ struct ListView: View {
             // on their identity, so an add, a sink and a clear move instead of redraw
             .animation(Motion.of(reduceMotion, Motion.base), value: ids)
             .animation(Motion.of(reduceMotion, .easeInOut(duration: Tokens.motionQuick)), value: editing)
-            #if os(iOS)
             .scrollDismissesKeyboard(.immediately)
-            #endif
             .background(Tokens.ground)
-            #if os(iOS)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if editing == nil {
                     addBar
                         .transition(Motion.arrive(reduceMotion, from: .bottom))
                 }
             }
-            #endif
             // a strike and a restore are felt as hard as the engine goes, so a blind tap is noticed
             .sensoryFeedback(.impact(weight: .heavy, intensity: 1), trigger: strikes)
             .sensoryFeedback(.impact(flexibility: .rigid, intensity: 1), trigger: restores)
@@ -132,16 +114,8 @@ struct ListView: View {
             .sensoryFeedback(.impact(weight: .light), trigger: micTaps)
             .sensoryFeedback(trigger: session.dictation.busy) { _, now in now ? .start : .stop }
             .navigationTitle(summary?.value?.name ?? "")
-            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
-            #else
-            .toolbar(removing: .title)
-            .safeAreaInset(edge: .top, spacing: 0) { paneTitle(open: openCount) }
-            .modifier(MacPane())
-            .modifier(MacMenu(struck: !struck.isEmpty, selected: selected != nil, onToggle: { _ = toggleSelected() }, onEdit: { _ = editSelected() }, onClear: clear))
-            #endif
             .toolbar {
-                #if os(iOS)
                 if let overview {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
@@ -168,33 +142,14 @@ struct ListView: View {
                 }
                 ToolbarItem(placement: .automatic) { OfflineBadge() }
                     .sharedBackgroundVisibility(.hidden)
-                #else
-                if summary?.value?.isTasks != true {
-                    ToolbarItem(placement: .automatic) {
-                        Button {
-                            nav.showCards += 1
-                        } label: {
-                            Label("Cards", systemImage: "creditcard")
-                        }
-                        .help("The family's cards")
-                        .accessibilityIdentifier("cards")
-                    }
-                }
-                ToolbarItem(placement: .automatic) { OfflineBadge() }
-                #endif
             }
             .onAppear {
                 observe()
                 visible = true
                 beginVisit()
                 session.syncer.setPolling(seconds: 5)
-                #if os(iOS)
                 front = .now
                 UIApplication.shared.isIdleTimerDisabled = true
-                #else
-                nav.listInFront = true
-                if (rows?.value ?? []).isEmpty { fieldFocused = true }
-                #endif
             }
             .onChange(of: session.scope) { observe() }
             .onChange(of: rows?.value) { markSeen() }
@@ -202,9 +157,7 @@ struct ListView: View {
             .onChange(of: scenePhase) { _, now in
                 if now == .active, visible { beginVisit() }
                 if now == .background { stopDictation() }
-                #if os(iOS)
                 if now == .active { front = .now }
-                #endif
             }
             .onDisappear {
                 visible = false
@@ -212,13 +165,7 @@ struct ListView: View {
                 // the keyboard belongs to this screen: it goes when the screen goes
                 fieldFocused = false
                 session.syncer.setPolling(seconds: nil)
-                #if os(iOS)
                 UIApplication.shared.isIdleTimerDisabled = false
-                #else
-                nav.listInFront = false
-                nav.hasSelectedEntry = false
-                nav.hasStruck = false
-                #endif
             }
             .onChange(of: rows?.value) { _, now in
                 // the store caught up with what the rows already show
@@ -235,144 +182,8 @@ struct ListView: View {
                 let found = (try? await session.store.db.read { db in try Queries.matches(db, scope, prefix: t, tasks: tasks) }) ?? []
                 if !Task.isCancelled { matches = found }
             }
-            #if os(macOS)
-            .modifier(MacKeys(onToggle: toggleSelected, onEdit: editSelected, onType: startTyping))
-            #endif
     }
 
-    #if os(macOS)
-    /// The list's title where the Mac's toolbar would say it small: the name large, the dot and
-    /// the count under it, in the pane.
-    private func paneTitle(open: Int) -> some View {
-        VStack(alignment: .leading, spacing: Tokens.space1) {
-            Text(summary?.value?.name ?? "")
-                .font(.title.weight(.semibold))
-                .foregroundStyle(Tokens.ink)
-            countRow(open: open)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Tokens.space4)
-        .padding(.top, Tokens.space5)
-        .padding(.bottom, Tokens.space3)
-        .background(Tokens.ground)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-
-    /// Space or ⌫ on the selected row strikes it, or takes it back.
-    private func toggleSelected() -> Bool {
-        guard let id = selected, let row = (rows?.value ?? []).first(where: { $0.id == id }) else { return false }
-        toggle(row)
-        return true
-    }
-
-    /// Return, a double click or Edit Item opens the selected row in place.
-    @discardableResult
-    private func editSelected() -> Bool {
-        guard let id = selected, let row = (rows?.value ?? []).first(where: { $0.id == id }) else { return false }
-        startEdit(row)
-        return true
-    }
-
-    /// Typing with the list in front starts an entry, as Finder finds and Things adds.
-    private func startTyping(_ characters: String) -> Bool {
-        guard !fieldFocused, editing == nil else { return false }
-        text = characters
-        fieldFocused = true
-        return true
-    }
-
-    /// The add row under the last open item: the plus in the glyph column, the field after it,
-    /// the matches as rows beneath, best first, and the usual chips while the field is empty.
-    @ViewBuilder
-    private var addRowMac: some View {
-        HStack(spacing: Tokens.space3) {
-            Image(systemName: "plus")
-                .font(.title3)
-                .imageScale(.large)
-                .foregroundStyle(Tokens.accent)
-                .frame(width: Tokens.space5)
-                .accessibilityHidden(true)
-            TextField("Add", text: $text, selection: $selection)
-                .accessibilityIdentifier("add-field")
-                .textFieldStyle(.plain)
-                .focused($fieldFocused)
-                .onSubmit(addTyped)
-                .onExitCommand { fieldFocused = false; text = "" }
-                .autocorrectionDisabled()
-                .accessibilityLabel(Text("Add an item"))
-                .overlay(alignment: .leading) { hearing }
-            MicButton(listener: session.dictation, tap: toggleDictation, pick: dictate(in:))
-        }
-        .frame(minHeight: ListView.rowHeight)
-        .listRowBackground(Tokens.ground)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
-        if let voiceProblem {
-            ProblemLine(text: voiceProblem)
-                .padding(.leading, Tokens.space5 + Tokens.space3)
-                .listRowBackground(Tokens.ground)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: Tokens.space2, trailing: Tokens.space4))
-        }
-        if !text.isEmpty {
-            ForEach(Array(matches.prefix(5).enumerated()), id: \.element.id) { i, m in
-                let exact = matches.contains { Norm.name($0.name) == Norm.name(text) }
-                if renamingMatch == m.itemID {
-                    matchRenameField(m)
-                        .padding(.leading, Tokens.space5 + Tokens.space3)
-                        .frame(minHeight: ListView.rowHeight)
-                        .listRowBackground(Tokens.surface)
-                        .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
-                } else {
-                Button { add(itemID: m.itemID) } label: {
-                    HStack {
-                        Text(m.name).foregroundStyle(Tokens.ink)
-                        Spacer()
-                        if let last = m.lastBought {
-                            HStack(spacing: Tokens.space1) {
-                                (isTasks ? Text("last done") : Text("last bought")).font(.footnote).foregroundStyle(Tokens.inkMuted)
-                                RelativeText(millis: last)
-                            }
-                        }
-                    }
-                    .padding(.leading, Tokens.space5 + Tokens.space3)
-                    .frame(minHeight: ListView.rowHeight)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .contextMenu { tidyMenu(m) }
-                .listRowBackground(exact && i == 0 ? Tokens.accentSoft : Tokens.surface)
-                .listRowSeparatorTint(Tokens.line)
-                .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
-                .transition(.opacity)
-                }
-            }
-            if !matches.contains(where: { Norm.name($0.name) == Norm.name(text) }) {
-                Button(action: addTyped) {
-                    HStack(spacing: Tokens.space2) {
-                        Text(text).foregroundStyle(Tokens.ink)
-                        Spacer()
-                        Text("new").font(.footnote).foregroundStyle(Tokens.inkMuted)
-                    }
-                    .padding(.leading, Tokens.space5 + Tokens.space3)
-                    .frame(minHeight: ListView.rowHeight)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .listRowBackground(Tokens.accentSoft)
-                .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
-                .transition(.opacity)
-            }
-        } else if fieldFocused, !usual.isEmpty {
-            usualChips
-                .listRowBackground(Tokens.ground)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4 + Tokens.space5 + Tokens.space3, bottom: 0, trailing: Tokens.space4))
-                .transition(.opacity)
-        }
-    }
-    #endif
 
     /// The list's dot and how many are to get, under the title: the number rolls when it
     /// changes, which is also how a change from another phone shows itself.
@@ -396,22 +207,16 @@ struct ListView: View {
 
     @ViewBuilder
     private func list(all: [EntryRow], open: [EntryRow], struck: [EntryRow], openCount: Int) -> some View {
-        #if os(macOS)
-        List(selection: $selected) { sections(all: all, open: open, struck: struck, openCount: openCount) }
-        #else
         List { sections(all: all, open: open, struck: struck, openCount: openCount) }
-        #endif
     }
 
     @ViewBuilder
     private func sections(all: [EntryRow], open: [EntryRow], struck: [EntryRow], openCount: Int) -> some View {
-        #if os(iOS)
         countRow(open: openCount)
             .listRowBackground(Tokens.ground)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
             .frame(minHeight: Tokens.space5)
-        #endif
         if all.isEmpty, text.isEmpty {
             emptyState
                 .transition(.opacity.animation(.easeOut(duration: Tokens.motionBase).delay(Tokens.motionQuick)))
@@ -420,16 +225,10 @@ struct ListView: View {
             ForEach(open) { row in
                 entryRow(row)
                     .transition(Motion.arrive(reduceMotion, from: .bottom))
-                    #if os(macOS)
-                    .tag(row.id)
-                    #endif
             }
             .onMove { from, to in
                 try? ListActions.move(all, from: from, to: to, on: listID, in: session)
             }
-            #if os(macOS)
-            if editing == nil { addRowMac }
-            #endif
         }
         if !struck.isEmpty {
             Section {
@@ -441,9 +240,6 @@ struct ListView: View {
                 ForEach(struck) { row in
                     entryRow(row)
                         .transition(.opacity)
-                        #if os(macOS)
-                        .tag(row.id)
-                        #endif
                 }
             }
         }
@@ -543,7 +339,6 @@ struct ListView: View {
 
     @ViewBuilder
     private var addBar: some View {
-        #if os(iOS)
         // the one glass in the app: the bar floats like the tab bar it sits over, the matches
         // and chips in the same glass above it
         GlassEffectContainer(spacing: Tokens.space2) {
@@ -577,28 +372,6 @@ struct ListView: View {
         .animation(Motion.of(reduceMotion, Motion.quick), value: text.isEmpty)
         .animation(Motion.of(reduceMotion, Motion.quick), value: fieldFocused && !usual.isEmpty)
         .animation(Motion.of(reduceMotion, Motion.quick), value: voiceProblem)
-        #else
-        VStack(spacing: 0) {
-            if !text.isEmpty {
-                suggestionRows
-                    .transition(Motion.arrive(reduceMotion, from: .bottom))
-            } else if fieldFocused, !usual.isEmpty {
-                usualChips
-                    .transition(Motion.arrive(reduceMotion, from: .bottom))
-            }
-            Rectangle()
-                .fill(Tokens.line)
-                .frame(height: 1)
-                .accessibilityHidden(true)
-            addField
-                .padding(.horizontal, Tokens.space4)
-                .frame(minHeight: ListView.rowHeight)
-        }
-        .background(Tokens.ground)
-        .animation(Motion.of(reduceMotion, Motion.quick), value: matches.map(\.id))
-        .animation(Motion.of(reduceMotion, Motion.quick), value: text.isEmpty)
-        .animation(Motion.of(reduceMotion, Motion.quick), value: fieldFocused && !usual.isEmpty)
-        #endif
     }
 
     /// The accent disc and the field with no box.
@@ -619,9 +392,7 @@ struct ListView: View {
                 .focused($fieldFocused)
                 .submitLabel(.return)
                 .onSubmit(addTyped)
-                #if os(iOS)
                 .textInputAutocapitalization(.never)
-                #endif
                 .autocorrectionDisabled()
                 .accessibilityLabel(Text("Add an item"))
                 .overlay(alignment: .leading) { hearing }
@@ -744,11 +515,7 @@ struct ListView: View {
                 .accessibilityIdentifier("match-" + m.name)
                 .transition(.opacity)
                 }
-                #if os(macOS)
-                Rectangle().fill(Tokens.line).frame(height: 1)
-                #else
                 if i < min(matches.count, 5) - 1 || !exact { Rectangle().fill(Tokens.line).frame(height: 1) }
-                #endif
             }
             if !exact {
                 Button(action: addTyped) {
@@ -891,11 +658,9 @@ struct ListView: View {
     // MARK: Strike, hold, clear
 
     private func toggle(_ row: EntryRow) {
-        #if os(iOS)
         // a tap in the first moment after the list or doma came to the front is a pocket or a
         // pickup, not a strike; the UI tests tap at once
         guard UITestHooks.testing || StrikeGuard(since: front, seconds: guardSeconds).allows(.now) else { return }
-        #endif
         let wasOpen = shown[row.id].map { !$0 } ?? !row.isChecked
         // a second tap within the hold keeps the place the first tap kept
         let hold = held[row.id] ?? Hold(open: !row.isChecked, sort: row.isChecked ? Self.struckSort(row) : row.sort)
@@ -936,7 +701,6 @@ struct ListView: View {
             let checked = shown[row.id] ?? row.isChecked
             let gotBy = checked ? session.name(of: row.checkedBy) : nil
             let fresh = !checked && isNew(row)
-            #if os(iOS)
             Button {
                 toggle(row)
             } label: {
@@ -955,45 +719,6 @@ struct ListView: View {
                 Button("Edit") { startEdit(row) }
                     .tint(Tokens.accent)
             }
-            #else
-            // a click selects, the symbol strikes, a double click or return edits
-            EntryRowView(row: row, checked: checked, gotBy: gotBy, isNew: fresh, held: held[row.id] != nil, hovered: hovered == row.id) { toggle(row) }
-                .accessibilityIdentifier("entry-" + row.name)
-                .onTapGesture(count: 2) { startEdit(row) }
-                .onHover { hovered = $0 ? row.id : (hovered == row.id ? nil : hovered) }
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: Tokens.radiusSM)
-                        .fill(selected == row.id || flashed.contains(row.id) ? Tokens.accentSoft : (hovered == row.id ? Tokens.surface : .clear))
-                        .padding(.horizontal, Tokens.space2)
-                        .animation(.easeOut(duration: Tokens.motionQuick), value: hovered == row.id)
-                        .animation(.easeOut(duration: Tokens.motionBase), value: flashed.contains(row.id))
-                )
-                .listRowSeparatorTint(Tokens.line)
-                .listRowInsets(EdgeInsets(top: 0, leading: Tokens.space4, bottom: 0, trailing: Tokens.space4))
-                .alignmentGuide(.listRowSeparatorLeading) { d in d[.leading] + Tokens.space5 + Tokens.space3 }
-            .contextMenu {
-                Button(checked ? "Put back" : "Got it") { toggle(row) }
-                Button("Edit") { startEdit(row) }
-                Button("Not needed") { try? ListActions.remove(row, on: listID, in: session) }
-                if !isTasks, let homes = homes?.value, !homes.isEmpty {
-                    Menu("For a home") {
-                        ForEach(homes) { h in
-                            Button(h.name) { try? ListActions.setHome(row, h.id, on: listID, in: session) }
-                        }
-                        if row.forHomeID != nil {
-                            Button("No home") { try? ListActions.setHome(row, nil, on: listID, in: session) }
-                        }
-                    }
-                }
-                if let scope = session.scope, let others = try? session.store.read(scope, { db, s in try Queries.otherItems(db, s, listID: listID, except: row.itemID) }), !others.isEmpty {
-                    Menu("Merge with…") {
-                        ForEach(others) { o in
-                            Button(o.name) { try? ListActions.merge(row, into: o.itemID, in: session) }
-                        }
-                    }
-                }
-            }
-            #endif
         }
     }
 
@@ -1035,16 +760,11 @@ struct ListView: View {
                 .menuStyle(.button)
                 .buttonStyle(.plain)
             }
-            #if os(iOS)
             Button("Cancel") { editing = nil }
                 .buttonStyle(.plain)
                 .foregroundStyle(Tokens.inkMuted)
-            #endif
         }
         .frame(minHeight: ListView.rowHeight)
-        #if os(macOS)
-        .onExitCommand { editing = nil }
-        #endif
         .listRowBackground(Tokens.surface)
     }
 
@@ -1085,14 +805,12 @@ struct EntryRowView: View {
     /// Just struck or restored and keeping its place for a breath: the word for the second
     /// tap sits at the row's edge, so what happened reads and the way back has a name.
     var held: Bool = false
-    /// Under a pointer the row is hovered and the symbol is the strike control.
-    var hovered: Bool = false
     var strike: (() -> Void)?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pop = false
 
     private var symbolColour: Color {
-        if pop || hovered { return Tokens.accent }
+        if pop { return Tokens.accent }
         return checked ? Tokens.inkFaint : Tokens.inkMuted
     }
 
@@ -1170,7 +888,6 @@ struct EntryRowView: View {
         .frame(minHeight: ListView.rowHeight)
         .contentShape(Rectangle())
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: checked)
-        .animation(.easeOut(duration: Tokens.motionQuick), value: hovered)
         .animation(.easeOut(duration: Tokens.motionQuick), value: held)
         .onChange(of: checked) { _, now in
             guard now, !reduceMotion else { return }
@@ -1195,55 +912,6 @@ struct EntryRowView: View {
     }
 }
 
-#if os(macOS)
-/// The Mac's keys over the list: space or delete strikes the selected row, return edits it,
-/// letters start an entry. Kept apart so the compiler types the list's body in one breath.
-private struct MacKeys: ViewModifier {
-    var onToggle: () -> Bool
-    var onEdit: () -> Bool
-    var onType: (String) -> Bool
-
-    func body(content: Content) -> some View {
-        content
-            .onKeyPress(.space) { onToggle() ? .handled : .ignored }
-            .onKeyPress(.return) { onEdit() ? .handled : .ignored }
-            .onDeleteCommand { _ = onToggle() }
-            .onKeyPress(characters: .alphanumerics, phases: .down) { (press: KeyPress) -> KeyPress.Result in
-                onType(press.characters) ? .handled : .ignored
-            }
-    }
-}
-
-/// The pane hangs off the left at content-max.
-private struct MacPane: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .frame(maxWidth: Tokens.contentMax, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, Tokens.space4)
-            .background(Tokens.ground)
-    }
-}
-
-/// The menu bar's commands land on the list in front, and the list says what the menu may offer.
-private struct MacMenu: ViewModifier {
-    @Environment(MacNav.self) private var nav
-    var struck: Bool
-    var selected: Bool
-    var onToggle: () -> Void
-    var onEdit: () -> Void
-    var onClear: () -> Void
-
-    func body(content: Content) -> some View {
-        content
-            .onChange(of: nav.toggleSelected) { onToggle() }
-            .onChange(of: nav.editSelected) { onEdit() }
-            .onChange(of: nav.clear) { if struck { onClear() } }
-            .onChange(of: selected, initial: true) { nav.hasSelectedEntry = selected }
-            .onChange(of: struck, initial: true) { nav.hasStruck = struck }
-    }
-}
-#endif
 
 /// The phone's guard against a blind strike: a tap on a row in the first moment after the
 /// list, or doma, came to the front is a pocket or a pickup and is ignored. How long is the
