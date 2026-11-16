@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/w4jnl/doma/internal/auth"
+	"github.com/w4jnl/doma/internal/bus"
 	"github.com/w4jnl/doma/internal/client"
 	"github.com/w4jnl/doma/internal/config"
 	"github.com/w4jnl/doma/internal/db/dbtest"
@@ -48,6 +49,7 @@ func newSuite(t *testing.T) *suite {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	photos := t.TempDir()
 	svc := service.New(dbtest.Open(t), service.Config{BaseURL: "http://doma.test", SnapshotsDir: t.TempDir(), PhotosDir: photos, MaxUploadBytes: 200 << 10}, log)
+	svc.SetBus(bus.New())
 	h, err := dhttp.Handler(dhttp.Deps{Cfg: config.Default(), Log: log, Svc: svc})
 	if err != nil {
 		t.Fatal(err)

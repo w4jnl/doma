@@ -6,6 +6,11 @@ updates this file first. Dates are the tag dates.
 
 ## Unreleased
 
+- **A list in the browser works like one on the phone.** Suggestions appear under the add
+  field as you type, with the arrow keys to pick one; Edit turns a row into a field for its
+  quantity, note or name; Recent sits beside the list and a click adds an item again; and a
+  change from a phone shows within a second instead of up to ten.
+
 - **The web pages are laid out for a computer.** A sidebar lists the household's lists, Homes,
   Trip and Family, with the page beside it; a home shows its staples next to its spots and
   trips. On a narrow screen it folds into a bar. Your doma's address now opens the family's

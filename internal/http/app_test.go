@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/ecdsa"
@@ -17,6 +18,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/w4jnl/doma/internal/domain"
 	"github.com/w4jnl/doma/internal/service"
@@ -538,6 +540,82 @@ func TestWebClientHomesTripsAndFamily(t *testing.T) {
 
 // A camera that read the browser's code lands on a page with a button that
 // hands the code to doma on the phone.
+// The list page at a computer: the catalog's matches while typing, a row edited
+// as the line it was typed as, Recent beside the list, and the stream that
+// says the household changed.
+func TestWebClientListSuggestsEditsAndHears(t *testing.T) {
+	s := newSuite(t)
+	b, csrf := signInByPhone(t, s, s.a.owner)
+	list := "/app/h/" + s.a.id + "/l/" + s.a.list
+	for _, line := range []string{"melk 2", "brood", "boter"} {
+		if res, _ := b.htmx(list+"/add", csrf, url.Values{"text": {line}}); res.StatusCode != http.StatusOK {
+			t.Fatalf("add %s: %d", line, res.StatusCode)
+		}
+	}
+	// matches: a word that starts with what is typed, nothing for nothing typed
+	if _, body := b.get(list + "/suggest?text=b"); !strings.Contains(body, ">boter<") || !strings.Contains(body, ">brood<") || strings.Contains(body, ">melk<") {
+		t.Errorf("matches for b: %s", body)
+	}
+	if _, body := b.get(list + "/suggest?text="); strings.TrimSpace(body) != "" {
+		t.Errorf("matches for nothing: %q", body)
+	}
+	if res, _ := b.get("/app/h/" + s.b.id + "/l/" + s.b.list + "/suggest?text=b"); res.StatusCode != http.StatusNotFound {
+		t.Errorf("another household's matches: %d, want 404", res.StatusCode)
+	}
+	// a row as a field holds its line; saved, the quantity, unit and note are the entry's
+	_, body := b.get(list + "/rows")
+	m := regexp.MustCompile(`/edit/([A-Za-z0-9]+)`).FindStringSubmatch(body)
+	if m == nil {
+		t.Fatalf("no Edit on the rows: %s", body)
+	}
+	if _, form := b.get(list + "/edit/" + m[1]); !strings.Contains(form, `value="melk 2"`) {
+		t.Errorf("the edit field: %s", form)
+	}
+	res, body := b.htmx(list+"/edit/"+m[1], csrf, url.Values{"text": {"volle melk 1,5 l (de blauwe)"}})
+	if res.StatusCode != http.StatusOK || !strings.Contains(body, "volle melk") || !strings.Contains(body, "1.5 l") || !strings.Contains(body, "de blauwe") {
+		t.Errorf("after the edit: %d %s", res.StatusCode, body)
+	}
+	if !strings.Contains(body, `id="side-lists" hx-swap-oob="true"`) || !strings.Contains(body, `id="count" hx-swap-oob="true"`) {
+		t.Errorf("the rows do not carry the sidebar and the count: %s", body)
+	}
+	// struck and cleared, the item is under Recent, and a tap there puts it back
+	b.htmx(list+"/check/"+m[1], csrf, url.Values{})
+	b.htmx(list+"/clear", csrf, url.Values{})
+	_, page := b.get(list)
+	_, recent, found := strings.Cut(page, `id="recent"`)
+	if !found {
+		t.Fatalf("no Recent on the page: %s", page)
+	}
+	if !strings.Contains(recent, "Add volle melk again") {
+		t.Errorf("Recent is without the cleared item: %s", recent)
+	}
+	// the stream: one "changed" when the household changes, here by another member
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, s.srv.URL+"/app/h/"+s.a.id+"/events", nil)
+	stream, err := b.c.Do(req)
+	if err != nil || stream.StatusCode != http.StatusOK || stream.Header.Get("Content-Type") != "text/event-stream" {
+		t.Fatalf("the stream: %v %v", err, stream)
+	}
+	defer func() { _ = stream.Body.Close() }()
+	other, otherCSRF := signInByPhone(t, s, s.a.member)
+	other.htmx(list+"/add", otherCSRF, url.Values{"text": {"kaas"}})
+	heard := false
+	lines := bufio.NewScanner(stream.Body)
+	for lines.Scan() {
+		if lines.Text() == "event: changed" {
+			heard = true
+			break
+		}
+	}
+	if !heard {
+		t.Errorf("the stream said nothing after another member's add: %v", lines.Err())
+	}
+	if res, _ := b.get("/app/h/" + s.b.id + "/events"); res.StatusCode != http.StatusNotFound {
+		t.Errorf("another household's stream: %d, want 404", res.StatusCode)
+	}
+}
+
 func TestVouchPageOpensTheApp(t *testing.T) {
 	s := newSuite(t)
 	b := newBrowser(t, s.srv.URL)

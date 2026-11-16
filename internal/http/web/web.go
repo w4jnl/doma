@@ -104,7 +104,7 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 		if base == "layout.html" || strings.HasPrefix(base, "_") {
 			continue
 		}
-		files := []string{"templates/layout.html", name}
+		files := []string{"templates/layout.html", "templates/_side.html", name}
 		if strings.HasPrefix(base, "guest") || base == "_guest_fragment.html" {
 			files = append(files, "templates/_guest_list.html", "templates/_guest_panel.html")
 		}
@@ -130,16 +130,24 @@ func New(svc *service.Service, log *slog.Logger, secure bool) (*Web, error) {
 	}
 	pages["_guest_panel"] = panel
 	// the web client's polled rows and its panel after an add
-	rows, err := template.New("_app_rows_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_rows_fragment.html", "templates/_app_rows.html")
+	rows, err := template.New("_app_rows_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_rows_fragment.html", "templates/_app_rows.html", "templates/_side.html")
 	if err != nil {
 		return nil, fmt.Errorf("app rows: %w", err)
 	}
 	pages["_app_rows"] = rows
-	apanel, err := template.New("_app_panel_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_panel_fragment.html", "templates/_app_panel.html", "templates/_app_rows.html")
+	apanel, err := template.New("_app_panel_fragment.html").Funcs(funcs).ParseFS(templateFS, "templates/_app_panel_fragment.html", "templates/_app_panel.html", "templates/_app_rows.html", "templates/_side.html")
 	if err != nil {
 		return nil, fmt.Errorf("app panel: %w", err)
 	}
 	pages["_app_panel"] = apanel
+	// the matches under the add field and a row as a field: each a file of its own
+	for _, name := range []string{"_app_suggest", "_app_edit"} {
+		t, err := template.New(name+".html").Funcs(funcs).ParseFS(templateFS, "templates/"+name+".html")
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", name, err)
+		}
+		pages[name] = t
+	}
 	*w = Web{svc: svc, log: log, sessions: auth.NewSessions(secure), logins: ratelimit.New(LoginsPerMinute, LoginsPerMinute), pages: pages, now: func() time.Time { return time.Now().UTC() }, secure: secure, challenges: map[string]time.Time{}, InviteDays: 7, members: auth.NewMemberSessions(secure), ceremonies: map[string]ceremony{}}
 	return w, nil
 }

@@ -1,27 +1,27 @@
 {{define "approws"}}
-<div id="rows" hx-get="{{.Data.Base}}/rows" hx-trigger="every 10s [document.visibilityState === 'visible']" hx-swap="outerHTML">
+<div id="rows" hx-get="{{.Data.Base}}/rows" hx-trigger="doma:changed from:body" hx-swap="outerHTML">
   {{$base := .Data.Base}}{{$csrf := .CSRF}}{{$tasks := .Data.View.List.IsTasks}}
   {{if .Data.View.Entries}}
+  {{if .Data.View.Open}}
   <ul class="dm-rows dm-list">
-    {{range .Data.View.Entries}}
-    <li class="{{if .Checked}}dm-done{{end}}">
+    {{range .Data.View.Entries}}{{if not .Checked}}
+    <li>
       <form method="post" action="{{$base}}/check/{{.ID}}" hx-post="{{$base}}/check/{{.ID}}" hx-target="#rows" hx-swap="outerHTML">
         <input type="hidden" name="_csrf" value="{{$csrf}}">
-        <button class="dm-row-button" type="submit" aria-pressed="{{.Checked}}">
-          <svg class="dm-glyph" aria-hidden="true"><use href="#i-{{if .Checked}}done{{else}}open{{end}}"/></svg>
+        <button class="dm-row-button" type="submit" aria-pressed="false">
+          <svg class="dm-glyph" aria-hidden="true"><use href="#i-open"/></svg>
           <span class="dm-grow">{{.ItemName}}{{if .Qty}} <span class="dm-meta">{{qty .Qty}} {{.Unit}}</span>{{end}}{{if .Note}} <span class="dm-meta">{{.Note}}</span>{{end}}</span>
-          {{if .Checked}}<span class="dm-meta">{{.CheckedBy}}</span>{{end}}
         </button>
       </form>
-      {{if not .Checked}}
+      <button class="dm-quiet-link" type="button" hx-get="{{$base}}/edit/{{.ID}}" hx-target="closest li" hx-swap="outerHTML" aria-label="Edit {{.ItemName}}">Edit</button>
       <form method="post" action="{{$base}}/remove/{{.ID}}" hx-post="{{$base}}/remove/{{.ID}}" hx-target="#rows" hx-swap="outerHTML">
         <input type="hidden" name="_csrf" value="{{$csrf}}">
-        <button class="dm-quiet-link" type="submit">Not needed</button>
+        <button class="dm-quiet-link" type="submit" aria-label="{{.ItemName}} is not needed">Not needed</button>
       </form>
-      {{end}}
     </li>
-    {{end}}
+    {{end}}{{end}}
   </ul>
+  {{end}}
   {{if .Data.View.AnyChecked}}
   <div class="dm-divider">
     <span class="dm-mono dm-meta">{{.Data.View.Checked}} {{if $tasks}}done{{else}}got{{end}}</span>
@@ -30,9 +30,51 @@
       <button class="dm-button dm-button-quiet" type="submit">Clear</button>
     </form>
   </div>
+  <ul class="dm-rows dm-list">
+    {{range .Data.View.Entries}}{{if .Checked}}
+    <li class="dm-done">
+      <form method="post" action="{{$base}}/check/{{.ID}}" hx-post="{{$base}}/check/{{.ID}}" hx-target="#rows" hx-swap="outerHTML">
+        <input type="hidden" name="_csrf" value="{{$csrf}}">
+        <button class="dm-row-button" type="submit" aria-pressed="true">
+          <svg class="dm-glyph" aria-hidden="true"><use href="#i-done"/></svg>
+          <span class="dm-grow">{{.ItemName}}{{if .Qty}} <span class="dm-meta">{{qty .Qty}} {{.Unit}}</span>{{end}}{{if .Note}} <span class="dm-meta">{{.Note}}</span>{{end}}</span>
+          <span class="dm-meta">{{.CheckedBy}}</span>
+        </button>
+      </form>
+    </li>
+    {{end}}{{end}}
+  </ul>
   {{end}}
   {{else}}
   <p class="dm-muted">{{if $tasks}}Nothing to do. Type what needs doing.{{else}}Nothing on the list. Type what you need.{{end}}</p>
   {{end}}
 </div>
+{{end}}
+{{define "listcount"}}<p class="dm-muted dm-count" id="count"{{if .OOB}} hx-swap-oob="true"{{end}}><span class="dm-dot dm-dot-{{.View.List.Colour}}" aria-hidden="true"></span>{{if .View.List.IsTasks}}{{if .View.Open}}{{.View.Open}} to do{{else}}Nothing to do{{end}}{{else}}{{if .View.Open}}{{.View.Open}} to get{{else}}Nothing to get{{end}}{{end}}</p>{{end}}
+{{define "apprecent"}}
+<aside id="recent" class="dm-recent"{{if .OOB}} hx-swap-oob="true"{{end}}>
+  {{if .View.Recent}}
+  <h2>Recent</h2>
+  <ul class="dm-rows dm-list">
+    {{range .View.Recent}}
+    <li>
+      <form method="post" action="{{$.Base}}/add" hx-post="{{$.Base}}/add" hx-target="#panel" hx-swap="outerHTML">
+        <input type="hidden" name="_csrf" value="{{$.CSRF}}">
+        <input type="hidden" name="text" value="{{.Name}}">
+        <button class="dm-row-button" type="submit" aria-label="Add {{.Name}} again">
+          <svg class="dm-glyph" aria-hidden="true"><use href="#i-add"/></svg>
+          <span class="dm-grow">{{.Name}}</span>
+          <span class="dm-meta">{{ago .At}}</span>
+        </button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+  {{end}}
+</aside>
+{{end}}
+{{define "appoob"}}
+{{template "sidelists" (dict "Lists" .Data.Lists "Household" .Data.Household "Current" .Data.View.List.ID "OOB" true)}}
+{{template "listcount" (dict "View" .Data.View "OOB" true)}}
+{{template "apprecent" (dict "Base" .Data.Base "View" .Data.View "CSRF" .CSRF "OOB" true)}}
 {{end}}
